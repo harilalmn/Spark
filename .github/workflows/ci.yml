@@ -346,7 +346,15 @@ jobs:
   docs-freshness:
     name: Documentation freshness
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+
+    # NO `if:` HERE ANY MORE, AND THAT IS THE POINT OF THIS JOB'S HISTORY.
+    #
+    # It was `if: github.event_name == 'pull_request'` from the day it was written, and this
+    # project has never opened a pull request: every commit of the marathon is a push to `main`.
+    # So the gate that enforces the client's standing documentation instruction enforced nothing,
+    # ever, and reported `skipped` on the first run after CI came back (2026-09-14) - which is how
+    # anybody noticed. A gate that cannot fire is worse than no gate, because the register counts
+    # it as coverage.
 
     # Enforces the client's standing instruction mechanically rather than by request.
     # If a change touches the public API surface or the node library, it must also touch
@@ -359,10 +367,28 @@ jobs:
 
       - name: Check that code changes are accompanied by documentation
         shell: bash
+        env:
+          PUSHED_FROM: ${{ github.event.before }}
         run: |
-          base="origin/${{ github.base_ref }}"
-          git fetch --no-tags --depth=50 origin "${{ github.base_ref }}"
-          changed=$(git diff --name-only "$base"...HEAD)
+          # THE TWO EVENTS NEED DIFFERENT RANGES, AND THAT IS THE WHOLE OF THE DIFFERENCE.
+          # A pull request compares against the tip of the branch it targets. A push compares
+          # against where the branch WAS - `github.event.before` - which is right whether the push
+          # carries one commit or sixty-three.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=50 origin "${{ github.base_ref }}"
+            range="origin/${{ github.base_ref }}...HEAD"
+          elif [ -z "$PUSHED_FROM" ] || [ "$PUSHED_FROM" = "0000000000000000000000000000000000000000" ]; then
+            # A branch's FIRST push has no before-commit. Comparing against all of history would
+            # make the gate fire on every file the repository has ever had, so the honest answer is
+            # to check this commit alone.
+            echo "::notice::First push of this ref - checking HEAD alone."
+            range="HEAD~1..HEAD"
+          else
+            range="$PUSHED_FROM..HEAD"
+          fi
+
+          echo "Comparing $range"
+          changed=$(git diff --name-only $range)
 
           echo "Changed files:"
           echo "$changed" | sed 's/^/  /'
@@ -374,7 +400,7 @@ jobs:
           touched_docs=$(echo "$changed" | grep -E '^(docs/|README\.md|AGENTS\.md)' || true)
 
           if [ -n "$needs_docs" ] && [ -z "$touched_docs" ]; then
-            if git log "$base"..HEAD --format=%B | grep -qi '^docs: none-needed'; then
+            if git log $range --format=%B | grep -qi '^docs: none-needed'; then
               echo "::notice::Documentation exemption claimed via 'docs: none-needed' trailer."
               exit 0
             fi
