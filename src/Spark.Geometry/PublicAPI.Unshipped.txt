@@ -290,3 +290,7 @@ Spark.Geometry.Mesh.Project(in Spark.Geometry.Point3d point, in Spark.Geometry.V
 Spark.Geometry.Mesh.Repaired() -> Spark.Geometry.Mesh!
 Spark.Geometry.Mesh.MadeWatertight(double tolerance = 0) -> Spark.Geometry.Mesh!
 Spark.Geometry.Curve.PulledOntoPlane(in Spark.Geometry.Plane plane, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!
+virtual Spark.Geometry.Curve.Simplified(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!
+override Spark.Geometry.NurbsCurve.Simplified(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Simplified(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyCurve.Simplified(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!

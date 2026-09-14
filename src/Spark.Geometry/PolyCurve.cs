@@ -449,6 +449,27 @@ public sealed class PolyCurve : Curve
         }
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Each segment simplifies itself and the chain is rebuilt from the results.</b> Nothing
+    /// here simplifies <i>across</i> a join: two collinear segments stay two segments, because a
+    /// polycurve's joints are where its parameterisation changes and merging them would move every
+    /// parameter in the chain. A caller who wants the joins gone has a different question.
+    /// </remarks>
+    public override Curve Simplified(in Tolerance tolerance = default)
+    {
+        Curve[] simplified = new Curve[_segments.Length];
+        bool changed = false;
+
+        for (int index = 0; index < _segments.Length; index++)
+        {
+            simplified[index] = _segments[index].Simplified(tolerance);
+            changed |= !ReferenceEquals(simplified[index], _segments[index]);
+        }
+
+        return changed ? FromJoinedCurves(simplified, tolerance) : this;
+    }
+
     /// <summary>The segments of the chain, in order.</summary>
     /// <returns>A copy of the array. The polycurve's own is never handed out.</returns>
     public Curve[] Segments() => [.. _segments];

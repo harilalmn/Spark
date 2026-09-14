@@ -358,4 +358,20 @@ public static class Curve
     public static Spark.Geometry.Curve PulledOntoPlane(
         Spark.Geometry.Curve curve, Spark.Geometry.Plane plane, double tolerance = 1e-6) =>
         curve.PulledOntoPlane(plane, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
+    /// <summary>Describes a curve as simply as it can be without moving it further than a tolerance.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="tolerance">How far the simplified curve may sit from this one.</param>
+    /// <returns>The simplified curve, or the same one when it is already as simple as it gets.</returns>
+    /// <remarks>
+    /// <b>A line, an arc and a circle come back untouched</b>, because each is already the smallest
+    /// description of itself. A polyline loses the vertices that lie on its runs, a NURBS curve
+    /// loses the interior knots it does not need, and a polycurve simplifies each of its segments
+    /// without merging any of them.
+    /// </remarks>
+    [return: NodePort("curve")]
+    [SparkNodeAlias("Curve.Simplify")]
+    public static Spark.Geometry.Curve Simplified(
+        Spark.Geometry.Curve curve, double tolerance = 0.001) =>
+        curve.Simplified(new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 }

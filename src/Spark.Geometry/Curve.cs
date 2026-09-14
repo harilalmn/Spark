@@ -522,6 +522,39 @@ public abstract class Curve
     }
 
     /// <summary>
+    /// The curve described as simply as it can be without moving further than a tolerance
+    /// (`E2-T71`).
+    /// </summary>
+    /// <param name="tolerance">
+    /// How far the simplified curve may sit from this one. Its <see cref="Tolerance.Linear"/>
+    /// component is the one that matters.
+    /// </param>
+    /// <returns>The simplified curve, or this one when it is already as simple as it gets.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The base returns itself, and that is the right answer rather than a fallback.</b> A
+    /// <see cref="Line"/>, an <see cref="Arc"/>, a <see cref="Circle"/>, an
+    /// <see cref="EllipseCurve"/> and a <see cref="Helix"/> are each already the smallest
+    /// description of themselves — a line needs two points and no fewer. Converting one to a NURBS
+    /// curve and removing knots from it would make it <i>less</i> simple, not more, which is the
+    /// opposite of what the member is for.
+    /// </para>
+    /// <para>
+    /// <b>Three types have something to remove and override this</b>: <see cref="NurbsCurve"/>,
+    /// whose interior knots may be more than its shape needs; <see cref="PolyLine"/>, whose
+    /// vertices may lie on the run between their neighbours; and <see cref="PolyCurve"/>, which has
+    /// whatever its segments have.
+    /// </para>
+    /// <para>
+    /// <b>Every override measures against <i>this</i> curve rather than against the previous
+    /// step</b>, so that a long run of individually acceptable removals cannot accumulate into one
+    /// result that is far outside the tolerance. It is the guarantee
+    /// <see cref="NurbsCurve.Reduced(in Tolerance)"/> already states, applied to all of them.
+    /// </para>
+    /// </remarks>
+    public virtual Curve Simplified(in Tolerance tolerance = default) => this;
+
+    /// <summary>
     /// The curve pulled flat onto a plane, each of its points moving to the nearest point of that
     /// plane (`E2-T71`).
     /// </summary>

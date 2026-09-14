@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: asking any curve to simplify itself)
+**Last updated:** 2026-09-14 (`E2-T71`: asking any curve to simplify itself)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T71`'s `Curve.Simplify(double)` — putting simplification on the base, which the row calls *the same shape of gap as `Surface.ToNurbsSurface`*.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The row is right and the pattern is already established**, so this follows it rather than inventing one: a virtual on `Curve`, and the types that can do better override it. **But the base case is not what the pattern usually gives.** `Surface.ToNurbsSurface` approximates on the base; here the base returns **itself**, because a `Line`, an `Arc`, a `Circle`, an `EllipseCurve` and a `Helix` are already the smallest description of themselves — converting one to NURBS and reducing it would make it **less** simple, not more. **Three types have something to remove**: `NurbsCurve` has `Reduced`, `PolyLine` has redundant vertices, and `PolyCurve` has whatever its segments have. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Curve.PulledOntoPlane` — a curve pulled flat, found by a stock-take rather than by the queue.** **Family (5) was recorded as waiting on `E2-T15`'s ray caster; this row never was**, and its own reason said so. **The route is better than the one the row predicted.** Orthogonal projection onto a plane is an **affine** map, and an affine map commutes with a rational curve's blend because the weights are a **partition of unity** — so projecting the control points and keeping the weights and knots projects the curve **exactly**. No case per type, no sampling. **The branch is affine against linear**: a plane through the origin is answered by the linear part alone, so every fixture uses an **offset** plane; the mutation reddens seven. **And the weights turned out to be guarded by exactly one test** — dropping them left even the ellipse-extent anchor green, because a quarter-circle Bézier's width is `r(1 − t²)` whose extreme sits at the endpoint either way. Residue **unchanged at 343**. 10 tests, **3839 → 3849**. **Before it:** `Mesh.MadeWatertight`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3849** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Curve.Simplified(in Tolerance)` virtual on the base returning `this`, and three overrides.** `NurbsCurve` forwards to `Reduced`, whose contract already measures deviation against the **original** throughout so that a hundred removals cannot accumulate. `PolyCurve` simplifies each segment and rejoins. **`PolyLine` is the one with an algorithm in it, and it is Douglas–Peucker rather than a neighbour walk.** Dropping a vertex whenever it sits within tolerance of the chord between its **immediate neighbours** is the obvious version and it **drifts**: on a finely sampled arc each removal is individually fine and the accumulation flattens the arc completely. Douglas–Peucker measures every dropped vertex against the **retained chord**, which is the same guarantee `Reduced` gives in different words — and it is why the two members can share one contract sentence. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **measuring against the retained chord rather than the immediate neighbours**. The fixture is a finely sampled arc: every ORIGINAL vertex must be within the tolerance of the simplified result, and the neighbour walk fails that while passing any test that only checks the vertex count went down. **The base returns the same instance**, asserted with `Assert.Same` on a `Line` and an `Arc`, because *unchanged* and *rebuilt identically* are different promises. **A degree-elevated line loses its extra control points**, which is the case that cannot argue. **A curve with nothing to remove comes back unchanged.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Forty-three steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` and `E2-T69` are closed; `E2-T72` is `Blocked`; `E2-T68` is down to its two algorithms; `E2-T71` has two rows left, both wanting surface–surface intersection.** `E2-T67` is skipped — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Curve.Simplified` — a virtual on the base with three overrides, following the pattern its row named.** **The base case is the interesting part**: it returns **itself**, where `Surface.ToNurbsSurface` approximates — because an analytic curve is already the smallest description of itself, and converting one to NURBS would make it *less* simple. Asserted with `Assert.Same`, since *unchanged* and *rebuilt identically* are different promises. **The branch is Douglas–Peucker rather than a neighbour walk.** The obvious version **drifts**: on a finely sampled arc every removal is individually acceptable and the accumulation flattens the arc — and a vertex-count test cannot see it, so the assertion is every original vertex's distance to the *result*. The mutation reddens four. **One limitation found and pinned**: `Reduced` removes **knots, not degree**, so a degree-elevated line comes back unchanged. Residue **343 → 346**, three overrides, with the reason in the exclusions history. 12 tests, **3849 → 3861**. **Before it:** `Curve.PulledOntoPlane`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3861** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at **346**, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T71`'s `Curve.OffsetMany(double, Vector)` — and read the row before assuming it is the small one.** **It looks like a wrapper and is not.** The row says `CurveOffset.Offset` returns *one* curve, so `OffsetMany` is *that member returning several* — but the several only exist when the offset **self-intersects**, and `CurveOffset.Offset` says in its own remarks that it returns the true offset locus **with its loops** because trimming them is not built. **So this row and `PolyCurve.OffsetMany` are the same gap**, and that gap is a capability: splitting a self-intersecting offset at its crossings and discarding the loops. **What has changed since the row was written is that half the machinery now exists.** `PolyLine.SelfIntersections` finds where a polyline crosses itself, and an offset is either a `Line`, an `Arc`, a `Circle` or a fitted `NurbsCurve` — so the missing piece is self-intersection for a **general** curve, which a tessellation plus that member can bracket and a Newton refine. **Decide whether that is this step or a task of its own**, and write the answer into the row either way. |
+| **Verify with** | **If it is built**, a named test that goes red when the branch is removed (AGENTS.md step 7), and the branch is **which loops are discarded**: an offset of a wiggly curve inwards produces loops that must go and pieces that must stay, and keeping the wrong ones gives a result that is the right length and the wrong shape — so the assertion is that **no point of the result is nearer the original than the offset distance**, which is what a trimmed offset means and an untrimmed one fails. **If it is deferred**, the row has to say what the capability is, which two rows share it, and what exists towards it — and the residue budget stays **exact** at 346. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15140,3 +15140,53 @@ proves**, and every one of them looked fine until the mutation ran.
 
 **Cost.** One session. One member, ten tests, one node, two mutations — one that proved the
 branch and one that proved a test was not testing what I thought.
+
+### 2026-09-14 — Asking any curve to simplify itself
+
+**What.** `Curve.Simplified`, virtual on the base, with overrides on `NurbsCurve`, `PolyLine`
+and `PolyCurve`. Twelve tests, a node, a row to `Done`, and the register at **454 of 545**.
+
+**The row named the pattern and the pattern was right**: *the same shape of gap as
+`Surface.ToNurbsSurface`*, which was closed by a virtual on the base with the types that can do
+better overriding it. Following an established shape rather than inventing one is most of why
+this was a short step.
+
+**But the base case is not what that pattern usually gives, and the difference is worth
+stating.** `Surface.ToNurbsSurface` *approximates* on the base — it does the work badly so that
+every type has an answer. Here the base returns **itself**, because a `Line`, an `Arc`, a
+`Circle`, an `EllipseCurve` and a `Helix` are each already the smallest description of
+themselves. A line needs two points and no fewer; converting one to a NURBS curve and removing
+knots from it would make it *less* simple, which is the opposite of what the member is for. The
+test asserts that with `Assert.Same` rather than by equality, because **unchanged** and
+**rebuilt identically** are different promises and only one of them is free.
+
+**The branch is Douglas–Peucker rather than a neighbour walk, and the reason is the base's own
+contract.** Dropping a vertex whenever it sits within the tolerance of the chord between its
+**immediate neighbours** is the obvious algorithm, and it **drifts**: on a finely sampled arc
+every single removal is individually acceptable and the accumulation flattens the arc
+completely. Douglas–Peucker measures each dropped vertex against the **retained** chord, so
+every original vertex ends up within the tolerance of the *result* — which is exactly the
+guarantee `NurbsCurve.Reduced` already gives in different words, and it is why the two members
+can share one contract sentence on the base.
+
+**A vertex-count test could not have seen that**, and the mutation makes the point: replacing
+the recursion with the neighbour walk still removes vertices, still returns a plausible
+polyline, and reddens the four tests that measure the original's vertices against the result.
+
+**One limitation was found by a fixture and is now pinned as a decision.** My first test
+elevated a line to a higher degree and expected simplification to take the extra control points
+off. It does not, and cannot: `Reduced` removes **interior knots**, and a degree-elevated line
+has **none** — its redundancy is in the degree. Reducing that needs degree reduction, a
+separate algorithm with its own tolerance question that Spark does not have. The fixture became
+two tests, one for each behaviour, and the limitation is in the member's remarks so that a
+caller meets it as a stated boundary rather than as a surprise.
+
+**`PolyCurve` deliberately does not simplify across a joint.** Two collinear segments stay two
+segments, because a polycurve's joints are where its parameterisation changes and merging them
+would move every parameter in the chain. A caller who wants the joins gone is asking a
+different question.
+
+**Residue 343 → 346**, three overrides. An override is a member, which is the third time this
+run the budget has moved for that reason and the reason is recorded each time.
+
+**Cost.** One session. One virtual, three overrides, twelve tests, one node, one mutation.

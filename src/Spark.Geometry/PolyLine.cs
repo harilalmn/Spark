@@ -235,6 +235,122 @@ public sealed class PolyLine : Curve
         return new PolyLine(points, nameof(plane));
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// <b>Douglas–Peucker, and the reason is the base's contract rather than tradition.</b> The
+    /// obvious algorithm drops a vertex whenever it sits within the tolerance of the chord between
+    /// its <i>immediate neighbours</i>, and it <b>drifts</b>: on a finely sampled arc every removal
+    /// is individually acceptable and the accumulation flattens the arc completely. Douglas–Peucker
+    /// measures each dropped vertex against the <b>retained</b> chord, so every original vertex is
+    /// within the tolerance of the <i>result</i> — which is the same guarantee
+    /// <see cref="NurbsCurve.Reduced(in Tolerance)"/> gives, in different words.
+    /// </para>
+    /// <para>
+    /// <b>A closed polyline keeps its first point</b>, which is also its last, so the seam is a
+    /// fixed end of the recursion rather than a vertex that can be removed. A simplification free
+    /// to move the seam would be free to open the loop.
+    /// </para>
+    /// </remarks>
+    public override Curve Simplified(in Tolerance tolerance = default)
+    {
+        double linear = tolerance.Linear;
+        bool[] keep = new bool[_points.Length];
+        keep[0] = true;
+        keep[^1] = true;
+
+        Thin(_points, 0, _points.Length - 1, linear, keep);
+
+        int kept = 0;
+        foreach (bool survives in keep)
+        {
+            if (survives)
+            {
+                kept++;
+            }
+        }
+
+        if (kept == _points.Length)
+        {
+            return this;
+        }
+
+        Point3d[] simplified = new Point3d[kept];
+        int at = 0;
+        for (int index = 0; index < _points.Length; index++)
+        {
+            if (keep[index])
+            {
+                simplified[at++] = _points[index];
+            }
+        }
+
+        return new PolyLine(simplified);
+    }
+
+    /// <summary>Marks the vertices Douglas–Peucker keeps between two fixed ends.</summary>
+    /// <param name="points">Every vertex.</param>
+    /// <param name="first">The index of the fixed vertex at the start of this run.</param>
+    /// <param name="last">The index of the fixed vertex at its end.</param>
+    /// <param name="linear">How far a dropped vertex may sit from the retained chord.</param>
+    /// <param name="keep">Which vertices survive, written into.</param>
+    /// <remarks>
+    /// <b>The farthest vertex decides the whole run.</b> If it is within the tolerance of the
+    /// chord then so is every other vertex between the ends, and all of them go together; if it is
+    /// not, it is kept and the run is split there, because the vertex that is worst described by
+    /// this chord is exactly the one that has to stay.
+    /// </remarks>
+    private static void Thin(Point3d[] points, int first, int last, double linear, bool[] keep)
+    {
+        if (last <= first + 1)
+        {
+            return;
+        }
+
+        double worst = -1.0;
+        int at = -1;
+
+        for (int index = first + 1; index < last; index++)
+        {
+            double away = DistanceToSegment(points[index], points[first], points[last]);
+
+            if (away > worst)
+            {
+                worst = away;
+                at = index;
+            }
+        }
+
+        if (worst <= linear)
+        {
+            return;
+        }
+
+        keep[at] = true;
+        Thin(points, first, at, linear, keep);
+        Thin(points, at, last, linear, keep);
+    }
+
+    /// <summary>How far a point sits from a straight run between two others.</summary>
+    /// <param name="point">The point.</param>
+    /// <param name="from">One end of the run.</param>
+    /// <param name="to">The other.</param>
+    /// <returns>The distance, measured to the segment rather than to the infinite line.</returns>
+    private static double DistanceToSegment(in Point3d point, in Point3d from, in Point3d to)
+    {
+        Vector3d along = to - from;
+        double lengthSquared = along.LengthSquared;
+
+        if (lengthSquared <= 0.0)
+        {
+            return point.DistanceTo(from);
+        }
+
+        double at = Math.Clamp((point - from).Dot(along) / lengthSquared, 0.0, 1.0);
+
+        return point.DistanceTo(from + (along * at));
+    }
+
     /// <summary>The points the polyline runs through.</summary>
     /// <returns>A copy. The polyline's own array is never handed out.</returns>
     public Point3d[] Points() => [.. _points];

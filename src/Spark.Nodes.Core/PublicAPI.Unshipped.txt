@@ -67,3 +67,4 @@ static Spark.Nodes.Core.Mesh.Project(Spark.Geometry.Mesh! mesh, Spark.Geometry.P
 static Spark.Nodes.Core.Mesh.Repaired(Spark.Geometry.Mesh! mesh) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.MadeWatertight(Spark.Geometry.Mesh! mesh, double tolerance = 0) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Curve.PulledOntoPlane(Spark.Geometry.Curve! curve, Spark.Geometry.Plane plane, double tolerance = 1E-06) -> Spark.Geometry.Curve!
+static Spark.Nodes.Core.Curve.Simplified(Spark.Geometry.Curve! curve, double tolerance = 0.001) -> Spark.Geometry.Curve!

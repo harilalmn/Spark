@@ -607,6 +607,27 @@ public sealed class NurbsCurve : Curve
         return (current, removed);
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// <b>Knot removal, which is what this type has to spare.</b> It forwards to
+    /// <see cref="Reduced(in Tolerance)"/> and keeps only the curve, discarding the count of knots
+    /// removed — a caller who wants to know how much came off should ask that member instead. The
+    /// deviation is measured against this curve throughout, which is the base's contract and
+    /// <see cref="Reduced(in Tolerance)"/>'s own.
+    /// </para>
+    /// <para>
+    /// <b>It removes knots and not degree, and the difference is visible in the one case people
+    /// try first.</b> A straight line raised to degree five has six control points, <i>no interior
+    /// knots at all</i>, and nothing here can take it back to two — its redundancy is in the
+    /// degree. Reducing that needs degree reduction, which is a separate algorithm with its own
+    /// tolerance question and is not built. So a curve whose extra control points came from
+    /// <see cref="WithDegreeElevated(int)"/> comes back unchanged, and a curve whose extra knots
+    /// came from interpolation or insertion loses them.
+    /// </para>
+    /// </remarks>
+    public override Curve Simplified(in Tolerance tolerance = default) => Reduced(tolerance).Curve;
+
     /// <summary>
     /// Removes every interior knot the curve can spare, leaving the smallest representation of it
     /// that is within tolerance.
