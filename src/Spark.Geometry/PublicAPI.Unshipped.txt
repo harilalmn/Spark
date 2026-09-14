@@ -281,3 +281,5 @@ static Spark.Geometry.Arc.FromStartEndStartTangent(in Spark.Geometry.Point3d sta
 Spark.Geometry.PolyCurve.Filleted(double radius, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
 Spark.Geometry.PolyCurve.ClosedWithLineAndTangentArcs(double startRadius, double endRadius, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
 static Spark.Geometry.PolyCurve.FromGroupedCurves(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve![]!
+static Spark.Geometry.PolyCurve.FromThickenedCurve(Spark.Geometry.Curve! curve, double thickness, in Spark.Geometry.Vector3d planeNormal, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
+static Spark.Geometry.PolyCurve.FromThickenedCurveAlong(Spark.Geometry.Curve! curve, double thickness, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!

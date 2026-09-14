@@ -54,6 +54,13 @@ public sealed class ConstructorParityTests
             "FromDegrees and FromRadians are both (double), and an angle carries no unit in its "
             + "type. new Angle(90) would have to quietly mean one of them, and the reader of that "
             + "line could not tell which — a wrong answer that looks right. Say which you mean.",
+        ["PolyCurve(Curve, Double, in Vector3d, in Tolerance)"] =
+            "FromThickenedCurve and FromThickenedCurveAlong are both (Curve, double, Vector3d, "
+            + "Tolerance) and disagree about what the vector is: one treats it as the NORMAL of "
+            + "the plane the ribbon lies in, the other as the DIRECTION the ribbon runs along. The "
+            + "two give perpendicular results from identical arguments - flat against standing up "
+            + "- so a constructor would be the worst kind of coin flip, one whose answer is a "
+            + "valid shape either way and only wrong later (`E2-T72`).",
         ["Plane(in Point3d, in Vector3d, in Vector3d)"] =
             "FromOriginXAxisYAxis and FromOriginNormalXAxis are both (Point3d, Vector3d, Vector3d) "
             + "and disagree about what the second vector is. Getting it wrong tilts the plane "

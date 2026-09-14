@@ -27,6 +27,49 @@ public static class PolyCurve
         Spark.Geometry.PolyCurve.FromJoinedCurves(
             curves, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 
+    /// <summary>The closed outline of a curve given a thickness, spread sideways in a plane.</summary>
+    /// <param name="curve">The centre line. Must be open.</param>
+    /// <param name="thickness">How wide the result is. Half of it goes to each side.</param>
+    /// <param name="planeNormal">The normal of the plane the thickening happens in.</param>
+    /// <param name="tolerance">The tolerance for the offsets and the join.</param>
+    /// <returns>The closed outline: one side, a cap, the other side, a cap.</returns>
+    /// <remarks>
+    /// <b>The curve is the centre line and the ends are capped with straight lines.</b> A closed
+    /// curve is refused, because thickened it is an annulus — two loops, not one. Thickening a
+    /// wiggly curve by more than twice its smallest radius of curvature gives an outline that
+    /// crosses itself, which is not repaired here.
+    /// </remarks>
+    [return: NodePort("polycurve")]
+    [SparkNodeAlias("PolyCurve.ByThickeningCurve")]
+    public static Spark.Geometry.PolyCurve FromThickenedCurve(
+        Spark.Geometry.Curve curve,
+        double thickness,
+        Vector3d planeNormal,
+        double tolerance = 1e-6) =>
+        Spark.Geometry.PolyCurve.FromThickenedCurve(
+            curve, thickness, planeNormal, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
+    /// <summary>The closed outline of a curve given a thickness, spread along a direction.</summary>
+    /// <param name="curve">The centre line. Must be open.</param>
+    /// <param name="thickness">How wide the result is. Half of it goes to each side.</param>
+    /// <param name="direction">The direction to thicken along.</param>
+    /// <param name="tolerance">The tolerance for the join.</param>
+    /// <returns>The closed outline.</returns>
+    /// <remarks>
+    /// <b>This is a translation rather than an offset, so it is exact for every curve type.</b>
+    /// Where <c>FromThickenedCurve</c> spreads the ribbon sideways within a plane, this one moves
+    /// it bodily along the direction given — flat against standing up, from the same arguments.
+    /// </remarks>
+    [return: NodePort("polycurve")]
+    [SparkNodeAlias("PolyCurve.ByThickeningCurveNormal")]
+    public static Spark.Geometry.PolyCurve FromThickenedCurveAlong(
+        Spark.Geometry.Curve curve,
+        double thickness,
+        Vector3d direction,
+        double tolerance = 1e-6) =>
+        Spark.Geometry.PolyCurve.FromThickenedCurveAlong(
+            curve, thickness, direction, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
     /// <summary>Sorts a heap of curves into as many chains as it holds.</summary>
     /// <param name="curves">The curves, in any order and drawn in any direction.</param>
     /// <param name="tolerance">How near two ends must be to count as joined.</param>

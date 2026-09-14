@@ -285,6 +285,170 @@ public sealed class PolyCurve : Curve
         }
     }
 
+    /// <summary>
+    /// The closed outline of a curve given a thickness, thickened <i>sideways</i> within a plane
+    /// (`E2-T72`).
+    /// </summary>
+    /// <param name="curve">The centre line. Must be open.</param>
+    /// <param name="thickness">How wide the result is. Positive. Half of it goes to each side.</param>
+    /// <param name="planeNormal">The normal of the plane the thickening happens in.</param>
+    /// <param name="tolerance">The tolerance for the offsets and for joining the loop.</param>
+    /// <returns>The closed outline: one side, a cap, the other side, a cap.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="thickness"/> is not positive and finite.</exception>
+    /// <exception cref="ArgumentException">
+    /// The curve is closed, or it does not lie in a plane with that normal.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The curve is the centre line and half the thickness goes to each side</b>, which is what
+    /// thickening means and is worth stating because the alternative — all of it on one side — is
+    /// a perfectly reasonable operation with a different name.
+    /// </para>
+    /// <para>
+    /// <b>The ends are capped with straight lines.</b> The signature does not say what a cap is, so
+    /// this one chooses: a straight line between the two offset ends is the shape a caller can
+    /// reason about and measure. A rounded cap is a different outline, and it would be a different
+    /// member rather than a flag on this one.
+    /// </para>
+    /// <para>
+    /// <b>A closed curve is refused rather than thickened.</b> A closed centre line thickened is an
+    /// <i>annulus</i> — an outer loop and an inner one — which is two curves and not one polycurve,
+    /// so there is nothing honest for this member to return.
+    /// </para>
+    /// <para>
+    /// <b>A self-intersecting result is not repaired, and that is inherited rather than decided
+    /// here.</b> <see cref="CurveOffset.Offset"/> states that it returns the true offset locus with
+    /// its loops — trimming them needs a capability that is not built — so thickening a wiggly
+    /// curve by more than twice its smallest radius of curvature gives an outline that crosses
+    /// itself. A wrapper that refused what the member beneath it returns would be two stances on
+    /// one question. <see cref="PolyLine.SelfIntersections"/> on a tessellation answers it for a
+    /// caller who needs to know.
+    /// </para>
+    /// </remarks>
+    public static PolyCurve FromThickenedCurve(
+        Curve curve, double thickness, in Vector3d planeNormal, in Tolerance tolerance = default)
+    {
+        CheckThickening(curve, thickness);
+
+        double half = thickness / 2.0;
+
+        return CloseTheRibbon(
+            CurveOffset.Offset(curve, half, planeNormal, tolerance).Curve,
+            CurveOffset.Offset(curve, -half, planeNormal, tolerance).Curve,
+            tolerance);
+    }
+
+    /// <summary>
+    /// The closed outline of a curve given a thickness, thickened <i>along</i> a direction
+    /// (`E2-T72`).
+    /// </summary>
+    /// <param name="curve">The centre line. Must be open.</param>
+    /// <param name="thickness">How wide the result is. Positive. Half of it goes to each side.</param>
+    /// <param name="direction">The direction to thicken along. Need not be unit length.</param>
+    /// <param name="tolerance">The tolerance for joining the loop.</param>
+    /// <returns>The closed outline.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="thickness"/> is not positive and finite.</exception>
+    /// <exception cref="ArgumentException">The curve is closed, or the direction has no length.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the other reading of Dynamo's pair, and the reading is stated because the
+    /// signatures do not give it.</b> <c>ByThickeningCurve</c> and <c>ByThickeningCurveNormal</c>
+    /// both take a vector, so <i>supplied versus inferred</i> cannot be what separates them. The
+    /// reading taken is the one in which **both** arguments have a job:
+    /// <see cref="FromThickenedCurve"/> offsets <b>sideways, within</b> the plane the vector is
+    /// normal to — a ribbon lying flat — and this offsets <b>along</b> the vector — a ribbon
+    /// standing up. A reading that leaves an argument doing nothing is the less likely one.
+    /// </para>
+    /// <para>
+    /// <b>It is a translation, not an offset, and so it is exact for every curve type.</b> Moving a
+    /// curve bodily keeps its shape, where offsetting it generally does not — the offset of a
+    /// polynomial curve is not polynomial, which is why <see cref="CurveOffset.Offset"/> fits an
+    /// approximation for everything but lines, circles and arcs. This member fits nothing.
+    /// </para>
+    /// <para>
+    /// <b>The direction may be any vector, including one in the curve's own plane.</b> Nothing here
+    /// requires it to be perpendicular to anything; a direction lying along the curve gives a
+    /// degenerate ribbon, which is the arithmetic being honest rather than a case to guard.
+    /// </para>
+    /// </remarks>
+    public static PolyCurve FromThickenedCurveAlong(
+        Curve curve, double thickness, in Vector3d direction, in Tolerance tolerance = default)
+    {
+        CheckThickening(curve, thickness);
+
+        if (!direction.TryNormalise(out Vector3d unit))
+        {
+            throw new ArgumentException(
+                "A thickening direction must have some length.", nameof(direction));
+        }
+
+        Vector3d half = unit * (thickness / 2.0);
+
+        return CloseTheRibbon(
+            curve.TransformedBy(Transform.Translation(half)),
+            curve.TransformedBy(Transform.Translation(-half)),
+            tolerance);
+    }
+
+    /// <summary>Closes two sides of a ribbon into one outline.</summary>
+    /// <param name="first">One side, running the way the centre line runs.</param>
+    /// <param name="second">The other side, running the same way.</param>
+    /// <param name="tolerance">The join tolerance.</param>
+    /// <returns>The closed outline.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The second side has to be turned round, and that is the whole of this helper.</b> Both
+    /// sides come out running the same way as the centre line did. The loop is: the first side
+    /// forward, a cap across the far end, the second side <b>reversed</b>, and a cap back across
+    /// the near end.
+    /// </para>
+    /// <para>
+    /// <b>Leaving out the reversal does not fail loudly, which is worth knowing.</b> The caps are
+    /// built from whatever ends they find, so an unreversed return side still produces a chain that
+    /// joins and still <i>closes</i> — it is a <b>bow-tie</b>, with two diagonal caps crossing in
+    /// the middle, and it passes every test of continuity and closure. What catches it is the
+    /// <i>perimeter</i>, and that a bow-tie crosses itself.
+    /// </para>
+    /// </remarks>
+    private static PolyCurve CloseTheRibbon(Curve first, Curve second, in Tolerance tolerance)
+    {
+        Curve back = second.Reversed();
+
+        return FromJoinedCurves(
+            [
+                first,
+                new Line(first.EndPoint, back.StartPoint),
+                back,
+                new Line(back.EndPoint, first.StartPoint),
+            ],
+            tolerance);
+    }
+
+    /// <summary>Rejects the inputs neither thickening member can work with.</summary>
+    /// <param name="curve">The centre line.</param>
+    /// <param name="thickness">The thickness.</param>
+    private static void CheckThickening(Curve curve, double thickness)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+
+        if (!double.IsFinite(thickness) || thickness <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(thickness), thickness, "A thickness must be positive and finite.");
+        }
+
+        if (curve.IsClosed)
+        {
+            throw new ArgumentException(
+                "A closed curve thickened is an annulus - an outer loop and an inner one - which is "
+                + "two curves and not one polycurve. Thicken an open curve, or offset the closed "
+                + "one to both sides with CurveOffset.Offset and keep the two loops.",
+                nameof(curve));
+        }
+    }
+
     /// <summary>The segments of the chain, in order.</summary>
     /// <returns>A copy of the array. The polycurve's own is never handed out.</returns>
     public Curve[] Segments() => [.. _segments];
