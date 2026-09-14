@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: the nodes the register claims exist)
+**Last updated:** 2026-09-14 (`E5-T14`: the nodes the register claims exist)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E5-T14` — geometry node coverage, and the criterion it has been waiting for.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*.** **`E11-T17` was looked at first and set down, with the reason.** Its graph half is **already covered**: `CanvasGraphTests` asserts each of the three `docs/examples/*.spark` files is exactly what this build saves, so a corpus walker over them would duplicate an existing gate. Its migration half waits on there being old versions to keep. And building a walker over an **empty** folder is the vacuous gate [N167](NOTES.md) and [N168](NOTES.md) are both about. **`E5-T14` said what would close it and the condition is now met**: *it closes when `E2-T42`…`E2-T45` say what the surface, solid, topology and mesh sets are, and not before — a node count with no target is not a criterion*. Those assessments are done. **And the register makes a claim nothing checks.** Twenty-nine rows end *Exposed as the node X.Y*, written by hand, one of them for a node I **renamed** mid-run — `Mesh.Repair` to `Mesh.Repaired` — and corrected by hand too. A register that names a node is only as true as its last edit. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E11-T7`'s link and anchor integrity — and it found twelve broken anchors on its first run.** `EveryRelativeLinkResolves` has always checked that a linked *file* exists, and says in its own code that it is *not checking the heading*. This is the heading half. **Twelve distinct broken anchors across twenty-four citations**, every one the residue of a rename — one epic carried **three** different stale spellings from three successive renames. All fixed. **A stale anchor is not a broken link**: the page opens, the reader lands at the top, nobody reports it and a diff cannot show it ([N168](NOTES.md)). **The check ships with a test that it is not vacuous**, over a synthetic document — because a checker that finds nothing looks exactly like one that checks nothing ([N167](NOTES.md)), and the mutation proves it: inverting the condition leaves the repository check **green** and reddens only that test. **Writing the note broke the check twice**, and both breakages are in N168. Residue **unchanged at 346**. 11 tests, **3861 → 3872**. **Before it:** `Curve.Simplified`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3872** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write a check that every node the parity register claims actually exists.** Pull every *Exposed as the node X.Y* out of the manifest, read `Spark.Nodes.Core`'s public types and methods the way `DynamoParityChecks` already does — through `PEReader` rather than by loading the assembly — and assert each claim resolves. **Reuse that reader rather than writing a second one**: it is already private to the parity check and becomes `internal`, so there is one copy of *what counts as a public member* in this harness instead of two that can disagree. **The claims are not uniformly punctuated** — some end with a full stop and some do not — so the extraction has to stop at the end of the identifier rather than at a period. |
-| **Verify with** | **The same two-part shape the anchor check used, for the same reason.** **(1) The check over the real register**, which either passes or finds a claim that has gone stale — and if it finds one, fixing it is part of this step. **(2) A test that the check is not vacuous**: a synthetic claim naming a node that does not exist must be reported, and one naming a node that does must not. Without it, an extraction regular expression that matches nothing passes the register perfectly and guards nothing — which is exactly what [N168](NOTES.md) was written about, one step ago. **The three gates**, and the residue budget **exact** at 346. |
+| **Working on** | **Nothing — between steps.** Forty-five steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*, then *finish everything - we release only after that*; 2026-09-14 *do not stop until all epics are completed*.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E5-T14`'s criterion arrived, and it is not a count.** That row said in as many words that *a node count with no target is not a criterion*, and waited for `E2-T42`…`E2-T45` to say what the sets were. They have — so the target is the **register**, and the register was making a claim nothing checked: **twenty-nine rows end *Exposed as the node X.Y***, written by hand on the day each row closed. **All twenty-nine resolve.** The check reads `Spark.Nodes.Core` through the same `PEReader` the parity check already used, which became `internal` rather than being copied — one definition of *what counts as a public member* in this harness instead of two that can drift. **Not a hypothetical guard**: `Mesh.Repair` became `Mesh.Repaired` an hour after it was written and the claim was corrected by hand. **Two tests guard the guard**, and the mutation proves them: breaking the pattern leaves the register check **green** and reddens both. Residue **unchanged at 346**. 3 tests, **3872 → 3875**. **Before it:** `E11-T7`'s anchors. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3875** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T30` — the compact binary `.sparkgeo` for bulk data.** **Read the row and the format that exists first.** `SparkFile` writes the graph as JSON and the row's whole argument is a measurement: *JSON for a 500k-triangle mesh is roughly 30× the size and 50× the parse time*. **Check that measurement before building to it** — it was written before the mesh type existed, and a claim of 30× is a claim about *this* serialiser, not about JSON in general. **If it holds, the shape is clear**: a length-prefixed binary blob for vertices, faces and channels, addressed from the JSON rather than replacing it, so a graph stays readable and only its bulk goes binary. **The decision is where the boundary sits** — what counts as bulk, and whether a reader that does not understand `.sparkgeo` can still open the graph. **If the measurement does not hold**, say so in the row with the numbers, and the row becomes a smaller one or none at all. A format is expensive: it has to be versioned, documented and read back forever. |
+| **Verify with** | **A measurement before any code**, written into the row either way — the size and parse time of a real mesh through the existing serialiser, against the same mesh in whatever binary shape is proposed. A format justified by an unmeasured ratio is a format justified by nothing. **If it is built**, a named test that goes red when the branch is removed (AGENTS.md step 7), and the branch is the **round trip**: bytes in, geometry out, identical — with a test over a mesh carrying *every* channel, because a channel nobody wrote a fixture for is exactly the one a binary writer forgets. **Endianness and version are stated in the header or the format is not readable forever.** The three gates, and the residue budget **exact** at 346. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15250,3 +15250,52 @@ needs the help renderer, `E8-T14`, and is not testable before it.
 
 **Cost.** One session. One check, eleven tests, twelve documentation faults fixed, one note,
 and two self-inflicted breakages worth more than the check.
+
+### 2026-09-14 — The nodes the register claims exist
+
+**What.** `E5-T14`'s criterion, answered. Three tests, one method made `internal` rather than
+copied, and a claim the register has been making unchecked for as long as it has made it.
+
+**`E11-T17` was looked at first and put down, which is worth recording because it looked like
+the obvious next thing.** Its graph half is **already covered**: `CanvasGraphTests` asserts each
+of the three `docs/examples/*.spark` files is exactly what this build saves, so a corpus walker
+over them would be a second gate on the same fact. Its migration half waits on there being old
+versions to keep. And a walker over an **empty** folder is precisely the vacuous gate
+[N167](NOTES.md) and [N168](NOTES.md) are both about — I would have written the check, watched
+it pass, and guarded nothing.
+
+**`E5-T14` had said what would close it, and the condition had quietly become true.** *It closes
+when `E2-T42`…`E2-T45` say what the surface, solid, topology and mesh sets are, and not before —
+a node count with no target is not a criterion.* Those assessments are done. So the target is
+the register.
+
+**And the register makes a claim nothing was checking.** Twenty-nine rows end *Exposed as the
+node X.Y*. It is written by hand, on the day the row closes, and it is the sentence a reader
+trusts when asking **can a graph reach this?** A rename anywhere in `Spark.Nodes.Core` turns it
+into a confident lie with no symptom at all — the build is green, the node works, and the
+register points at a name that no longer exists.
+
+**That is not hypothetical, and the example is from this run.** `Mesh.Repair` became
+`Mesh.Repaired` an hour after it was written, to match every other member of its type, and I
+corrected the claim by hand at the same time. It happened to be right. Nothing would have said
+so if it had not been.
+
+**All twenty-nine resolve today**, which is the answer I wanted and not the one that would have
+made the better story.
+
+**The reader was shared rather than copied.** `DynamoParityChecks.PublicMembers` reads a built
+assembly's public surface through `PEReader` without loading it, and it was private. It is now
+`internal`, so this check sees the node library exactly as the parity check sees the kernel.
+Two copies of *what counts as a public member* in one harness is two things that can disagree,
+and the disagreement would show up as a check that had quietly stopped covering something.
+
+**Two tests guard the guard, and after the last step that is deliberate rather than dutiful.**
+One runs the checker over a synthetic library and demands that a claim for a node that does not
+exist is reported. The other asserts the register still makes at least twenty-five such claims,
+so that rewording the rows cannot silently stop the check from reading them. The mutation makes
+the case: break the extraction pattern and the check over the real register stays **green**
+while both guards go red.
+
+**Residue unchanged at 346.**
+
+**Cost.** One session, and a short one. One check, three tests, one method's visibility.

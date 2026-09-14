@@ -444,7 +444,18 @@ public sealed class DynamoParityChecks
     /// The public types of one assembly and the names of their public members, read from its newest
     /// build as metadata - nothing is loaded.
     /// </summary>
-    private static Dictionary<string, HashSet<string>> PublicMembers(string project)
+    /// <summary>
+    /// The public types of a built assembly and the members each declares.
+    /// </summary>
+    /// <param name="project">The project name, which is also the assembly name.</param>
+    /// <returns>Each public type by full name, with the names of its public members.</returns>
+    /// <remarks>
+    /// <b>Internal rather than private, so that <see cref="NodeClaimChecks"/> reads the node
+    /// library the same way this reads the kernel.</b> Two copies of <i>what counts as a public
+    /// member</i> in one harness is two things that can disagree, and the disagreement would show
+    /// up as a check that quietly stopped covering something.
+    /// </remarks>
+    internal static Dictionary<string, HashSet<string>> PublicMembers(string project)
     {
         string? assembly = new[] { "Debug", "Release" }
             .Select(configuration => Path.Combine(Root, "src", project, "bin", configuration, "net10.0", project + ".dll"))
