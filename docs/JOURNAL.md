@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: a half that was discarded, not missing)
+**Last updated:** 2026-09-14 (three rows that were never blocked by what the register said)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E1-T21` and `E8-T15` — and the first thing to fix is what I wrote about them this morning.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*.** **Both rows, and the previous step's *Next action*, say these want *results committed as a git time series*. [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md) **discarded that**, and was accepted on 2026-08-29.** It is not a missing half; it is a rejected one, on three stated grounds: a scheduled job that pushes to `main` is a **write-capable workflow** and a materially larger security surface; a hosted runner varies by more than any regression worth catching, so the series would record **the fleet's mood**; and a series **decides nothing** — it still needs somebody to look, which is the exact failing that left three benchmarks unwatched for a milestone. **I re-blocked those rows on a thing the project had already refused**, hours ago, in the same edit that unblocked them — and the ADR is cited two lines away in `docs/TODO.md`. **What the rows actually need is a run.** |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E11-T14` — and three CI runs that each found something this machine could not.** **The gate had never once run.** `docs-freshness` was `if: pull_request` from the day it was written and **this project has never opened a pull request** — every commit is a push to `main`. It reported `skipped` on the first restored run, which is how anybody noticed; the register had been counting it as coverage. It now runs on a push too, comparing against `github.event.before`, and **it has run and passed for the right reason** — the correct range, the real file list, and documentation actually touched. **Two genuine faults came out of the same three runs.** Ubuntu: a package test asserting a Windows-only answer unconditionally ([N169](NOTES.md)). Windows: four console tests whose helper **discarded the compilation result** ([N170](NOTES.md)), hiding the real fault — `ReferenceCatalog` assembled its prelude from *what the process had already loaded*, so on a machine that ran the classes in another order **`Console` in a code block meant System's** ([N171](NOTES.md)). That one is production code, and the third time that fault has been found in that one method. Residue **unchanged at 346**. **3875 → 3876**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3876** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346. **Pushed, and CI runs on every push to `main` again.** No stashes. |
-| **Next action** | **Correct both rows to say what ADR-0023 decided, then make the nightly actually run.** Its `cron` is back but the first scheduled firing is 03:17 UTC; `workflow_dispatch` can demonstrate the criterion **today**, which is what the register's own rule asks for — a criterion is ticked when a run demonstrates it, never when code exists that would satisfy it. **Expect it to take fifteen to twenty minutes per operating system**, which is why it is not in the pull-request build. **A broken budget is the interesting outcome, not the bad one.** The budgets in `bench/budgets.jsonc` were set on a developer machine and have **never been checked on a hosted runner** — allocation ceilings should hold exactly, ratios should hold, and the wall-clock ceilings are deliberately an order of magnitude loose for precisely this reason. If one fails, that is the first real evidence about whether the budgets were set honestly. |
-| **Verify with** | **A nightly run on GitHub that completes and reports its budget check** — which is the only thing that can move these rows, since what they lacked was never code. **Both legs**, and the canvas benchmark on Windows. **If a budget breaks, it is investigated rather than widened.** A ceiling raised to make a run green is a guard converted into a report, which is what ADR-0023 exists to prevent. **And the corrected rows have to name the ADR**, so the next person who reads *time series* in the M0 plan finds the decision rather than re-planning it. |
+| **Working on** | **Nothing — between steps.** Fifty-two steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E1-T21`, `E8-T15` and `E11-T15` — three rows `Done`, and not one of them was blocked by what the register said it was blocked by.** **`E1-T21` and `E8-T15` wanted a *time series* that [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md) discarded on 2026-08-29** — and I re-blocked them on it this morning, in the same edit that unblocked them, with the ADR cited two lines away. **The nightly had also been running successfully on hosted runners 5–8 September**; the 9 September failure had **no steps at all** and was a billing refusal, read by the register as a defect. Dispatched by hand today it was green on both runners: *Every budget holds*, and the 2 000-node canvas at **1.38 ms median, 3.04 ms p95** against 16.70 and 33.30. **`E11-T15` waited a month on [N90](NOTES.md)'s headless hang, which no longer happens.** Nothing was changed to achieve that; it was retried. `MainWindowSmokeTests` now opens the **real** `MainWindow`. Residue **unchanged at 346**. 2 tests, **3876 → 3878**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3878** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346. **CI green on both legs; the nightly green on both runners.** No stashes. |
+| **Next action** | **Write the note this run has earned, then take the next row.** **Three rows in one session were blocked by their own description rather than by anything in the tree**, and it is the same failure three times: a status written on the day something was true and never re-checked. `E1-T21` and `E8-T15` cited a plan the project had formally replaced; `E11-T15` cited a hang that had stopped happening; and this morning's edit to the first two **re-blocked them on the discarded plan**, which is the failure happening *while writing about itself*. **The cheap check that would have caught all three is the same one**: before believing a blocker, spend one command testing it. `gh run list` for the nightly. A ten-line test for the hang. A grep for the ADR. **None of the three cost more than two minutes and all three had gone unspent for a month.** **Then the queue**: `E11-T11`'s golden-file infrastructure and `E2-T64`'s `Curve2d` are the two open rows with no external dependency — and `E2-T64` was investigated earlier and found to have **no consumer**: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows. That finding needs writing into the row whichever is taken. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 346. **And CI, which now has an opinion**: two of the last four runs found something no local gate could. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15472,3 +15472,69 @@ the right reason**: correct range, real file list, documentation genuinely touch
 
 **Cost.** One session, three CI runs, and a standing argument settled: the local gates are not
 wrong, they are **narrow**, and the narrowness is invisible from inside.
+
+### 2026-09-14 — Three rows that were never blocked by what the register said
+
+**What.** `E1-T21`, `E8-T15` and `E11-T15` to `Done`. Two tests, no production code, one note
+marked stale, and three blockers that turned out not to exist.
+
+**This is one failure three times, and the third instance happened while writing about the
+first two.**
+
+**`E1-T21` and `E8-T15` were blocked on a plan the project had already replaced.** Both rows
+said they still wanted *results committed as a git time series*.
+[ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md) discarded exactly that
+on 2026-08-29, on three stated grounds — a scheduled job that pushes to `main` is a
+write-capable workflow and a materially larger security surface; a hosted runner varies by more
+than any regression worth catching, so the series records the fleet's mood; and **a series
+decides nothing**, which is the exact failing that left three benchmarks unwatched for a
+milestone. **And this morning, unblocking those rows, I wrote the discarded plan back into them
+as outstanding work** — with the ADR cited two lines away in `docs/TODO.md`.
+
+**They were also not waiting for a run. The run had happened.** `docs/TODO.md` said the nightly
+*has still never run on a hosted runner* — twice, the second time because I edited that
+sentence without checking the claim inside it. `gh run list` says it ran on 5, 6, 7 and 8
+September and succeeded every time. The 8 September run judged ADR-0013 on a 2 000-node canvas
+at 1.53 ms median and ended *Every budget holds*. The 9 September run failed with **no steps at
+all** — the repository had just gone private and the run was refused for billing. **The
+register read a billing refusal as a defect and held two rows `Blocked` behind it for five
+days.**
+
+**Dispatched by hand today it was green on both runners**, allocation ceilings exact — `Cull`
+at 0 B of 0 B, `Rebuild` at 2.27 KiB of 2.54 KiB — and the canvas at **1.38 ms median, 3.04 ms
+p95** against 16.70 and 33.30. Stable across runners and a week apart, which is the property
+ADR-0023 said ratios and allocations would have and wall-clock would not.
+
+**`E11-T15` waited a month on a hang that had stopped happening.** [N90](NOTES.md) records a
+wrapping, data-bound `TextBlock` in a `Grid` hanging Avalonia's headless `Window.Show()` before
+the first frame — not failing, not timing out, just sitting there until the harness killed it.
+It killed `InspectorLayoutTests`, which was deleted, and left [N89](NOTES.md)'s fix verified by
+a person's eyes and nothing else. **Retried today it opens in under a second**, and the real
+`MainWindow` composes completely — title bar, menu, a `DockControl` laid out at 1480×838,
+status bar — renders a frame and closes. **Nothing in this repository was changed to achieve
+that.** What fixed it is unknown and the note says so rather than guessing.
+
+**A note that records a hang is a note that stops people retrying.** That is most of its value
+and all of its cost, and the balance flips silently the day the hang is fixed upstream. N90 is
+kept rather than deleted, so that a return is read as a regression against a known-good state,
+and the smoke test is what would notice.
+
+**The smoke test claims only what it can.** `CaptureRenderedFrame` returns null in this
+backend, so no assertion mentions a picture. It asserts composition and layout — and the one
+that matters is the `DockControl` having a real size, because the shell lays out perfectly well
+with an empty body.
+
+**`E1-T19` is left `Open` rather than ticked on a technicality.** Its dependency is cleared,
+but the smoke test lives in `Spark.UI.Tests` and therefore already runs on both CI legs — a
+separate job would re-run it rather than cover anything new. That is a decision to take, not a
+box to tick.
+
+**The cheap check that would have caught all three is the same one.** Before believing a
+blocker, spend one command testing it: `gh run list` for the nightly, a ten-line test for the
+hang, a grep for the ADR. **None cost more than two minutes, and all three had gone unspent for
+a month.**
+
+**Residue unchanged at 346. No tag, no release.**
+
+**Cost.** One session. Two tests, three rows, and rather more learned about the register than
+about the code.
