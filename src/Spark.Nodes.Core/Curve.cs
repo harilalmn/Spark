@@ -256,6 +256,27 @@ public static class Curve
         return [trimmedFirst, fillet, trimmedSecond];
     }
 
+    /// <summary>Rounds a corner with an arc whose radius is decided by a third curve.</summary>
+    /// <param name="first">The curve the arc leaves.</param>
+    /// <param name="second">The curve it arrives at.</param>
+    /// <param name="tangentTo">The curve that sets the radius by being tangent to it as well.</param>
+    /// <param name="normal">The normal of the plane all three curves lie in.</param>
+    /// <returns>The arc alone. Nothing is trimmed.</returns>
+    /// <remarks>
+    /// <b>Where <c>Fillet</c> is given the radius, this one works it out.</b> Three curves have
+    /// several circles tangent to all of them — a triangle has four — and the one nearest the
+    /// corner they enclose is the answer. For the three sides of a triangle that is its incircle.
+    /// </remarks>
+    [return: NodePort("arc")]
+    [SparkNodeAlias("Arc.ByFilletTangentToCurve")]
+    public static Spark.Geometry.Arc FilletTangentTo(
+        Spark.Geometry.Curve first,
+        Spark.Geometry.Curve second,
+        Spark.Geometry.Curve tangentTo,
+        Vector3d normal = default) =>
+        CurveOffset.FilletTangentTo(
+            first, second, tangentTo, normal.LengthSquared > 0.0 ? normal : Vector3d.ZAxis);
+
     /// <summary>Places a point every so far along the curve, measured in a straight line.</summary>
     /// <param name="curve">The curve.</param>
     /// <param name="chordLength">

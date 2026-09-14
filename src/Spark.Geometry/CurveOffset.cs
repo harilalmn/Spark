@@ -290,6 +290,249 @@ public static class CurveOffset
     }
 
     /// <summary>
+    /// The arc tangent to two curves whose radius is decided by a third (`E2-T72`).
+    /// </summary>
+    /// <param name="first">The curve the arc leaves.</param>
+    /// <param name="second">The curve it arrives at.</param>
+    /// <param name="tangentTo">The curve that decides the radius by being tangent to it too.</param>
+    /// <param name="normal">
+    /// The normal of the plane all three curves lie in, for the reason
+    /// <see cref="Fillet"/> asks for one.
+    /// </param>
+    /// <param name="tolerance">The tolerance for the crossings that seed the solve.</param>
+    /// <returns>The arc, from its tangent point on <paramref name="first"/> to the one on
+    /// <paramref name="second"/>.</returns>
+    /// <exception cref="ArgumentNullException">Any of the three curves is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="normal"/> has no length, the three curves do not enclose a corner to seed
+    /// the solve from, or no arc is tangent to all three.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <see cref="Fillet"/>'s solve with one more row, which is exactly what the register
+    /// predicted of it.</b> That member is given the radius and solves for a centre at that
+    /// distance from two curves — two equations in two unknowns. Here the radius is <i>not</i>
+    /// given, so the unknowns are the centre's two coordinates in the plane <b>and</b> the radius,
+    /// and the equations are <c>distance(c, curveᵢ) = r</c> for all three curves. The gradient of a
+    /// distance-to-curve is the unit vector from the closest point, so each row of the Jacobian is
+    /// that vector's two in-plane components followed by <c>−1</c>, and the step is a 3×3 solve.
+    /// </para>
+    /// <para>
+    /// <b>Three curves have several circles tangent to all of them — a triangle has four — so the
+    /// seed decides which one comes back, and the seed is stated rather than left to the
+    /// solver.</b> It is the <b>centroid of the three pairwise crossings</b>, with the radius
+    /// seeded as the mean distance from there to the three curves. For a triangle that point is
+    /// inside it, so the <i>incircle</i> is the answer and the three excircles are not.
+    /// </para>
+    /// <para>
+    /// <b>Nothing is trimmed.</b> <see cref="Fillet"/> hands back the two curves cut to meet the
+    /// arc, because rounding a corner is what it is for; this member answers a question about size
+    /// and returns the arc alone. The third curve contributes no endpoint — it only fixes the
+    /// radius — so the arc still runs between its tangent points on the first two.
+    /// </para>
+    /// </remarks>
+    public static Arc FilletTangentTo(
+        Curve first, Curve second, Curve tangentTo, in Vector3d normal, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+        ArgumentNullException.ThrowIfNull(tangentTo);
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "A fillet needs the normal of the plane its curves lie in, and this one has no "
+                + "length.",
+                nameof(normal));
+        }
+
+        if (!TrySeed(first, second, tangentTo, tolerance, out Point3d centre, out double radius))
+        {
+            throw new ArgumentException(
+                "The three curves do not enclose a corner: at least two of their three pairwise "
+                + "crossings are needed to seed the solve, and fewer than that were found.",
+                nameof(tangentTo));
+        }
+
+        if (!ConvergeOnThree(first, second, tangentTo, unitNormal, ref centre, ref radius))
+        {
+            throw new ArgumentException(
+                "No arc is tangent to all three curves near the corner they enclose.",
+                nameof(tangentTo));
+        }
+
+        Point3d tangentOnFirst = first.ClosestPoint(centre);
+        Point3d tangentOnSecond = second.ClosestPoint(centre);
+
+        return Arc.FromThreePoints(
+            tangentOnFirst,
+            MidArcPoint(centre, tangentOnFirst, tangentOnSecond, radius),
+            tangentOnSecond);
+    }
+
+    /// <summary>Where to start the three-way solve from.</summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second curve.</param>
+    /// <param name="third">The third curve.</param>
+    /// <param name="tolerance">The intersection tolerance.</param>
+    /// <param name="centre">The seed centre.</param>
+    /// <param name="radius">The seed radius.</param>
+    /// <returns><see langword="false"/> when the three curves enclose nothing to seed from.</returns>
+    /// <remarks>
+    /// <b>The centroid of the pairwise crossings, because it is inside the corner they enclose.</b>
+    /// Two crossings are enough to place it; three are better and are used when they exist. The
+    /// radius seed is the mean distance from that point to the three curves, which is the value the
+    /// three equations are trying to agree on.
+    /// </remarks>
+    private static bool TrySeed(
+        Curve first, Curve second, Curve third, in Tolerance tolerance,
+        out Point3d centre, out double radius)
+    {
+        centre = Point3d.Origin;
+        radius = 0.0;
+
+        Vector3d sum = Vector3d.Zero;
+        int corners = 0;
+
+        foreach ((Curve a, Curve b) in ((Curve, Curve)[])[(first, second), (first, third), (second, third)])
+        {
+            CurveIntersections crossing = a.IntersectWith(b, tolerance);
+
+            if (crossing.Points.Count > 0)
+            {
+                sum += crossing.Points[0].Point - Point3d.Origin;
+                corners++;
+            }
+        }
+
+        if (corners < 2)
+        {
+            return false;
+        }
+
+        centre = Point3d.Origin + (sum / corners);
+        radius = (first.ClosestPoint(centre).DistanceTo(centre)
+            + second.ClosestPoint(centre).DistanceTo(centre)
+            + third.ClosestPoint(centre).DistanceTo(centre)) / 3.0;
+
+        return radius > 0.0;
+    }
+
+    /// <summary>
+    /// Newton on <c>distance(c, curveᵢ) = r</c> for three curves, in the centre's two in-plane
+    /// coordinates and the radius.
+    /// </summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second curve.</param>
+    /// <param name="third">The third curve.</param>
+    /// <param name="normal">The unit plane normal, which the centre is kept in.</param>
+    /// <param name="centre">The seed centre, refined in place.</param>
+    /// <param name="radius">The seed radius, refined in place.</param>
+    /// <returns><see langword="false"/> when the step is singular or the iteration does not settle.</returns>
+    /// <remarks>
+    /// <b>It is <see cref="Converge"/> with a third equation and a third unknown</b>, and the extra
+    /// column is the same <c>−1</c> in every row: moving the radius moves all three residuals
+    /// together, which is what makes the system solvable at all rather than over-determined. The
+    /// convergence test is relative to the radius, for the reason every convergence test in this
+    /// kernel is relative ([N143](../../docs/NOTES.md)).
+    /// </remarks>
+    private static bool ConvergeOnThree(
+        Curve first, Curve second, Curve third, in Vector3d normal,
+        ref Point3d centre, ref double radius)
+    {
+        Plane frame = Plane.FromOriginNormal(centre, normal);
+        Vector3d axisU = frame.XAxis;
+        Vector3d axisV = frame.YAxis;
+
+        Span<double> rows = stackalloc double[12];
+
+        for (int iteration = 0; iteration < 96; iteration++)
+        {
+            bool settled = true;
+
+            for (int index = 0; index < 3; index++)
+            {
+                Curve curve = index switch { 0 => first, 1 => second, _ => third };
+                Point3d near = curve.ClosestPoint(centre);
+                double away = near.DistanceTo(centre);
+
+                if (away <= 0.0)
+                {
+                    // The centre landed on a curve. There is no direction to step in.
+                    return false;
+                }
+
+                Vector3d gradient = (centre - near) / away;
+                double residual = away - radius;
+
+                rows[(index * 4) + 0] = gradient.Dot(axisU);
+                rows[(index * 4) + 1] = gradient.Dot(axisV);
+                rows[(index * 4) + 2] = -1.0;
+                rows[(index * 4) + 3] = -residual;
+
+                if (Math.Abs(residual) > Math.Abs(radius) * 1e-13)
+                {
+                    settled = false;
+                }
+            }
+
+            if (settled)
+            {
+                return radius > 0.0;
+            }
+
+            if (!Solve3(rows, out double stepU, out double stepV, out double stepR))
+            {
+                return false;
+            }
+
+            centre += (axisU * stepU) + (axisV * stepV);
+            radius += stepR;
+        }
+
+        return false;
+    }
+
+    /// <summary>Solves a 3×3 system by Cramer's rule.</summary>
+    /// <param name="rows">Three rows of four: the matrix and the right-hand side.</param>
+    /// <param name="x">The first unknown.</param>
+    /// <param name="y">The second.</param>
+    /// <param name="z">The third.</param>
+    /// <returns><see langword="false"/> when the matrix is singular.</returns>
+    /// <remarks>
+    /// <b>Cramer's rule rather than elimination, because three is small enough that the
+    /// determinant is the clearest way to say "singular".</b> A zero determinant here means two of
+    /// the three curves have parallel gradients at the centre — they are tangent to each other
+    /// there — and a tangent pair bounds no corner.
+    /// </remarks>
+    private static bool Solve3(ReadOnlySpan<double> rows, out double x, out double y, out double z)
+    {
+        x = y = z = 0.0;
+
+        double a = rows[0], b = rows[1], c = rows[2], p = rows[3];
+        double d = rows[4], e = rows[5], f = rows[6], q = rows[7];
+        double g = rows[8], h = rows[9], i = rows[10], r = rows[11];
+
+        double determinant = (a * ((e * i) - (f * h)))
+            - (b * ((d * i) - (f * g)))
+            + (c * ((d * h) - (e * g)));
+
+        if (determinant == 0.0 || !double.IsFinite(determinant))
+        {
+            return false;
+        }
+
+        x = ((p * ((e * i) - (f * h))) - (b * ((q * i) - (f * r))) + (c * ((q * h) - (e * r))))
+            / determinant;
+        y = ((a * ((q * i) - (f * r))) - (p * ((d * i) - (f * g))) + (c * ((d * r) - (q * g))))
+            / determinant;
+        z = ((a * ((e * r) - (q * h))) - (b * ((d * r) - (q * g))) + (p * ((d * h) - (e * g))))
+            / determinant;
+
+        return double.IsFinite(x) && double.IsFinite(y) && double.IsFinite(z);
+    }
+
+    /// <summary>
     /// The point at <paramref name="radius"/> from both curves nearest the corner, refined until it
     /// is exactly that.
     /// </summary>

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: an arc whose radius is decided by a third curve)
+**Last updated:** 2026-09-14 (`E2-T72`: an arc whose radius a third curve decides)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s `Arc.ByFilletTangentToCurve` — a fillet whose radius is decided by a third curve.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The previous step's *Next action* named the two `PolyCurve` offset rows and asked whether they were a refusal. They are not, and the answer took one grep rather than an argument**: `Surface.Thicken(double, bool)` and `BySweep(Curve, Curve, bool)`, the two precedents that row cites, are both **`Planned`**. *Refused a match* in their reasons means refused to claim an **existing member** as the answer, not refused to build. So the offset rows stay `Planned` too, nothing moves, and **the consistency is now written in the rows** so the question is not asked a fourth time. **What this row is**: `CurveOffset.Fillet` solves for a centre at a **given** radius — two equations, two unknowns. This solves for a centre **and** the radius, tangent to three curves — three equations, three unknowns. The row predicted exactly that: *the same solve with one more row*. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **The thickening pair — `PolyCurve.FromThickenedCurve` and `FromThickenedCurveAlong`, and the decision Dynamo's two names leave open.** **Both take a `Vector`, so *supplied versus inferred* cannot be the difference.** The reading taken is the one where **both arguments have a job**: one offsets **sideways within** the plane, a ribbon lying flat; the other offsets **along** it, a ribbon standing up — and the second is a translation, so *exact* for every curve type. **The branch is the reversal of the return side, and it does not fail the way I predicted**: without it the outline still **closes**, as a **bow-tie**. The test that names it was added only after the mutation showed the closure test could not see it. Residue **unchanged at 343**. 17 tests, **3748 → 3765**. **Before it:** `FromGroupedCurves`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3765** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `CurveOffset.FilletTangentTo(first, second, tangentTo, normal, tolerance)` returning an `Arc`.** **It lives beside `Fillet` because it is that member's solve with one more row**, and putting it anywhere else would give the two derivations a chance to disagree. The unknowns are the centre's two coordinates **in the plane** and the radius; the three equations are `distance(c, curveᵢ) = r`; the gradient of a distance-to-curve is the unit vector from the closest point, so the Jacobian's rows are `[gᵢ·u, gᵢ·v, −1]` and the step is a 3×3 solve. **The arc is built exactly as `Fillet` builds it** — from the tangent point on the first curve, through the mid-arc point, to the tangent point on the second — and **nothing is trimmed**, because this member returns the arc alone. **The seed is the decision.** Three curves have several circles tangent to all of them — a triangle has four — so the answer is *the one nearest the seed*, and the seed has to be said out loud rather than left to whatever the solver wanders into: **the centroid of the three pairwise crossings**, with the radius seeded as the mean distance from there to the three curves. For a triangle that is inside it, so the incircle is what comes back and the three excircles do not. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the third tangency**, which is the whole of what this member adds. **The anchor is a 3-4-5 triangle**, whose incircle has radius `area / semiperimeter = 6 / 6 = 1` **exactly**, centred at `(1, 1)` when the right angle is at the origin — a number known by hand and not read off the implementation. A mutation that ignores the third curve cannot produce it. **Tangency is asserted against all three curves**, by distance from the centre, because two of them would be satisfied by the ordinary fillet at any radius. **The arc runs between the first two curves**, asserted by its endpoints, since the third only fixes the size. **A curved third constraint** gets its own test, so the member is not pinned to straight lines. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-six steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68`, `E2-T69` and `E2-T72` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`CurveOffset.FilletTangentTo` — a fillet whose radius a third curve decides, and the row predicted it exactly: *the same solve with one more row*.** `Fillet` is **given** the radius and solves for a centre at that distance from two curves. This is not given it, so the unknowns are the centre's two in-plane coordinates **and** the radius, and the extra Jacobian column is the same `−1` in every row — which is what makes the system solvable rather than over-determined. **The seed is the decision**, because three curves have several circles tangent to all of them: the **centroid of the pairwise crossings** puts it inside the corner, so a triangle gives its **incircle** and not one of its three excircles. **The anchor is a 3-4-5 triangle**, inradius `6 / 6 = 1` exactly, derived by hand. **The two `PolyCurve` offset rows were checked and stay `Planned`** — their own precedents are `Planned` too. Residue **unchanged at 343**. 8 tests, **3765 → 3773**. **Before it:** the thickening pair. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3773** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s last unblocked row — `NurbsCurve.ByPoints(points, periodic)`, the cyclic interpolation.** **It is the row that has been described three times and built none.** `NurbsCurve.InterpolatePoints` solves a **banded** system, because a clamped interpolation's matrix is tridiagonal-ish and each row touches only its neighbours. **A periodic one wraps**, so the first row touches the last and the matrix is no longer banded — it is **cyclic**, and a banded solver run on it silently drops the two corner entries and returns a curve that closes to the eye and is not periodic. **The way through is Sherman–Morrison**: a cyclic tridiagonal system is a banded one plus a rank-one correction, so the existing `SolveInPlace` is called **twice** and the two answers combined — which keeps one banded solver in the kernel rather than two. **Read `InterpolatePoints` and `AveragedKnots` first**, because the knot vector is the other half: a periodic curve's knots have to wrap too, and a clamped knot vector with a wrapped solve is the failure that looks almost right. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the wrap**. The assertion is not that the curve closes, because a clamped interpolation through a closed point set closes too: it is that the curve is **smooth across the seam** — the tangent and the curvature either side of parameter zero — which is the whole difference between periodic and merely closed. A solve that drops the corner entries produces a curve with a **corner at the seam**, passing every test of position and closure. **Points on a circle** are the anchor, because their periodic interpolation is near-circular and the deviation is measurable against a known radius. **The points are interpolated exactly**, asserted at every one of them, since a rank-one correction applied wrongly is a curve that misses them all slightly. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14743,3 +14743,63 @@ exemption list, all four for the same reason: a vector whose role the call site 
 **Residue unchanged at 343.**
 
 **Cost.** One session. Two members, seventeen tests, two nodes, two mutations.
+
+### 2026-09-14 — An arc whose radius a third curve decides
+
+**What.** `CurveOffset.FilletTangentTo`. Eight tests, a node, a row to `Done`, two other rows'
+reasons settled, and the register at **447 of 545**.
+
+**The row predicted this one exactly, and it is worth recording when that happens.** It said
+the gap was smaller than it looked, that the machinery was all present, and that what the
+member adds is *a third tangency constraint, which makes it three equations in three unknowns
+— the same solve with one more row*. That is precisely what it is. `CurveOffset.Fillet` is
+**given** the radius and solves for a centre at that distance from two curves; this is not
+given it, so the radius joins the centre's two in-plane coordinates as an unknown.
+
+**The extra column is the same `−1` in every row, and that is the part worth understanding.**
+Moving the radius moves all three residuals together by the same amount — which is exactly what
+makes three tangency conditions solvable in three unknowns rather than over-determined. The
+gradient of a distance-to-curve is still the unit vector from the closest point, as in the
+two-curve solve, so the whole Jacobian is three rows of `[g·u, g·v, −1]`.
+
+**Cramer's rule rather than elimination, and that is a choice with a reason.** At three
+unknowns the determinant is the clearest way to say *singular*, and here a zero determinant
+means something geometric: two of the three curves have parallel gradients at the centre — they
+are tangent to each other there — and a tangent pair bounds no corner.
+
+**The seed is the real decision, because the answer is not unique.** Three curves have several
+circles tangent to all of them; a triangle has **four**, the incircle and three excircles. So
+the member cannot just converge and report — it has to say where it started. The seed is the
+**centroid of the three pairwise crossings**, which for a triangle is inside it, so the
+incircle is what comes back. Replacing that seed with an endpoint of the first curve reddens
+six of the eight tests, which is the seed being load-bearing rather than incidental.
+
+**Nothing is trimmed, and the difference from `Fillet` is worth stating.** That member rounds a
+corner, so it hands back the two curves cut to meet the arc; this one answers a question about
+**size** and returns the arc alone. The third curve contributes no endpoint — swapping which
+curve is the constraint gives the **same circle** and a different quarter of it, and there is a
+test saying exactly that.
+
+**The anchor is arithmetic, not the implementation.** A 3-4-5 triangle's incircle has radius
+`area / semiperimeter = 6 / 6 = 1` **exactly**, centred at `(1, 1)` with the right angle at the
+origin; an equilateral triangle of side 6 gives `side / (2√3)` beside it. Both were derived
+before the member ran. A mutation that ignores the third curve cannot produce either.
+
+**One fixture of mine was wrong and the error message said so plainly.** The curved-constraint
+test used a circle of radius 12 about `(14, 14)`, which is 14 from each axis and therefore
+reaches neither — the member refused it for enclosing no corner, which is the refusal working.
+Radius 16 crosses both.
+
+**And two rows were settled without any code.** The previous step's *Next action* asked whether
+`PolyCurve.Offset(double, bool)` should be refused for its unmatched flag, citing
+`Surface.Thicken(double, bool)` and `BySweep(Curve, Curve, bool)` as precedent. **Both of those
+are `Planned`.** *Refused a match* in their reasons means refused to claim an **existing
+member** as the answer — not refused to build. So an unmatched flag keeps a row `Planned`,
+nothing moves, and the argument is now written into both rows so it is not made a fourth time.
+`OffsetMany` got a better reason while I was there: unlike its neighbour it is a genuine
+**capability** gap, because splitting a self-intersecting offset into several curves is exactly
+the trimming that `CurveOffset.Offset` says it does not do.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, eight tests, one node, two mutations.
