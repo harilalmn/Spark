@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T32` closed: the harvest, and both wrapped comparisons)
+**Last updated:** 2026-09-15 (`E2-T27` deferred by D29)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -256,9 +256,15 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       imports and one materialisation; round-trip asserts **tolerance-bounded equivalence,
       never identity**; only `Spark.Geometry.Occt` observes the token (**E2-T28**, **E13**).
 - [ ] Mesh booleans are robust, pure managed, built on the ported BVH plus
-      adaptive-precision exact predicates (**E2-T27**). *Moved to **1.x** by ADR-0020, with
-      `Capabilities` greying it meanwhile. Reduced, not eliminated: OCCT is poor at mesh
-      booleans and Dynamo has them.*
+      adaptive-precision exact predicates (**E2-T27**). *Moved to **1.x** by ADR-0020 and
+      **deferred as a status by [D29](PRD.md#13-decision-log) on 2026-09-15**, because the row had
+      carried the deferral in its note while its status column read `Open`. Reduced, not
+      eliminated: OCCT is poor at mesh booleans and Dynamo has them. **This said `Capabilities`
+      greys it meanwhile, and nothing greys it** — there is no mesh-boolean node to grey, and the
+      only reader of `IBrepKernel.Capabilities` anywhere is the solid-file export. What the flag
+      does is make not claiming the operation a positive statement a provider has to make. What a
+      user gets instead is the gap named in `help/concepts/solids.md` with a **compiled**
+      work-around beside it.*
 - [x] **The mesh layer is measured against Dynamo's, not assumed to match it** (**E2-T45**) —
       done 2026-09-13. §3.6 goes from *0 reachable* to **41 of 65**, almost none of it new code,
       and `IndexGroup` is **10 of 10** because it *is* `MeshFace`. *What the measurement was for

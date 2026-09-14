@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T32` closed: the harvest, in two passes)
+**Last updated:** 2026-09-15 (`E2-T27` deferred by D29)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -1053,8 +1053,10 @@ exclusions is what keeps a walking skeleton from becoming a death march.
       through OCCT** — M6, `E2-T22` … `E2-T28` plus most of `E13`. **M6 is now 20–24 weeks
       rather than 14**, and its demoable improves from *solids that can be combined* to
       *solids that can be combined, filleted, shelled, trimmed and exported to STEP*. The
-      robust **mesh** boolean (`E2-T27`) moves out of M6 to 1.x, greyed by `Capabilities` —
-      reduced, not cancelled, because OCCT is poor at mesh booleans and Dynamo has them.
+      robust **mesh** boolean (`E2-T27`) moves out of M6 to 1.x — reduced, not cancelled, because
+      OCCT is poor at mesh booleans and Dynamo has them. **`Deferred` as a status since
+      [D29](PRD.md#13-decision-log), 2026-09-15**, and *greyed by `Capabilities`* is struck from
+      this line: nothing greys it, because there is no mesh-boolean node to grey.
 - [ ] Packages, per-package-version ALCs, missing-package placeholders, the trust store,
       local DLLs with hot reload, custom nodes, groups, notes, freeze — M7, `E7`.
 - [ ] `Spark.Host` proven inside a real Revit or AutoCAD add-in; STEP and IGES through OCCT
@@ -1196,8 +1198,11 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   distributable, **NFR-5 is unchanged**, and OCCT ships in the default install because a Dynamo
   user finding booleans greyed out on first run is what FR-81 forbids. `R13`.
 - **Robust mesh booleans move to 1.x. Reduced, not cancelled.** OCCT is **poor** at mesh
-  booleans and Dynamo has them, so `E2-T27` keeps its purpose and loses only its urgency;
-  `Capabilities` greys the operation until it lands. Do not read the deferral as a deletion.
+  booleans and Dynamo has them, so `E2-T27` keeps its purpose and loses only its urgency. Do not
+  read the deferral as a deletion. *This said `Capabilities` greys the operation until it lands;
+  corrected by [D29](PRD.md#13-decision-log) on 2026-09-15 — **nothing greys it**, there being no
+  mesh-boolean node to grey. The user-facing statement lives in `help/concepts/solids.md`, which
+  names the gap and carries a compiled work-around.*
 - **The Linux CI job is no longer nearly free, and that was its entire justification.**
   ADR-0001 kept it as a rot-guard because it cost almost nothing; it must now build native
   code. The mitigation is a cached per-RID artefact keyed on

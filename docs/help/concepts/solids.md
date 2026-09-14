@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes solids in the running application.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-15 (`E2-T27`: the mesh-boolean gap says what to do instead)
 
 > **Scope.** A solid in Spark is a **boundary representation** — exact surfaces, joined along exact
 > edges, enclosing a volume. It is not a mesh. This topic covers what you can build, what you can
@@ -364,7 +364,28 @@ against *this* build rather than approximately.
   as trimmed as it needs to be; what is missing is the ability to author a trimmed face directly.
 - **AP242.** STEP goes out as AP214. AP242 carries assemblies, names and colours, and Spark has
   none of those to put in a file yet.
-- **Mesh booleans** — combining two *meshes* rather than two solids. Deferred.
+- **Mesh booleans** — combining two *meshes* rather than two solids. **Deferred to after 1.0**
+  ([ADR-0020](../../adr/0020-occt-via-c-abi-shim.md)), and deferred rather than dropped: the
+  exact solid booleans arrived first and took the urgency away, not the requirement.
+
+  **Do the boolean on solids and mesh the result.** `Solid.Union`, `Solid.Difference` and
+  `Solid.Intersection` are exact, and `Solid.ToMesh` tessellates what comes back to whatever
+  tolerance you ask for:
+
+  ```csharp
+  using Spark.Geometry;
+  using Spark.Nodes.Core;
+
+  Brep block = Solid.Box(Plane.WorldXY, 4.0, 4.0, 1.0);
+  Brep hole = Solid.Cylinder(Plane.WorldXY, 1.0, 2.0);
+
+  Mesh drilled = Solid.ToMesh(Solid.Difference(block, hole), tolerance: 0.005);
+  ```
+
+  **The limit, and it is why this is not a general answer.** Nothing turns a mesh back into a
+  solid. A shape that *arrived* as a mesh — imported, or built by `Mesh.Sphere` and its
+  neighbours — has no route to the exact booleans, so the advice above is *keep it a solid until
+  you are finished with it*, not *convert when you need a boolean*.
 - **Moving a solid without leaving the kernel.** `Translate`, `Rotate` and `Mirror` work on Spark's
   own arrays, so a solid that was living inside OpenCascade is read out first. Asking the provider
   to move it instead would be faster and would keep the shape exactly as the kernel built it.

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E2-T32` Done: the bug family was unrepresentable, except where it was not)
+**Last updated:** 2026-09-15 (`E2-T27` Deferred by D29: the greying it defers to does not exist)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Three steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Four steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T32` `Done`, closed inside its own timebox, and the finding is a shape rather than a bug.** The honest yield of **979 foreign tests was one file's worth** — every other candidate assessed and recorded on the row so nobody re-derives it. **Why the yield was small is the result**: DoodleSharp's whole sweep file exists because a sweep was stored there as *a pair of normalised absolute angles*, and **Spark stores start plus signed sweep**, so that entire bug family is unrepresentable here — four probes of it came back correct by construction. It survives only where the wrapped arithmetic is unavoidable: **asking whether some other angle lies on the sweep**. **There are exactly two such places and both had holes** — `CircularArcs.Includes` (found by the harvest, 22 tests, 15 red against the mutation) and `AnalyticCurveIntersection.Circular.ParameterAt` (found by grepping for the shape; **both** tolerance branches removable with the whole suite green). **This slack is load-bearing where `Includes`' was not**, because nothing else contributes an arc's end to an intersection. [N175](NOTES.md). **3936 → 3970** across the three steps of the day. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3970** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **55** checks with the residue budget exact at 346. A scratch probe file was written and **deleted in the same step**, which is the rule the previous session's leftover `ZzProbeTests` is the argument for. No stashes. |
-| **Next action** | **`E2-T27`, the robust mesh boolean — and the first job is to decide whether it is 1.0 work at all, which is the same shape the last four rows had.** [ADR-0020](adr/0020-occt-via-c-abi-shim.md) already **moved it from M6 to 1.x** and `Capabilities` greys the operation out meanwhile, so the register and the decision log may already disagree with the row's `Open`. **Read ADR-0020 and `Capabilities` first**: if the deferral stands, this is `Deferred`, filed beside [D20](PRD.md#13-decision-log)'s treatment of `E12-T4`, and the step is the decision plus the evidence. **What must not be lost if it is deferred**, because the row says so in capitals: *OCCT is poor at mesh booleans and Dynamo has them* — exact solids arriving first removed the urgency, not the requirement. **Then**: `E1-T22` (whose row text is about branch policy rather than the version gate it names, so check what it actually asks for), `E10-T14` (the website, waiting on [PRD Q8](PRD.md#14-open-questions)). |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the change is reverted, proved by reverting it (AGENTS.md step 7). **And the method this week paid for twice: grep for the *shape* of the fault, not for the fault.** Both holes closed on 2026-09-15 were found by asking *where else does this arithmetic happen* rather than by reading more tests — and the second one existed in code nobody had touched in weeks. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
+| **Last completed step** | **`E2-T27` `Deferred` by [D29](PRD.md#13-decision-log), and it was a reconciliation rather than a build.** The row said `Open` while its own note said ADR-0020 had moved it to 1.x — the shape `E2-T64` had before `D28`. **Deferred is not dropped**: *reduced, not eliminated*, because OpenCascade is poor at mesh booleans and Dynamo has three. **Three claims about the mechanism were overstated and all three are corrected**: ADR-0020's *defers to 1.x with `Capabilities` greying it*, `IBrepKernel`'s *the operation `BrepCapabilities` most exists to grey out*, and `OcctBrepKernel`'s list of six unclaimed capabilities **of which five have since been built**. **Nothing greys anything** — there is no mesh-boolean node, and the only reader of `Capabilities` in the tree is the solid-file export. **The user-facing half was one word and is now a compiled sample**: `help/concepts/solids.md` gives the work-around — do the boolean on solids and `Solid.ToMesh` the result — in a fence `DocumentationSampleTests` compiles, proved by breaking it, and states the limit that nothing turns a mesh back into a solid. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3970** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **55** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **Sweep the register for the shape that has now caught four rows in a row: a row whose *note* argues with its own *status column*.** `E2-T64`, `E10-T12`, `E2-T32` and `E2-T27` were all reconciliations rather than builds, and each was found only by picking the row up. **It is mechanisable**: a `Done`, `Deferred` or `Withdrawn` word in a note against an `Open` status; an ADR or decision cited in a note whose conclusion the status does not reflect; a *moves to*, *deferred*, *superseded* or *closed by* in prose. **Build it as a check in `Spark.Docs.Verify` rather than reading 414 rows by hand**, because a sweep done once goes stale the next day — the same argument [`E10-T17`](TASKS.md) made for generating the dashboard instead of writing it. **Then** the two rows a sweep will not cover: `E1-T22`, whose row text is about branch policy rather than the version gate its title names, and `E10-T14`, the website, waiting on [PRD Q8](PRD.md#14-open-questions). |
+| **Verify with** | **A check that finds nothing is this step's failure mode**, so whatever the sweep becomes is proved against a row known to have had the fault — `E2-T27` as it stood this morning is the fixture, and the check must go red on it. Then every row it flags is either fixed or given a stated exemption, never silenced in bulk. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16281,3 +16281,53 @@ made the suite red.
 yield was small**, and that answer — a representation that makes a bug family unrepresentable, with
 a named exception and both instances of the exception checked — is worth more than the twenty-three
 tests, because it says where to look next time rather than what happened this time.
+
+### 2026-09-15 — `E2-T27` `Deferred` by `D29`: the greying it defers to does not exist
+
+**What.** A status reconciled, three overstated claims corrected, and a one-word user-facing
+statement turned into a compiled work-around. No new capability.
+
+**The row said `Open` and its own note said deferred.** ADR-0020 moved the robust mesh boolean from
+M6 to 1.x on 2026-08-31, and the row has carried that sentence ever since while its status column
+disagreed — exactly the shape `E2-T64` had before [D28](PRD.md#13-decision-log). `D29` makes it
+`Deferred`. **Deferred is not dropped**, and the ADR says why in capitals: *reduced, not
+eliminated*, because **OpenCascade is poor at mesh booleans and Dynamo has three**. The exact solid
+booleans took the urgency away, not the requirement.
+
+**Three claims about the mechanism were overstated, and the third is the sharpest.** ADR-0020 said
+the operation *defers to 1.x with `Capabilities` greying it*. `IBrepKernel` called `MeshBoolean`
+*the operation `BrepCapabilities` most exists to grey out*. **Nothing greys it**: there is no
+mesh-boolean node, and the only reader of `IBrepKernel.Capabilities` in the whole tree is the
+solid-file export, which refuses a missing `Step` with a sentence. What declaring the flag does do
+is make **not** claiming the operation a positive statement a provider has to make, which
+`OcctBrepKernelTests` asserts — worth having, and not what either sentence described.
+
+**The third was wrong about five of its six facts.** `OcctBrepKernel` explained that `Sweep`,
+`Offset`, `Split`, `Step`, `Iges` and `MeshBoolean` *are not claimed because the ABI has no entry
+point for them yet*. Five of those six are in the capability list immediately below the comment.
+The comment was true when it was written and has been false since the shim grew those entry points,
+which is the ordinary fate of a comment that enumerates rather than derives.
+
+**The half that matters was one word.** `help/concepts/solids.md` — the page a user reads — said
+*Mesh booleans — combining two meshes rather than two solids. Deferred.* and stopped, against an
+`IBrepKernel` remark promising that *its absence is a real gap that a user deserves to see rather
+than discover*. Seeing *Deferred* is discovering. It now says what to do instead — **do the boolean
+on solids and `Solid.ToMesh` the result** — and states the limit that stops that being a general
+answer: **nothing turns a mesh back into a solid**, so a shape that arrived as a mesh has no route,
+and the rule is *keep it a solid until you are finished with it* rather than *convert when you need
+a boolean*.
+
+**The work-around is a `csharp` fence, which is the test.** `DocumentationSampleTests` compiles
+every fence in `docs/help/` against the real API, so advice that stops being true fails the build.
+**Proved by breaking it**: changing `Solid.Difference` to `Solid.Subtract` in the fence turned
+`EveryCsharpSampleInTheHelpCompiles` red with *concepts.solids sample 4: 'Solid' does not contain a
+definition for 'Subtract'*. That is a better guard than a test written beside the code, because it
+fails for the reason a reader would care about.
+
+**Verified.** Build clean, zero warnings, format clean. Ten executables, zero failures, zero skips.
+Register summary re-derived by script: 376/9/9/4/4/12 over 414.
+
+**Cost.** One session, mostly reading. **Four rows in a row have now turned out to be reconciliations
+rather than builds** — `E2-T64`, `E10-T12`, `E2-T32` and this one — and the pattern is specific
+enough to state: *a row whose note argues with its own status column is a row nobody has read since
+the decision that changed it.* The register is worth a sweep for that shape on its own.

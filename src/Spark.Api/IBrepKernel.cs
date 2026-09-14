@@ -80,9 +80,20 @@ public enum BrepCapabilities
 
     /// <summary>Boolean operations between meshes rather than solids.</summary>
     /// <remarks>
-    /// Deferred to 1.x, and it is the operation <see cref="BrepCapabilities"/> most exists to grey
-    /// out — the provider chosen in [ADR-0020] is poor at it and Dynamo has it, so its absence is a
-    /// real gap that a user deserves to see rather than discover.
+    /// <para>
+    /// Deferred past 1.0 by [ADR-0020] — the provider chosen there is poor at it and Dynamo has it,
+    /// so its absence is a real gap that a user deserves to see rather than discover.
+    /// </para>
+    /// <para>
+    /// <b>This said it was the operation <see cref="BrepCapabilities"/> "most exists to grey out",
+    /// and nothing greys it.</b> Corrected 2026-09-15: no user interface reads this flag — the one
+    /// place that reads <see cref="IBrepKernel.Capabilities"/> at all reads
+    /// <see cref="Step"/> — and there is no mesh-boolean node to grey, so there is nothing for a
+    /// flag to disable. What declaring it here does do is make <b>not</b> claiming it a positive
+    /// statement a provider has to make, which <c>OcctBrepKernelTests</c> asserts. The gap reaches
+    /// a user through <c>docs/help/concepts/solids.md</c>, which names it and gives the
+    /// work-around.
+    /// </para>
     /// </remarks>
     MeshBoolean = 1 << 15,
 }

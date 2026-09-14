@@ -213,7 +213,13 @@ extrude/revolve/loft/sweep, and managed BRep tessellation.
 
 **Some is reduced but not eliminated, and this must not be over-claimed.** The mesh boolean
 work loses its urgency but not its purpose, because **OCCT is poor at mesh booleans** and
-Dynamo has them; it defers to 1.x with `Capabilities` greying it. And the **OBJ, STL, PLY and
+Dynamo has them; it defers to 1.x. *This said it defers **with `Capabilities` greying it**, and
+that half was never built — corrected 2026-09-15 while deferring `E2-T27`. The flag exists and no
+provider claims it (`OcctBrepKernelTests` asserts that), which is what stops a kernel promising the
+operation; **nothing greys anything, because there is no mesh-boolean node to grey.** What a user
+actually gets is the gap named in [help/concepts/solids.md](../help/concepts/solids.md) with the
+work-around beside it — do the boolean on solids and `Solid.ToMesh` the result — and the limit that
+makes it partial: nothing turns a mesh back into a solid.* And the **OBJ, STL, PLY and
 glTF writers stay ours** — they must work in a build with no native component at all, since
 M1's demoable is `spark` writing an OBJ polyline.
 

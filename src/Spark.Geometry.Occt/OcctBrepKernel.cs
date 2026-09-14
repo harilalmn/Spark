@@ -56,10 +56,21 @@ public sealed class OcctBrepKernel : IBrepKernel
 
     /// <inheritdoc/>
     /// <remarks>
-    /// <b>What is absent is as deliberate as what is present.</b> <c>Sweep</c>, <c>Offset</c>,
-    /// <c>Split</c>, <c>Step</c>, <c>Iges</c> and <c>MeshBoolean</c> are not claimed because the
-    /// ABI has no entry point for them yet, and a capability flag is a promise the node library
-    /// greys operations out on the strength of.
+    /// <para>
+    /// <b>What is absent is as deliberate as what is present.</b> <c>MeshBoolean</c> is the only
+    /// thing not claimed, and it is not an ABI gap: it is deferred past 1.0 by [ADR-0020], because
+    /// OpenCascade is poor at mesh booleans. Declining to claim it is the positive statement that
+    /// stops this kernel promising the operation, and <c>OcctBrepKernelTests</c> asserts it.
+    /// </para>
+    /// <para>
+    /// <b>This listed six unclaimed capabilities and five of them have since been implemented</b> —
+    /// <c>Sweep</c>, <c>Offset</c>, <c>Split</c>, <c>Step</c> and <c>Iges</c> are all in the list
+    /// below. Corrected 2026-09-15. It also said a capability flag is <i>a promise the node library
+    /// greys operations out on the strength of</i>, and no node library does: the only reader of
+    /// <see cref="IBrepKernel.Capabilities"/> anywhere is the solid-file export, which refuses with
+    /// a sentence when <see cref="BrepCapabilities.Step"/> is absent. Refusing with a sentence is
+    /// what this flag set is for; greying is what it was described as doing.
+    /// </para>
     /// </remarks>
     public BrepCapabilities Capabilities =>
         BrepCapabilities.Boolean
