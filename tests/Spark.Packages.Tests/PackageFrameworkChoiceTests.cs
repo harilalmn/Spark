@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Spark.Packages;
 
@@ -43,8 +44,26 @@ public sealed class PackageFrameworkChoiceTests : IDisposable
     /// <b>The client's package, exactly as it extracts.</b> A compile-time-only assembly under
     /// <c>ref</c>, a platform-specific moniker, and no <c>lib</c> anywhere.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This test's answer depends on the operating system running it, and saying so is the
+    /// whole of the fix.</b> <c>net10.0-windows7.0</c> is compatible with a Windows host and is
+    /// <i>genuinely not</i> compatible with any other — NuGet's own <c>FrameworkReducer</c> says so,
+    /// and <c>PackageFrameworks.Current</c> only claims a platform when
+    /// <c>OperatingSystem.IsWindows()</c>. Finding the assembly on Linux would be the bug.
+    /// </para>
+    /// <para>
+    /// <b>It was written as an unconditional assertion and passed for months, because nothing but
+    /// Windows ever ran it.</b> The first CI run after 2026-09-14 put it on ubuntu and it failed —
+    /// the one failure in 3,875 tests, and in the test rather than in the code
+    /// ([N169](../../docs/NOTES.md)). Spark is Windows-only by D16; the ubuntu leg exists as a
+    /// second implementation of the same arithmetic, not as a supported target. So both arms are
+    /// asserted here rather than the awkward one being skipped: a skip records that a platform was
+    /// not tested, and this records what each platform is supposed to do.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void ARefOnlyPackageWithAPlatformMonikerIsFound()
+    public void ARefOnlyPackageWithAPlatformMonikerIsFoundOnWindowsAndNowhereElse()
     {
         string graph = Graph("cylinder");
         string package = Path.Combine(
@@ -52,7 +71,15 @@ public sealed class PackageFrameworkChoiceTests : IDisposable
 
         Write(Path.Combine(package, "ref", "net10.0-windows7.0", "RevitAPI.dll"), "revit");
 
-        GraphAssembly only = Assert.Single(GraphPackages.Discover(graph).Assemblies);
+        IReadOnlyList<GraphAssembly> found = GraphPackages.Discover(graph).Assemblies;
+
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Empty(found);
+            return;
+        }
+
+        GraphAssembly only = Assert.Single(found);
 
         Assert.Equal("RevitAPI.dll", only.Name);
         Assert.Equal("nice3point.revit.api.revitapi.2027.2.0", only.Package);

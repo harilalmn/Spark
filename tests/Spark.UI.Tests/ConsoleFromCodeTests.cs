@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Spark.Api;
 using Spark.Scripting;
@@ -115,7 +117,23 @@ public sealed class ConsoleFromCodeTests : IDisposable
     private static void Run(string source)
     {
         ReferenceCatalog catalogue = new();
-        NodeDefinitionSource block = new ScriptNodeFactory(catalogue).Create(source);
+        ScriptNodeFactory factory = new(catalogue);
+
+        // COMPILE ERRORS ARE ASSERTED, NOT DISCARDED. The earlier version invoked the block and
+        // threw the result away, so a script that did not compile was indistinguishable from one
+        // that ran and printed nothing - and that is exactly how these tests failed on CI for the
+        // first time on 2026-09-14, reporting an empty console and naming no cause
+        // ([N170](../../docs/NOTES.md)). A test that cannot say why it failed costs more than the
+        // one line it saved.
+        IReadOnlyList<ScriptDiagnostic> errors =
+            [.. factory.Diagnose(source).Where(diagnostic => diagnostic.IsError)];
+
+        Assert.True(
+            errors.Count == 0,
+            "the block did not compile: "
+            + string.Join("; ", errors.Select(e => e.Id + " " + e.Message)));
+
+        NodeDefinitionSource block = factory.Create(source);
 
         _ = block.Invoke([], CancellationToken.None);
     }

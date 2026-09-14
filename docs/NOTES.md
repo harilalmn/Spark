@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N168: a link that works and lands in the wrong place)
+**Last updated:** 2026-09-14 (N170: a test that discarded the answer it needed)
 
 ---
 
@@ -5174,6 +5174,69 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N170 — A test that discarded the one value that could explain its failure
+
+**2026-09-14.** Four of the five `ConsoleFromCodeTests` failed on Windows CI and pass on this
+machine. Each reported the same thing: the console was **empty** when a line was expected. None of
+them could say why, and the reason is one line in the helper they share:
+
+    _ = block.Invoke([], CancellationToken.None);
+
+**A script that does not compile and a script that runs and prints nothing produce the same empty
+console.** The helper threw away the only value that distinguishes them, so every one of those four
+failures reported a symptom and nothing else — from a machine I cannot attach a debugger to.
+
+**The fix is to assert the thing that was being discarded.** `ScriptNodeFactory.Diagnose` already
+existed and already returns the compiler's errors; the helper now runs it first and fails with the
+diagnostic text. **A test that cannot say why it failed costs more than the line it saved**, and
+the cost is paid at the worst moment — on somebody else's machine, in a log, after the fact.
+
+**What is underneath is still open as this is written, and the suspicion is worth recording because
+it is about production code rather than tests.** `ReferenceCatalog` builds the reference set a code
+block compiles against by sweeping `AppDomain.CurrentDomain.GetAssemblies()` — **whatever happens to
+be loaded at that moment**. That set depends on what the process has already done, which in a test
+run means *which tests ran first*, and in the application means *what the user did before opening
+the block*. A reference set assembled from a snapshot of a running process is not deterministic, and
+the two candidates both follow from that: a reference that is missing because nothing has loaded it
+yet, or a duplicate simple name because two copies of one assembly are loaded from different paths.
+
+**Either way the lesson holds independently of which it turns out to be**: the helper's silence is
+what made a five-minute question into a round trip through CI, and the fix is the same change.
+
+## N169 — The second machine found exactly one thing, and it was in a test
+
+**2026-09-14.** CI ran for the first time since 2026-09-09, on sixty-three commits that had been
+verified on one Windows machine and nowhere else. The ubuntu leg ran **the same 3,875 tests** the
+local runners do and **one** failed:
+`PackageFrameworkChoiceTests.ARefOnlyPackageWithAPlatformMonikerIsFound`.
+
+**The code was right and the test was wrong, which is the outcome worth writing down.** The package
+under test offers `ref/net10.0-windows7.0` and nothing else. On Windows that is compatible and the
+assembly is found; on Linux it is **genuinely incompatible** — NuGet's own `FrameworkReducer` says
+so, and `PackageFrameworks.Current` only claims a platform when `OperatingSystem.IsWindows()`.
+*Finding* that assembly on Linux would have been the bug. What failed was an assertion written as
+though the answer were platform-independent.
+
+**It passed for months because nothing but Windows ever ran it.** Spark is Windows-only by **D16**,
+and the ubuntu leg exists as a *second implementation of the same arithmetic* rather than as a
+supported target — a different libc, a different floating-point library, a different culture
+default. It has earned its cost before, and differently: [N28](#n28--a-script-committed-from-windows-is-not-executable-on-linux-and-ci-is-where-you-find-out)
+is a shell script that was executable on the machine that wrote it and not on the machine that ran
+it. Both are the same shape of fault - **something true of the author's environment, asserted as
+though it were true of the world**.
+
+**The fix states the platform dependence instead of hiding it.** Both arms are asserted — found on
+Windows, *not* found anywhere else — rather than skipping the awkward one. **A skip records that a
+platform was not tested; an assertion records what that platform is supposed to do**, and only one
+of those two survives somebody changing the resolver.
+
+**The general lesson is about what a green local run is evidence of.** Five days of work passed
+three gates on every commit — a warnings-as-errors build, ten test executables, a format check —
+and all of that was one machine agreeing with itself. It was not wrong; it was *narrow*, and the
+narrowness is invisible from inside. **One in 3,875 is also the right order of magnitude to
+expect**: not an argument that local gates are weak, and not an argument that a second environment
+is optional.
 
 ## N168 — A link that works and lands in the wrong place
 
