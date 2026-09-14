@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T72`: two Arc constructors)
+**Last updated:** 2026-09-15 (`E10-T12`: changelog fragments)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1293,8 +1293,14 @@ user needs. XML doc = what this member does.*
       seven of the nineteen pages showed a severity of `—`**, because the severity is read off the
       front of the doc comment and seven comments carried no severity word. Fixed, and now
       enforced by a test rather than by the class's own belief that it already held.*
-- [ ] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
-      magnet (**E10-T12**).
+- [x] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
+      magnet (**E10-T12**). *Built 2026-09-15, and **the criterion's own reason is the weaker
+      half**: this repository has 206 commits straight to `main` and two pull requests, so the
+      conflict it avoids is one nobody here has had. **The reason that holds is that `CONTRIBUTING.md`
+      was requiring a fragment with nowhere to put one, and every release since `v0.1.0` shipped
+      with no what-changed at all.** `changelog.d/` is the directory, the file name is the whole
+      format, `scripts/assemble-changelog.py` folds them into the release notes at `{CHANGELOG}`,
+      and a malformed fragment stops the release rather than being dropped from it.*
 - [x] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so
       the harness can exercise it anywhere (**E10-T13**). *Built 2026-08-31. `HelpView` draws the
       model and knows nothing about Markdown; `HelpWindow` lists, searches and links; **F1 opens
@@ -1340,7 +1346,11 @@ does. `Spark.Api`, `Spark.Geometry.Io` and `Spark.Nodes.Core` are still empty pr
 The help index, the front-matter schema, the authoring guide, the generated reference, the
 in-product renderer and the changelog fragments do not exist. Every one of them is a row in the
 post-1.0 pass rather than a gap in the current milestone — which is what D19 changed, and the
-only thing it changed.
+only thing it changed. *This paragraph is the state of the epic when it was written and is kept
+for the argument in its last sentence. **Every one of the six has since been built**: the index,
+the schema and the guide in `E10-T3`/`E10-T6`, the generated reference in `E10-T5`, the renderer
+in `E10-T13` and the changelog fragments in `E10-T12` on 2026-09-15. The checklist above is the
+current state; this is why they were allowed to be missing at the time.*
 
 **A caution the geometry topic had to observe, and every future topic must.** Its worked
 examples were run against the compiled assembly, not written from the signatures. Two of them

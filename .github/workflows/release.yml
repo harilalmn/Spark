@@ -102,6 +102,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      # E10-T12. Needed twice here: by the test step, whose ChangelogFragmentChecks runs the
+      # assembler, and by the publish step, which runs it for real to build the notes.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       # E1-T28. The same key `ci.yml` uses, deliberately: the restore is identical, so a release
       # built minutes after a green CI run finds the packages already there. Central package
       # management means `Directory.Packages.props` is the whole of the input, so the key is exact
@@ -285,13 +291,35 @@ jobs:
           $notes = (Get-Content .github/release-notes.md -Raw -Encoding utf8) -replace '(?s)^<!--.*?-->\s*', ''
           $notes = $notes.Replace('{INSTALLER}', $installer.Name).Replace('{DOTNET}', $env:SPARK_DOTNET)
 
+          # E10-T12. The `What changed` section, folded out of changelog.d/ - one file per change,
+          # written when the change was made rather than reconstructed here from a commit range.
+          # The script exits non-zero on a malformed fragment and `throw` makes that stop the
+          # release: a fragment quietly dropped is a change that shipped with nothing saying so,
+          # which is the one failure this directory exists to prevent.
+          $changelog = python scripts/assemble-changelog.py | Out-String
+
+          if ($LASTEXITCODE -ne 0) { throw 'A changelog fragment is malformed. See changelog.d/README.md.' }
+
+          $notes = $notes.Replace('{CHANGELOG}', $changelog.Trim())
+
+          # An empty section leaves the blank line either side of the placeholder behind. Nothing
+          # renders differently for it, but the notes are also read as a file - by anybody
+          # verifying a release - and a three-line gap at the top of one looks like something went
+          # wrong. Nothing else in the template has a run of blank lines in it.
+          $notes = ($notes -replace '(\r?\n){3,}', "`n`n").TrimStart()
+
           Set-Content -LiteralPath notes.md -Value $notes -Encoding utf8
 
-          # `--generate-notes` is gone deliberately (E12-T22). It builds a changelog from the
-          # commits and pull requests of the repository it is pointed at: aimed at Spark-Releases it
-          # describes an empty repository, and aimed at this one it would publish the private
-          # history of a closed source tree into a public changelog. The hand-written template is
-          # what a reader gets, and it is the only thing that was ever worth reading anyway.
+          # `--generate-notes` is gone deliberately (E12-T22), AND ONE OF ITS TWO REASONS EXPIRED
+          # ON 2026-09-14. It said the flag would "publish the private history of a closed source
+          # tree into a public changelog"; the client made the repository public again that day, so
+          # there is no private history to leak. The conclusion survives on the other reason and on
+          # a better one. The other: it builds the list from the repository it is POINTED AT, and
+          # it is pointed at Spark-Releases, which holds no source and no commits - it would
+          # describe an empty repository. The better one: a commit dump is not a changelog. 206 of
+          # these commits are marathon steps whose messages are written for the next session, and
+          # E10-T12's fragments are the same information written for a user, once, by whoever made
+          # the change and knew what it meant.
           $arguments = @(
               'release', 'create', $tag,
               '--repo', $env:SPARK_RELEASE_REPO,

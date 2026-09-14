@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N173: an abstract class can have a public constructor)
+**Last updated:** 2026-09-15 (N174: a rule with nothing behind it survives because nobody tries it)
 
 ---
 
@@ -5216,6 +5216,42 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N174 — A rule with nothing behind it survives because nobody ever tries it
+
+**2026-09-15, `E10-T12`.** `CONTRIBUTING.md` has asked every contributor for **a changelog
+fragment** since it was written. There was no `changelog.d/`, no format, nothing that read one, and
+no `CHANGELOG.md` anywhere in the repository. The instruction had been wrong for its whole life and
+nothing had noticed, for the only reason that matters: **two pull requests exist in this
+repository's history**, and 206 commits went straight to `main`. A rule is only tested when somebody
+follows it.
+
+**What made it visible was working the row, not reading the file.** `E10-T12` is *per-PR changelog
+fragments — avoids a single changelog file becoming a merge-conflict magnet*. Checking whether the
+premise still held is what turned up the directory that does not exist; the row was in the register
+for weeks reading as a sensible piece of process hygiene.
+
+**And the stated reason was the weaker half of the case.** A merge-conflict magnet is real and is
+not this project's problem. The argument that held was one the row never mentions: **every release
+from `v0.1.0` to `v2026.9.0` shipped with no *what changed* at all.** `.github/release-notes.md` is
+install instructions, `--generate-notes` was dropped in `E12-T22`, and nothing replaced it. Somebody
+upgrading was told how to install and never what they were getting.
+
+**The shape, and it is the fifth time this week.** A documented rule, a stated motive, or a comment
+whose reason expired — and the correct move is neither *do it because it says so* nor *drop it*, but
+**work out what is true now and build the smallest thing that makes the existing promise true**.
+Three of the five were reasons that had quietly expired: `E2-T64`'s rename justified by a payload
+that does not exist, `N132`'s scan that had become a check, and — in the same file as this one —
+`release.yml`'s claim that `--generate-notes` was dropped to avoid publishing the private history of
+a closed source tree, which stopped being true on 2026-09-14 when the repository went public again.
+The conclusion survived on a different argument, which is the outcome to expect: an expired reason
+usually means the decision needs re-arguing, not reversing.
+
+**Where to look for the rest of them.** Any sentence in `CONTRIBUTING.md`, `AGENTS.md` or a workflow
+comment that describes *what somebody else must do* is unverified by construction — there is no
+build step that fails when a rule aimed at a human is false. The ones aimed at this repository's own
+machinery are checked; `ChangelogFragmentChecks` now checks this one, by asserting that the release
+notes and the workflow actually carry the section the directory produces.
 
 ## N173 — An abstract class can have a public constructor, and `new` on it does not compile
 

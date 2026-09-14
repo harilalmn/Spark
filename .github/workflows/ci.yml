@@ -90,6 +90,15 @@ jobs:
         with:
           global-json-file: global.json
 
+      # E10-T12. ASKED FOR RATHER THAN ASSUMED. ChangelogFragmentChecks runs
+      # scripts/assemble-changelog.py as a subprocess - the only test here that starts a process -
+      # so `dotnet test` now needs a Python 3 on PATH. Both runner images carry one already; the
+      # point of naming it is that when an image stops carrying one, this line says what broke
+      # instead of four tests failing with a file-not-found from inside Process.Start.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Cache NuGet
         uses: actions/cache@v4
         with:

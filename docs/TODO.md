@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T72`: two Arc constructors)
+**Last updated:** 2026-09-15 (`E10-T12`: releases that say what changed)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -760,7 +760,13 @@ Only then the writing:
       dependencies so the harness can exercise it anywhere. This is what makes F1 do something.
 - [ ] **`E10-T7`** — more worked example graphs, openable from the help panel.
 - [ ] **`E10-T11`** — a topic per `SPK####` code.
-- [ ] **`E10-T12`** — per-PR changelog fragments.
+- [x] **`E10-T12`** — per-PR changelog fragments. **Done 2026-09-15**, and **not for the reason the
+      row gives**: 206 commits went straight to `main` and two pull requests exist, so the
+      merge-conflict magnet is one nobody here has had. What was true is that `CONTRIBUTING.md`
+      required a fragment with nowhere to put one, and that **every release since `v0.1.0` shipped
+      with no what-changed at all**. `changelog.d/` now holds one file per change,
+      `scripts/assemble-changelog.py` folds them into the notes at `{CHANGELOG}`, and a malformed
+      fragment stops the release rather than being dropped from it.
 - [ ] **`E10-T14`** — the website. [PRD Q8](PRD.md#14-open-questions) is still unanswered.
 
 ---

@@ -1,13 +1,22 @@
 <!--
-  The top of every release's notes. Read and substituted by .github/workflows/release.yml; the
-  commit list GitHub generates from --generate-notes is appended under it.
+  The whole of every release's notes. Read and substituted by .github/workflows/release.yml.
+
+  This said "the commit list GitHub generates from --generate-notes is appended under it", which
+  stopped being true in E12-T22: --generate-notes was dropped and nothing replaced it, so from
+  v0.1.0 to v2026.9.0 a release said how to install and never what had changed. E10-T12 replaced
+  it with {CHANGELOG} below - written by hand, one fragment per change, rather than a commit dump.
 
   It lives in a file rather than inside the workflow because a PowerShell here-string inside a YAML
   block scalar is two quoting rules fighting each other, and because these are the sentences a user
   reads first - they deserve to be editable without touching the pipeline that ships them.
 
-  Placeholders: {INSTALLER} is the installer's file name, {DOTNET} the .NET major version.
+  Placeholders: {INSTALLER} is the installer's file name, {DOTNET} the .NET major version, and
+  {CHANGELOG} the *What changed* section that scripts/assemble-changelog.py folds out of
+  changelog.d/. {CHANGELOG} is empty when nothing user-visible changed, and the blank line either
+  side of it is deliberate so that an empty one leaves no gap.
 -->
+
+{CHANGELOG}
 
 ## Install
 

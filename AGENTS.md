@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-09-12 (the dashboard standing instruction, generated and gated)
+**Last updated:** 2026-09-15 (`E10-T12`: changelog fragments, and the release step that assembles them)
 
 ---
 
@@ -117,6 +117,7 @@ properly; a token edit to satisfy the rule is worse than none.
 | [docs/TODO.md](docs/TODO.md) | Priorities shift · something is done — remove it · something is deliberately accepted rather than fixed — move it to *Known and deliberately accepted* so nobody rediscovers it as a bug |
 | [docs/progress.html](docs/progress.html) | **Whenever EPICS, TASKS or TODO changes — without fail** (client, 2026-09-12). **Never by hand:** run `python scripts/build-progress.py`. Narrative text is edited in the script's `NARRATIVE` block; every number is derived. `ProgressDashboardChecks` fails the build if you forget |
 | [docs/NOTES.md](docs/NOTES.md) | You discover a non-obvious implementation fact the next reader would get wrong. Take the next unused number. **Never renumber, never reuse, leave gaps on deletion** |
+| [changelog.d/](changelog.d/README.md) | A user of Spark would notice the change — a new node, a fixed crash, a changed default, a removed option. One file, `<kind>-<row>-<slug>.md`, one sentence written for them. **Not** for a refactor, a test, a document or a CI change: those are in the register, and a changelog listing them is one nobody finishes reading. `ChangelogFragmentChecks` refuses a malformed fragment and a release refuses to publish with one (`E10-T12`) |
 | `docs/adr/` | A decision that **could have gone differently**. Name the alternative and why it lost. Never renumber an ADR |
 | `docs/help/` | Anything user-facing: a new node, a changed port, a new concept, a new `SPK####` code. **Every topic contains a worked example**, and every node family gets one. A node nobody can find is a node nobody uses |
 | `docs/examples/` | A concept is easier shown than told. These are real `.spark` files, executed by `ExampleGraphTests` in the local suite — **CI no longer runs them, or anything** (`E13-T19`) |
@@ -307,6 +308,19 @@ path, it is the only one.
    `-SkipNative` is right whenever `artifacts/native/win-x64/spark_occt.dll` is current, which it
    usually is — a cold OpenCascade build is about an hour and is the only slow part of any of this.
    **Windows PowerShell, not `pwsh`**: this machine has no `pwsh` on `PATH`.
+5a. **Write the notes**, which is a step because until 2026-09-15 it was not one and every release
+   from `v0.1.0` to `v2026.9.0` shipped saying how to install and nothing about what had changed
+   (`E10-T12`). `.github/release-notes.md` is the template; `{CHANGELOG}` is the one part that is
+   not hand-written:
+   ```
+   python scripts/assemble-changelog.py --check     # refuses a malformed fragment
+   python scripts/assemble-changelog.py             # the What changed section
+   ```
+   Substitute `{INSTALLER}`, `{DOTNET}` and `{CHANGELOG}` into `notes.md`, strip the leading HTML
+   comment, and **delete the fragments in the release commit** — `changelog.d/` holds exactly what
+   has not shipped yet, and that, rather than a version header, is what makes it obvious.
+   `.github/workflows/release.yml` does all of this in its publish step and is the reference for
+   the exact substitutions.
 6. **Check the artefact against the tag** — `pwsh scripts/check-version.ps1 -Tag <tag>` — before
    anything is uploaded. This is the gate that matters, and it exists because a build whose
    assemblies disagree with their tag installs, runs, and makes every bug report name a version

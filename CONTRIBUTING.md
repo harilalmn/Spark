@@ -6,7 +6,7 @@ working agreement for anybody with access to this tree. It was written when Spar
 MIT-licensed, open to contributions, and maintained by one
 person — which shapes most of what follows.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-15 (`E10-T12`: the changelog fragment this file had been asking for now has somewhere to go)
 
 ---
 
@@ -176,8 +176,20 @@ seriously: *compile-verified* and *confirmed working* are different claims. A PR
 "builds clean; I could not test the GL path because I have no discrete GPU" is more useful
 than one that implies more than it proved.
 
-**A changelog fragment** rather than editing a single changelog file, so PRs do not collide
-(`E10-T12`).
+**A changelog fragment** in [`changelog.d/`](changelog.d/README.md), if the change is one a user
+would notice — a new node, a fixed crash, a changed default. One file, named
+`<kind>-<row>-<slug>.md`, holding one sentence written for a user. `changelog.d/README.md` is the
+whole specification and it is short. Check yours before you push:
+
+```
+python scripts/assemble-changelog.py --check   # validates every fragment
+python scripts/assemble-changelog.py           # prints the section as a release will show it
+```
+
+*This asked for a fragment from the day it was written until 2026-09-15, and until then there was
+nowhere to put one — no directory, no format, and nothing that read one (`E10-T12`, [N174](docs/NOTES.md)).
+It survived because a rule is only tested when somebody follows it, and two pull requests exist in
+this repository's history.*
 
 ### What will get a PR rejected on principle
 

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the first foreign assembly crashed the importer in four minutes)
+**Last updated:** 2026-09-15 (`E10-T12`: the rule had nowhere to point, and releases said nothing about what changed)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Sixty steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E5-T11` `Done`, and the row was right in the sharpest possible way: it found a crash in four minutes.** **Nothing here had ever imported an assembly built outside this repository** — thirty-five `NodeImporter.Import` call sites, every one pointed at our own code or at fixture types declared beside the assertion. **`MathNet.Numerics` imports to 3,621 nodes with no attribute, no manifest and no cooperation** — `NodeImporter`'s central claim tested for the first time against a library that has never heard of Spark. **And on the first attempt it threw**: `Can't compile a NewExpression with a constructor declared on an abstract class`, **at import time**, taking the whole assembly with it. An abstract class can have a public constructor; nothing written here has one. [N173](NOTES.md). **It also exercises the framework picker for the first time**: five real lib folders, net10.0 reduced to `net6.0`, where every hand-built fixture offers one folder and so proves the plumbing without proving the choice. **Restored rather than downloaded**, so the check does not depend on the internet. **Four mutations, four killed, every one against production code.** 5 tests, **3931 → 3936**. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3936** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **44** checks with the residue budget exact at 346. **`Directory.Packages.props` gained its first entry that is not a dependency of anything Spark ships**, referenced with `ExcludeAssets="all"` so it reaches no compile surface and no output folder. No stashes. |
-| **Next action** | **`E10-T12`, per-PR changelog fragments** — *avoids a single changelog file becoming a merge-conflict magnet* — and **check first whether the premise still holds**, because the shape of this project has changed under it: 206 commits pushed straight to `main`, two pull requests ever, and a release process that publishes from a developer machine. **A fragment directory solves a conflict this project does not currently have**, and the honest answers are *build it for the contributors 1.0 is meant to attract* or *say plainly that it is not 1.0 work* — the same shape as `E2-T64`, and the decision is the step. **Then**: `E2-T32` (harvest the DoodleSharp geometry tests, timeboxed to a week by [R10]), `E2-T27`, `E1-T22`, `E10-T14`. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), mutating **what the guard guards**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And when a suite is made entirely of its own project's code, it cannot find the shapes its own conventions never produce** — which is what this step cost four minutes to learn. **No tag, no release.** |
+| **Last completed step** | **`E10-T12` `Done`, and the rule it implements had been pointing at nothing since the day it was written.** `CONTRIBUTING.md` asks every contributor for **a changelog fragment**; there was **no directory, no format and nothing that read one**, and no `CHANGELOG.md` either — the row was about avoiding merge conflicts in a file that does not exist. It survived because **two pull requests exist in this repository's history** and 206 commits went straight to `main`: a rule is only tested when somebody follows it. [N174](NOTES.md). **The stated motive is the weaker half and is not what this was built on** — what was true is that **every release from `v0.1.0` to `v2026.9.0` shipped with install instructions and nothing about what had changed**, because `--generate-notes` was dropped in `E12-T22` and nothing replaced it. Now: `changelog.d/` with a README that is the specification, `scripts/assemble-changelog.py`, and `release.yml` splicing the section in at `{CHANGELOG}`. **The file name is the whole format.** **`ChangelogFragmentChecks` runs the assembler as a subprocess rather than reimplementing it** — the first test here to start a process, and `ci.yml` now asks for Python explicitly. **Five mutations, five killed, one of them against `release.yml` itself.** **A malformed fragment stops the release rather than being skipped.** 11 tests, **3936 → 3947**. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3947** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **55** checks with the residue budget exact at 346. **The tree this step inherited was not clean and the journal said it was**: an untracked `ZzProbeTests.cs` ending in `Assert.Fail` made `Spark.Geometry.Tests` red, and was deleted as debris from an abandoned investigation that nothing in the register names. `.gitignore` gained `scripts/__pycache__/`. No stashes. |
+| **Next action** | **`E2-T32` — harvest the DoodleSharp geometry tests, and the timebox is the row's own: one week, hard stop ([R10](PRD.md#12-risks)).** 897 `Fact` and 58 `Theory` exist there; roughly 400 are pure maths on values and are retargetable, and **anything needing a `Shape` is discarded without argument**. **Check the premise before harvesting, the way `E10-T12` and `E5-T11` were checked**: this suite is 3,947 tests over ten executables with property-based coverage on the kernel, which is not the thin net the row was written against, so the question is no longer *does this give us a regression net* but **which of the 400 assert something this tree does not already assert** — and the answer to that is what decides whether the week is spent at all. Start by counting the overlap rather than by porting. **Then**: `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the change is reverted, proved by reverting it (AGENTS.md step 7), mutating **what the guard guards**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And run `git status` before believing the journal's *Working tree* row** — this step inherited a red suite from an untracked file the journal knew nothing about. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16053,3 +16053,85 @@ else's library for the importer.
 
 **Cost.** One session. The defect took four minutes to surface and five lines to fix, and had
 been reachable since M0.
+
+### 2026-09-15 — `E10-T12`: the rule had been asking for something that had nowhere to go
+
+**What.** `changelog.d/`, `scripts/assemble-changelog.py`, `ChangelogFragmentChecks`, and
+`release.yml` wired to splice the assembled section into the notes at `{CHANGELOG}`.
+
+**The finding is bigger than the row.** `CONTRIBUTING.md` has told every contributor to add **a
+changelog fragment** since the day it was written. There was no directory to put one in, no
+format, and nothing that read one — and no `CHANGELOG.md` anywhere either, so the row's own
+subject, *avoiding a merge-conflict magnet in a single changelog file*, was about a file that does
+not exist. The rule survived for the only reason that matters: **two pull requests exist in this
+repository's history** and 206 commits went straight to `main`, so nobody ever followed it.
+[N174](NOTES.md).
+
+**The stated motive is the weaker half of the case, and was not the one this was built on.** A
+merge-conflict magnet is a real argument and it is not this project's. What was true is what a
+user saw: **every release from `v0.1.0` to `v2026.9.0` shipped with install instructions and
+nothing about what had changed in it.** `.github/release-notes.md` is a template,
+`--generate-notes` was dropped in `E12-T22`, and nothing replaced it. Somebody upgrading was told
+how to install and never what they were getting. That is the promise the smallest possible thing
+was built to keep.
+
+**The format is the file name** — `<kind>-<row>-<slug>.md` — which is what lets the assembler be a
+hundred lines and `changelog.d/README.md` be a specification somebody will actually read. The row
+is required, because a sentence in a release that nobody can trace to a reason is a sentence
+nobody can check. An empty directory prints **nothing at all**, not an empty heading: a release
+with no user-visible change is a real thing, and a *What changed* heading with nothing under it
+reads as a broken pipeline.
+
+**`ChangelogFragmentChecks` runs the assembler rather than reimplementing it**, and it is the
+first test in this repository to start a process. The alternative is `ProgressDashboardChecks`'
+independent re-derivation, which is right when the generated file is *committed* and the two can
+be reconciled on every run; nothing here is committed, because the section exists for the minutes
+between cutting a release and publishing it. So a second implementation would only be a second
+thing to get wrong. The cost is that `dotnet test` now needs a Python 3, which this repository
+already could not be worked without — `scripts/build-progress.py` runs on every step under the
+client's standing instruction — and `ci.yml` now **asks for it** rather than relying on the runner
+image happening to carry one.
+
+**Five mutations, five killed**, and the fifth is against the workflow rather than the code: a
+fragment that is a title rather than a sentence accepted; fragments ordered as text so `E10`
+precedes `E2`; an empty directory given a heading; the assembler skipping what the checker
+refuses; and `release.yml`'s `{CHANGELOG}` substitution removed. The fourth is the one worth
+having — a fragment silently dropped is a change that shipped with nothing saying so, which is the
+single failure that would make this directory worse than no directory.
+
+**One more expired reason, corrected in the same file, and it is this week's fifth.**
+`release.yml` said `--generate-notes` was dropped because it *would publish the private history of
+a closed source tree into a public changelog*. That stopped being true on 2026-09-14 when the
+client made the repository public again. The conclusion survives — it is pointed at
+`Spark-Releases`, which holds no commits, and a dump of 206 marathon commit messages written for
+the next session is not a changelog — but it survives on a different argument, which is the point.
+The same shape as `E2-T64`, `N132`, `E1-T28` and `E5-T11` this week.
+
+**Verified.** Build clean, zero warnings. Ten test executables, **3936 → 3947**, zero failures and
+zero skips, read from each runner's exit code. `dotnet format` clean. `check-no-native-binaries.sh`
+green. The dashboard regenerated and `--check` green. The splice was run end to end in PowerShell
+against the real template — the section lands above *Install*, the em dash survives (stdout is
+forced to UTF-8, or Windows encodes it in the console codepage and it reaches a published release
+as a replacement character), and an empty section leaves no gap.
+
+**The tree was not what the journal said it was, which is the protocol working.** *Working tree*
+read `Clean`; `git status` found `changelog.d/` **and `tests/Spark.Geometry.Tests/ZzProbeTests.cs`**
+— a scratch probe ending in `Assert.Fail` to print naked-edge lists, untracked, timestamped in the
+same minute as the changelog write-ahead and unrelated to it. It made `Spark.Geometry.Tests` red at
+1,490/1 before it was removed. Deleted rather than committed: it is debugging debris from an
+abandoned investigation, and nothing in the register or the journal names one. `.gitignore` gained
+`scripts/__pycache__/` in the same breath, which re-deriving the register's summary counts by
+importing the dashboard script leaves behind.
+
+**Also reconciled.** The register's summary line was re-derived by script rather than adjusted, as
+its own comment demands: it read 360/8/21/6/2/11 over 408 and is 375/9/11/4/3/12 over **414**. An
+`EPICS.md` paragraph claiming six documentation features *do not exist* is corrected in place
+rather than deleted, because the argument in its last sentence is still the reason they were
+allowed to be missing.
+
+**No tag, no release.** The one genuine fragment in `changelog.d/` is `E5-T11`'s import crash, and
+it stays there until something ships.
+
+**Cost.** One session. Most of it went on the question the write-ahead did not settle — whether
+the assembler is tested by being run or by being re-derived — and the answer turned on which of
+the two has a committed artefact to reconcile against.
