@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: closing the holes in a mesh)
+**Last updated:** 2026-09-14 (`E2-T68`: closing the holes, and a fan that was not valid)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T68`'s `Mesh.MakeWatertight()` — the boundary walk, and the last of that task that is a pass rather than a project.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **One naming correction goes in with it, and it is mine from an hour ago.** Every other `Mesh` member returning a modified mesh is a past participle — `Welded`, `Triangulated`, `Smoothed`, `TransformedBy`, `WithVertexNormals` — and `Repair()` is the one exception, which I introduced by naming it after its Dynamo row rather than after its neighbours. It becomes **`Repaired()`**, and this member is **`MadeWatertight()`**. The public API file is unshipped, so the rename costs nothing now and would cost a deprecation later. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Mesh.Repair` — mesh hygiene, and the decision about which of `E2-T68`'s four members are hygiene at all.** **Three passes in an order where each creates work for the next**: degenerate faces, then duplicates, then the vertices nothing indexes any more. **Two faces are duplicates when they use the same *set* of vertices**, which catches the opposite winding and is written down rather than inferred. **The branch is the renumbering and it fails quietly** — an unrenumbered face points at a *different* vertex, which is a valid index and a mesh that loads — so the tests compare by **coordinate**, because an index-based test cannot see the defect at all. **One real bug, caught by my own *a clean mesh is unchanged* test**: numbering survivors by first use permutes a mesh needing no repair, because a sphere's faces do not visit its vertices in index order. **`Remesh` and `Reduce` got sharpened reasons rather than half-versions.** Residue **unchanged at 343**. 10 tests, **3820 → 3830**. **Before it:** `Mesh.Project`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3830** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Mesh.MadeWatertight(double tolerance = 0.0)`, and rename `Repair` to `Repaired` beside it.** **`MeshTopology.NakedEdges()` is the whole input**: boundary edges as `(From, To)` pairs in each face's own direction, so a hole is a **cycle** found by chaining each edge to the one whose `From` is this one's `To`. **The winding of the patch is a second branch and `IsClosed` can see it.** Each boundary edge belongs to a face traversing `a → b`, so the face filling the hole must traverse `b → a` — fan the loop **reversed**. Fan it the same way round and every new edge is traversed twice in the *same* direction, which is **non-manifold**, and `IsClosed` is false for that reason rather than for a hole. Two different bugs, one symptom. **Weld first, and say why.** A *crack* — coincident but separate vertices along a seam — shows as naked edges no fan can close, because the two sides are different vertices. A member promising *watertight* that ignores cracks is not promising it. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7). **`MeshTopology.IsClosed` is the oracle and it already exists**, so most assertions are that one line — but it answers two different failures, so each needs its own fixture. **Branch one, every loop**: a mesh with **two separate holes** must come back closed, and an implementation that finds one cycle and stops passes every test on a mesh with one hole. **Branch two, the winding**: fanning the loop the same way round as its boundary leaves the mesh non-manifold, so `NonManifoldEdgeCount` is asserted separately from `NakedEdgeCount` — otherwise a single `IsClosed` assertion cannot say which of the two went wrong. **A cracked mesh closes too**, which is what the weld is for. **A mesh already closed comes back unchanged.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Forty-one steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` and `E2-T69` are closed; `E2-T72` is `Blocked` with its three remainders named; `E2-T68`'s hygiene half is done and its two algorithms are all that is left of it.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Mesh.MadeWatertight` — closing the holes in a mesh, and a fan that turned out not to be valid.** **It welds before it walks**, because a *crack* is not a hole: the two sides are different vertices, so the boundary never meets itself and no patch can close it. **The patch is wound against its boundary**, and getting that wrong fails as a **different** defect with the same symptom — non-manifold rather than open — so the tests assert `NakedEdgeCount` and `NonManifoldEdgeCount` separately. **The find is that a fan from a boundary vertex is not merely ugly but invalid**: its chords can duplicate an edge the mesh already has, which three faces off a box does. The patch is hubbed on a **new** vertex instead, which cannot collide with anything. **A triangular hole is the one case needing no hub.** **`Repair` was renamed `Repaired`** to match every other `Mesh` member returning a modified mesh. Residue **unchanged at 343**. 9 tests, **3830 → 3839**. **Before it:** `Mesh.Repaired`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3839** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **Take stock before taking another row, because the three mesh and curve tasks are now worked out and the queue's shape has changed.** **Read [docs/TODO.md](TODO.md) in priority order**, not the parity manifest — the manifest says what is unbuilt, and the TODO says what is worth building next, which is not the same question now that the cheap rows are gone. **What is known to remain, so it is not rediscovered**: `E2-T68`'s `Remesh` and `Reduce` are **algorithms** (a voxel field; quadric edge collapse) and each is a task-sized piece of work; `E2-T72`'s three rows need a running Dynamo or the offset trimming nobody has asked for; and `E2-T67` needs the OpenCascade install `E13-T21` waits on. **`E2-T71`'s family (5)** — projection and pull — waits on `E2-T15`'s ray caster, and **that may be less true than it was**: `Mesh.Project` now casts a ray at a mesh, so whatever that family needs should be re-read rather than assumed still blocked. **Of the four, `Reduce` is the most valuable**, because a scanned STL arrives too heavy far more often than it arrives badly tessellated — and `MeshTopology` already gives the adjacency a collapse-validity test needs. |
+| **Verify with** | **For the stock-take, the documents**: whatever is chosen has to be named in the journal before any code, and any row whose *reason* turns out to be stale has to be rewritten in the same step that discovers it — three rows this run said they waited on something that had since arrived. **For whatever is built**, a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15038,3 +15038,56 @@ why it needs no parameters** — and that is the sentence that decides what belo
 
 **Cost.** One session. One member, ten tests, one node, two mutations, and one bug found by a
 test I nearly did not write.
+
+### 2026-09-14 — Closing the holes, and a fan that was not valid
+
+**What.** `Mesh.MadeWatertight`, and `Repair` renamed to `Repaired` beside it. Nine tests, a
+node, a row to `Done`, and the register at **452 of 545**.
+
+**The plan was right about two things and wrong about the one that mattered.** Welding before
+walking is necessary and for the reason predicted: a *crack* — two coincident but separate
+vertices along a seam — shows up as naked edges that no patch can close, because the two sides
+are different vertices and the boundary never meets itself. And the patch has to be wound
+**against** its boundary, which fails as a *different* defect with the same symptom: wound the
+same way, every shared edge is traversed twice in one direction, which is **non-manifold**
+rather than open. `IsClosed` is false either way, so the tests assert `NakedEdgeCount` and
+`NonManifoldEdgeCount` separately — otherwise a failure cannot say which of the two happened.
+
+**What the plan got wrong is that a fan from a boundary vertex is not merely ugly. It is not a
+valid mesh.** The write-ahead said *a fan is topological, not beautiful* — triangles that
+overlap in space while closing the surface perfectly. That is true of the shape and false of
+the topology. Fanning from one of the boundary's own vertices draws chords to the others, and
+a chord can be an edge the mesh **already has**. Take three faces off a box and the remaining
+boundary runs through vertices that are still joined to each other: the fan then produces a
+second copy of a real edge, and the result is non-manifold rather than closed.
+
+**The fix is a hub — a new vertex at the hole's middle — and it is correct rather than merely
+tidy**, because a vertex that did not exist a moment ago cannot collide with anything. A
+**triangular** hole is the one case that needs no hub: its three boundary edges already are the
+patch. The cost is one vertex per hole, which a test now pins in both directions.
+
+**Three fixtures were wrong before the member was, and one of them was wrong in an interesting
+way.** `MeshPrimitives.Cuboid` is **not closed**: it gives its six sides their own vertices on
+purpose so that each shades flat, which makes it twenty-four vertices where a box has eight and
+every edge naked. Three tests using it as *a closed box* were testing nothing of the sort. It
+is the honest fixture for exactly one of them — the cracked-mesh test, where the primitive is
+*entirely* crack — and that test now says so in its remarks.
+
+**And the defect was found by data rather than by reasoning, after two wrong theories.** The
+three-hole case left two naked edges. I guessed a pinched boundary and rewrote the walk to
+split sub-loops at a revisit; still two. The probe printed the boundary — `4>5 2>0 5>7 7>3 3>2
+0>1 1>6 6>4`, a clean eight-cycle — and the leftover edges, `4>0` and `0>4`, which are an edge
+the kept faces already had. **Two rounds of plausible reasoning cost more than one print
+statement would have.** The rewritten walk is kept, because splitting at a revisit is correct
+and the old one was not, but it was not what the fixture was complaining about.
+
+**`Repair` became `Repaired` the same day.** Every other `Mesh` member returning a modified
+mesh is a past participle — `Welded`, `Triangulated`, `Smoothed`, `TransformedBy`,
+`WithVertexNormals` — and I had named that one after its Dynamo row rather than after its
+neighbours, an hour earlier. The public API file is unshipped, so the rename cost nothing now
+and would have cost a deprecation later.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, one rename, nine tests, one node, three mutations, and two
+wrong theories before a probe.

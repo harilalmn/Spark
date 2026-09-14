@@ -4,7 +4,7 @@ using Spark.Geometry;
 namespace Spark.Geometry.Tests;
 
 /// <summary>
-/// <see cref="Mesh.Repair"/> — `E2-T68`.
+/// <see cref="Mesh.Repaired"/> — `E2-T68`.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,7 +27,7 @@ public sealed class MeshRepairTests
     {
         Mesh clean = MeshPrimitives.Sphere(Plane.WorldXY, 3.0, 12, 6);
 
-        Mesh repaired = clean.Repair();
+        Mesh repaired = clean.Repaired();
 
         Assert.Same(clean, repaired);
     }
@@ -43,7 +43,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(1, repaired.FaceCount);
     }
@@ -62,7 +62,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(1, repaired.FaceCount);
         Assert.Equal(3, repaired.VertexCount);
@@ -79,7 +79,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(1, repaired.FaceCount);
     }
@@ -102,7 +102,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(3, repaired.VertexCount);
         Assert.Equal(1, repaired.FaceCount);
@@ -142,7 +142,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(3, repaired.VertexCount);
 
@@ -180,7 +180,7 @@ public sealed class MeshRepairTests
             null,
             colours);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Vector3d[] moved = repaired.Normals()!;
         uint[] recoloured = repaired.Colours()!;
@@ -221,7 +221,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(1, repaired.FaceCount);
         Assert.Equal(3, repaired.VertexCount);
@@ -251,7 +251,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Assert.Equal(1, mesh.Repair().FaceCount);
+        Assert.Equal(1, mesh.Repaired().FaceCount);
     }
 
     /// <summary>A mesh of nothing but rubbish comes back with no faces rather than throwing.</summary>
@@ -265,7 +265,7 @@ public sealed class MeshRepairTests
             null,
             null);
 
-        Mesh repaired = mesh.Repair();
+        Mesh repaired = mesh.Repaired();
 
         Assert.Equal(0, repaired.FaceCount);
         Assert.Equal(0, repaired.VertexCount);

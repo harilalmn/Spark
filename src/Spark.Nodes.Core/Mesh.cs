@@ -191,5 +191,23 @@ public static class Mesh
     /// </remarks>
     [return: NodePort("mesh")]
     [SparkNodeAlias("Mesh.Repair")]
-    public static Spark.Geometry.Mesh Repaired(Spark.Geometry.Mesh mesh) => mesh.Repair();
+    public static Spark.Geometry.Mesh Repaired(Spark.Geometry.Mesh mesh) => mesh.Repaired();
+
+    /// <summary>Closes a mesh's holes so that it encloses a volume.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <param name="tolerance">
+    /// How far apart two vertices may be and still be welded into one before the holes are found.
+    /// Zero uses a default relative to the mesh's size.
+    /// </param>
+    /// <returns>The closed mesh, or the same one when it was already closed.</returns>
+    /// <remarks>
+    /// <b>It welds first, because a crack is not a hole and no patch can close one.</b> Each hole
+    /// is closed by a fan from a new vertex at its middle - drawing the fan from one of the
+    /// boundary's own vertices can duplicate an edge the mesh already has. The patch closes the
+    /// surface; it is not chosen to look good.
+    /// </remarks>
+    [return: NodePort("mesh")]
+    [SparkNodeAlias("Mesh.MakeWatertight")]
+    public static Spark.Geometry.Mesh MadeWatertight(
+        Spark.Geometry.Mesh mesh, double tolerance = 0.0) => mesh.MadeWatertight(tolerance);
 }

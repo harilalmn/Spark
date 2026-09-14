@@ -507,7 +507,7 @@ public sealed class Mesh
     /// judgement, which is why it needs no parameters.
     /// </para>
     /// </remarks>
-    public Mesh Repair()
+    public Mesh Repaired()
     {
         List<MeshFace> kept = [];
         HashSet<string> seen = [];
@@ -579,6 +579,236 @@ public sealed class Mesh
             Carry(_normals, renumbered, renumbered.Count),
             Carry(_textureCoordinates, renumbered, renumbered.Count),
             Carry(_colours, renumbered, renumbered.Count));
+    }
+
+    /// <summary>
+    /// The mesh with its holes closed, so that it encloses a volume (`E2-T68`).
+    /// </summary>
+    /// <param name="tolerance">
+    /// How far apart two vertices may be and still be welded into one before the holes are found.
+    /// Zero asks <see cref="Welded(double)"/> for its own default, which is relative to the mesh's
+    /// size.
+    /// </param>
+    /// <returns>
+    /// The closed mesh. A mesh that was already closed comes back unchanged rather than rebuilt.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>It welds before it walks, and that is not an optimisation.</b> A <i>crack</i> — two
+    /// coincident but separate vertices along a seam — shows up as naked edges that no patch can
+    /// close, because the two sides of the crack are different vertices and the boundary never
+    /// meets itself. A member promising <i>watertight</i> that ignores cracks is not promising it,
+    /// so the weld happens first and the tolerance is this member's only parameter.
+    /// </para>
+    /// <para>
+    /// <b>A hole is a cycle among the naked edges.</b> <see cref="MeshTopology.NakedEdges"/> hands
+    /// back every boundary edge as the pair of vertices its one face runs between, so chaining each
+    /// edge to the one starting where it ended walks the hole. Every cycle is walked, not the first
+    /// one: a mesh with two holes is the ordinary case, and an implementation that stops after one
+    /// passes every test a single-holed mesh can offer.
+    /// </para>
+    /// <para>
+    /// <b>The patch is wound the other way round, and getting that wrong fails as a <i>different</i>
+    /// defect.</b> Each boundary edge belongs to a face that traverses it <c>a → b</c>, so the face
+    /// closing the hole must traverse <c>b → a</c>. Fan the loop the same way round instead and
+    /// every new edge is traversed twice in the <b>same</b> direction, which is what
+    /// <b>non-manifold</b> means — so <see cref="MeshTopology.IsClosed"/> is still false, for a
+    /// reason that has nothing to do with holes. Two bugs, one symptom, which is why the tests
+    /// assert <see cref="MeshTopology.NakedEdgeCount"/> and
+    /// <see cref="MeshTopology.NonManifoldEdgeCount"/> separately.
+    /// </para>
+    /// <para>
+    /// <b>The patch is fanned from a new vertex at the hole's middle, and that is not a choice
+    /// about looks — a fan from one of the boundary's own vertices is not always a valid mesh.</b>
+    /// Fanning from a boundary vertex draws chords to the others, and one of those chords can be an
+    /// edge the mesh <i>already has</i>: take three faces off a box and the remaining boundary runs
+    /// through vertices that are still joined to each other, so the fan produces a second copy of a
+    /// real edge and the result is <b>non-manifold</b> rather than closed. A vertex that did not
+    /// exist a moment ago cannot collide with anything, which is what makes the hub construction
+    /// correct rather than merely tidy. <b>A triangular hole is the one case that needs no hub</b>,
+    /// because its three boundary edges already are the patch.
+    /// </para>
+    /// <para>
+    /// <b>What the patch is not is beautiful.</b> A boundary that is neither planar nor convex
+    /// gives triangles that overlap in space while closing the surface perfectly, and the hub sits
+    /// at the average of the boundary rather than anywhere considered. Closing the hole is what
+    /// this member promises; a patch that looks right is a different and much larger promise, and
+    /// it is not made here. The hub's channel values are zeroed rather than interpolated, for the
+    /// same reason.
+    /// </para>
+    /// </remarks>
+    public Mesh MadeWatertight(double tolerance = 0.0)
+    {
+        Mesh welded = Welded(tolerance);
+        (int From, int To)[] naked = welded.Topology.NakedEdges();
+
+        if (naked.Length == 0)
+        {
+            return welded;
+        }
+
+        // Where each boundary edge leads. A vertex can start more than one naked edge on a mesh
+        // pinched at a point, so the walk takes and removes rather than looking up and hoping.
+        Dictionary<int, List<int>> leadsTo = [];
+        foreach ((int from, int to) in naked)
+        {
+            if (!leadsTo.TryGetValue(from, out List<int>? onwards))
+            {
+                onwards = [];
+                leadsTo[from] = onwards;
+            }
+
+            onwards.Add(to);
+        }
+
+        List<MeshFace> faces = [.. welded.Faces()];
+        List<Point3d> vertices = [.. welded.Vertices()];
+        List<Vector3d>? normals = welded.Normals() is { } n ? [.. n] : null;
+        List<UV>? coordinates = welded.TextureCoordinates() is { } uv ? [.. uv] : null;
+        List<uint>? colours = welded.Colours() is { } c ? [.. c] : null;
+
+        foreach (List<int> loop in Loops(leadsTo, naked))
+        {
+            if (loop.Count == 3)
+            {
+                // A triangular hole needs no new anything: its three boundary edges are the
+                // triangle, wound the other way round.
+                faces.Add(new MeshFace(loop[0], loop[2], loop[1]));
+                continue;
+            }
+
+            int hub = vertices.Count;
+            vertices.Add(Middle(welded.Vertices(), loop));
+            normals?.Add(Vector3d.Zero);
+            coordinates?.Add(default);
+            colours?.Add(0u);
+
+            for (int corner = 0; corner < loop.Count; corner++)
+            {
+                int from = loop[corner];
+                int to = loop[(corner + 1) % loop.Count];
+
+                // REVERSED. The boundary runs the way its own faces run, so the patch has to run
+                // the other way or the shared edges are traversed twice in the same direction.
+                faces.Add(new MeshFace(hub, to, from));
+            }
+        }
+
+        return new Mesh(vertices, faces, normals, coordinates, colours);
+    }
+
+    /// <summary>The average of a loop's vertices.</summary>
+    /// <param name="vertices">The mesh's vertices.</param>
+    /// <param name="loop">The loop's vertex indices.</param>
+    /// <returns>The middle of the hole.</returns>
+    private static Point3d Middle(Point3d[] vertices, List<int> loop)
+    {
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+
+        foreach (int index in loop)
+        {
+            x += vertices[index].X;
+            y += vertices[index].Y;
+            z += vertices[index].Z;
+        }
+
+        return new Point3d(x / loop.Count, y / loop.Count, z / loop.Count);
+    }
+
+    /// <summary>Every cycle among the naked edges, each found once.</summary>
+    /// <param name="leadsTo">Where each boundary edge leads, emptied as edges are taken.</param>
+    /// <param name="naked">The boundary edges, used only for their starting vertices.</param>
+    /// <returns>The cycles, as lists of vertices in boundary order.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>A boundary vertex can have more than one edge leaving it, and assuming otherwise is the
+    /// trap.</b> Remove three faces from a box and two of the resulting boundaries meet at a
+    /// corner: the boundary is a figure of eight, not a circle. A walk that treats it as one cycle
+    /// either splices two holes into one patch or runs out of edges part-way and abandons the ones
+    /// it has already taken.
+    /// </para>
+    /// <para>
+    /// <b>So the walk carries its path and splits at a revisit.</b> Reaching a vertex already on
+    /// the path closes the sub-loop from that vertex onwards, emits it, and carries on from there
+    /// with the rest of the path intact — which is the right answer geometrically as well as
+    /// mechanically, because a pinched boundary really is two holes that happen to touch. Every
+    /// step consumes an edge, so it terminates.
+    /// </para>
+    /// </remarks>
+    private static List<List<int>> Loops(
+        Dictionary<int, List<int>> leadsTo, (int From, int To)[] naked)
+    {
+        List<List<int>> found = [];
+
+        foreach ((int seed, int _) in naked)
+        {
+            while (Available(leadsTo, seed))
+            {
+                List<int> path = [seed];
+                Dictionary<int, int> positionOf = new() { [seed] = 0 };
+                int at = seed;
+
+                while (Take(leadsTo, at, out int next))
+                {
+                    if (positionOf.TryGetValue(next, out int from))
+                    {
+                        if (path.Count - from >= 3)
+                        {
+                            found.Add(path.GetRange(from, path.Count - from));
+                        }
+
+                        for (int index = from + 1; index < path.Count; index++)
+                        {
+                            positionOf.Remove(path[index]);
+                        }
+
+                        path.RemoveRange(from + 1, path.Count - from - 1);
+                        at = next;
+
+                        if (from == 0 && !Available(leadsTo, seed))
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        positionOf[next] = path.Count;
+                        path.Add(next);
+                        at = next;
+                    }
+                }
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>Whether any boundary edge still leaves a vertex.</summary>
+    /// <param name="leadsTo">The remaining edges.</param>
+    /// <param name="vertex">The vertex.</param>
+    /// <returns>Whether one does.</returns>
+    private static bool Available(Dictionary<int, List<int>> leadsTo, int vertex) =>
+        leadsTo.TryGetValue(vertex, out List<int>? onwards) && onwards.Count > 0;
+
+    /// <summary>Takes one boundary edge out of a vertex, removing it.</summary>
+    /// <param name="leadsTo">The remaining edges.</param>
+    /// <param name="vertex">The vertex to leave.</param>
+    /// <param name="next">Where the edge leads.</param>
+    /// <returns><see langword="false"/> when nothing leaves this vertex any more.</returns>
+    private static bool Take(Dictionary<int, List<int>> leadsTo, int vertex, out int next)
+    {
+        next = -1;
+
+        if (!leadsTo.TryGetValue(vertex, out List<int>? onwards) || onwards.Count == 0)
+        {
+            return false;
+        }
+
+        next = onwards[^1];
+        onwards.RemoveAt(onwards.Count - 1);
+        return true;
     }
 
     /// <summary>Whether a face encloses no area, either by repeating a vertex or by being flat.</summary>

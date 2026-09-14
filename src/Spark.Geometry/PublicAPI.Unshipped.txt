@@ -287,4 +287,5 @@ static Spark.Geometry.CurveOffset.FilletTangentTo(Spark.Geometry.Curve! first, S
 static Spark.Geometry.NurbsCurve.InterpolatePointsPeriodic(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.Mesh.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Mesh.Project(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d direction) -> Spark.Geometry.Point3d?
-Spark.Geometry.Mesh.Repair() -> Spark.Geometry.Mesh!
+Spark.Geometry.Mesh.Repaired() -> Spark.Geometry.Mesh!
+Spark.Geometry.Mesh.MadeWatertight(double tolerance = 0) -> Spark.Geometry.Mesh!
