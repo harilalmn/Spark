@@ -16,10 +16,12 @@ the milestone plan; the milestone each mostly serves is named, but epics and mil
 the same axis and several epics span both.
 
 **A criterion is ticked when something demonstrates it, never when code exists that would
-satisfy it.** CI is the live example, and it is now a permanent one: **GitHub Actions is
-switched off for this repository** (`E13-T19`), so every criterion that depended on a CI run is
-untickable rather than merely untouched, and the three task rows that were held open by one are
-`Blocked`. The architecture and documentation tests are the other side of the same rule — they
+satisfy it.** CI is the live example, and it has now been both things: **GitHub Actions was
+switched off for this repository** from 2026-09-09 (`E13-T19`), so for five days every criterion
+that depended on a CI run was untickable rather than merely untouched and three task rows sat
+`Blocked`. **It runs again from 2026-09-14**, the repository having gone public, so those criteria
+are tickable once a run demonstrates them — and not before, which is the rule restated rather than
+relaxed. The architecture and documentation tests are the other side of the same rule — they
 pass locally on every commit, so what they prove is ticked.
 
 | Epic | Title | Milestones | Status |

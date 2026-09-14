@@ -15,19 +15,22 @@ keeps everything, and re-saves byte for byte. A user can define a node by drawin
 `dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,964 tests over
 ten projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
 shim built and **nothing skipped** — the skip count is the part that matters, because
-`Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI does not run at all any
-more**: Actions is switched off for this repository (`E13-T19`) since it went private and minutes
-stopped being free (`E12-T22`, `E13-T20`), so a green local run is the whole of the evidence and
-`Q15(c)`'s Linux question is moot while it stays off.
+`Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI runs again as of
+2026-09-14**, when the client made the repository public so that its Actions minutes are free once
+more. It had been switched off since 2026-09-09 (`E13-T19`) because a private repository's minutes
+are billed (`E12-T22`, `E13-T20`), and for those five days a green local run was the whole of the
+evidence. `Q15(c)`'s Linux question is live again: the ubuntu leg is back.
 
 **The benchmarks stopped being a report and became a guard on 2026-08-29, and became a *manual*
 guard on 2026-09-09.** The budgets in `bench/budgets.jsonc` still fail a run that breaks them —
 allocation tightly, ratios sharply, wall-clock loosely and for stated reasons
 ([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)) — but
 only when somebody starts the run, and [AGENTS.md](../AGENTS.md#before-you-commit) gives the two
-commands. The nightly workflow that used to start it **has never run on a hosted runner and now
-cannot**, which is why `E1-T21`, `E8-T15` and `E11-T14` are `Blocked` rather than `In progress`
-after the 2026-09-09 audit: no work in this tree advances a workflow that is switched off.
+commands. The nightly workflow that used to start it **has still never run on a hosted
+runner**, but it can again: its `cron` came back on 2026-09-14 with the repository going public, so
+the first scheduled run is simply the next 03:17 UTC. `E1-T21`, `E8-T15` and `E11-T14` came off
+`Blocked` the same day — **and none of them became easy**, because each was blocked on the
+switch-off *and* wants something the workflow does not do yet. Their rows say which.
 
 Three distinctions still do the work in what follows:
 
