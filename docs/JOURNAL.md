@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (the intro sweep: ten of thirteen `Status.` paragraphs, six of them false)
+**Last updated:** 2026-09-15 (`E2-T71` Done: `OffsetMany`, and five stale clauses in one row)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Seventeen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Eighteen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The intro sweep — the last surface in the documents that nothing can reconcile. Ten of thirteen `Status.` paragraphs needed work, six were false.** A row has a status column and a criterion now has a cited row and a check; **a `Status.` paragraph has neither**. **False**: E1 (*four test projects run 315 checks*), E2 (*two slices are landed*, counts out by four times), E5 (*57 nodes*, it is 141), E11 (*`dotnet test Spark.slnx` runs 315 tests* — a command that reports *Zero tests ran* here), E13 (*nothing of this epic exists in the tree*, **the second copy of that sentence found today**), and worst E7 — *every row in this epic is `Done`* with `E7-T20` `In progress` then and now. **Four understated completion**: **E3, E4 and E9 are 100% `Done`** and said *substantially built*; E8 is 81 of 82. **Three were accurate**: E6, E10, E12. **Every one of the ten erred towards making the project look less finished than it is** — the third time this week that staleness has had a sign ([N182](NOTES.md)). **A filing defect fell out of it**: four `E13` rows had been inside `E8`'s table since they were filed, and this morning's own correction missed them and got the count wrong the same careless way. Nothing in the machinery was affected — a row is found by its ID. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4027** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **Waiting on the client for `PRD Q8`, and there is no register work left that does not need a person.** `E10-T14` (the website) is the only `Open` row and cannot start without the answer; the recommendation was put on 2026-09-15 — **GitHub Pages on the public `Spark-Releases` repository**, since the source repository is private, the binaries are already public there, and Pages costs nothing and sits beside the downloads. What it does not settle is a custom domain and *who maintains it*, which is the half a recommendation cannot answer. **The other four blockers are also people**: branch protection (`E1-T28`, one `gh api -X PUT` on the day the marathon ends), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall**, which is now the single highest-value unblock left — one `vcpkg install`, about 1.3 hours at full CPU, and it frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once. **If a session resumes with none of those answered**, the honest work is `E2-T71`'s remaining curve families and `E2-T68`'s four mesh-repair members, both `In progress` with their next steps written out and neither needing anything native. |
-| **Verify with** | **Whatever the step is, the artefact rather than the row** — this week found six rows, ten criterion boxes and ten status paragraphs stale, and every one read as plausible. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E2-T71` `Done` — and the row was stale in five places, two of which this morning's own sweep wrote into it.** Its own three: `Curve.ToNurbsCurve()` *has no implementation anywhere in Spark* (it has eight), family (3)'s *Spark has no chord stepping at all* (it has all of it), family (4)'s extension (`Curve.Extended`). **The sweep's two**: the curve-wide `Curve.Normal`, which is a **deliberate refusal** written out in `PlaneOf`'s remarks — listing it as missing would have had somebody build the thing the code argues against — and the two extrude overloads, recorded `Done` by composition. **A sweep may only correct what it verified** ([N183](NOTES.md)); a re-dated wrong clause is worse than an old one, because it reads as freshly checked. **The one real gap is built**: `CurveOffset.OffsetMany`, which returns the pieces an offset is made of rather than fitting one connected curve across a hole where the offset does not exist. **Two defects fell out** — a `Line` along the normal threw `InvalidOperationException` where every other shape threw `ArgumentException`, and the per-segment catch swallowed a bad normal and blamed the distance — **and a third assumption died on measurement**: an arc offset past its own radius does not collapse. 8 tests, 3 mutations caught, residue re-derived and exact at 346. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4035** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E2-T68` — mesh repair and remeshing — is the last row with real geometry work in it that needs nobody's permission.** Four members remain of the original seven: `Repair`, `Remesh`, `Reduce` and `MakeWatertight`. `Explode` and `Smooth` are delivered. **Read the row against the tree before starting, and do not trust the sweep line that says four** — that is [N183](NOTES.md)'s whole lesson, and `Smooth` was itself found delivered by a sweep two steps ago. **Take `Repair` first**: it is the one a user importing a scanned STL reaches for, and it is the cheapest of the four — `MeshTopology` already answers naked edges and adjacency, so degenerate-face removal, duplicate-vertex welding (which is `Mesh.Welded`) and unifying face winding are compositions over what exists. **`Reduce` is quadric error metrics and its own literature; `MakeWatertight` is a voxel or SDF remesh and is the largest uncosted thing in `E2`** — neither is one step, and the row says so. **Everything else needs a person**: `E10-T14` waits on `PRD Q8`, which was put to the client with a recommendation on 2026-09-15, and the OpenCascade reinstall would free four rows at once. |
+| **Verify with** | **A mesh that is measurably broken before and measurably sound after** — naked-edge count, duplicate-vertex count and face-winding consistency, each read off `MeshTopology` rather than eyeballed, and each asserted in both directions so the repair cannot pass by doing nothing. The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -17032,3 +17032,63 @@ zero skips.
 
 **Cost.** One session, no code. Three of thirteen paragraphs were right, and none of the ten wrong
 ones would have been caught by any check this project has or could reasonably build.
+
+### 2026-09-15 — `E2-T71` Done: `OffsetMany`, and five stale clauses in one row — two of them mine
+
+**What.** `E2-T71` closes. **The row was stale in five places, three of its own and two written into
+it by this morning's sweep**, and what was genuinely outstanding was a single member:
+`CurveOffset.OffsetMany`, now built with eight tests and three mutations caught. Two defects fell
+out of building it and a third assumption died on measurement.
+
+**The row's own three.** It said `Curve.ToNurbsCurve()` has *no implementation anywhere in Spark* —
+it has eight, a virtual on `Curve` and seven overrides, returning a `NurbsConversion` that carries
+the exactness flag the row itself said had to be settled before the member could exist. It said
+family (3) was outstanding and *Spark has no chord stepping at all* — Spark has all of it. Family
+(4)'s extension is `Curve.Extended`, overridden on three types.
+
+**And two the sweep added this morning, which is [N183](NOTES.md).** The sweep listed *the
+curve-wide `Curve.Normal`* as remaining. **It is a deliberate refusal**, and the reason is written
+out in `PlaneOf`'s own remarks: `NormalAt(parameter)` is the Frenet normal, pointing at the centre
+of curvature, so a curve-wide `Normal` beside it would be two unrelated quantities under almost one
+name. Listing it as missing would have had somebody build the thing the code argues against. It also
+listed the two extrude overloads, which the manifest records `Done` **by composition** with the
+composition written out.
+
+**How a careful sweep does that.** Its rule was one artefact per row; for this row the artefact read
+was `ToNurbsCurve`, which was genuinely stale and genuinely a finding. Having verified the row's
+largest claim was wrong, **the remainder was rewritten from the row's own prose rather than from the
+tree**. One grep bought one correction and paid for four assertions it did not support. **A sweep
+may only correct what it verified** — a re-dated wrong clause is strictly worse than an old one,
+because it carries today's date and reads as freshly checked.
+
+**The one real gap, and the decision in it.** `CurveOffset.Offset` samples a `PolyCurve` end to end
+and fits **one** curve through the samples. A fitted curve is always connected, whatever it was
+fitted to — so where the offset does not exist, the fit draws straight through the hole and the
+caller cannot tell. `OffsetMany` offsets each segment, joins consecutive pieces whose ends coincide,
+and breaks the run where they do not. **The common break is a corner**, and that is stated rather
+than papered over: two segments meeting at an angle offset to endpoints that do not meet, and
+filling the gap is the arc-or-extend choice, which is not built and is not this member's to make.
+
+**Two defects, both found by tests written to catch them.** A `Line` running along the offset normal
+reported *a zero-length vector cannot be normalised* as an `InvalidOperationException` from inside
+`Normalised()`, while every other curve shape reported the same condition as an `ArgumentException`
+naming the curve — one caller could not catch both, and the message described the arithmetic rather
+than the mistake. And the first `OffsetMany` let its per-segment `catch (ArgumentException)` swallow
+a **zero-length normal**: a caller who got the plane wrong was told their curve had collapsed under
+the distance. The distance and the normal are validated before the loop now, and the comment on
+those two lines names the test that caught it.
+
+**And an assumption died on measurement, again.** The first version of the collapse test asserted
+that an arc offset past its own radius has no offset. It does — the exact branch declines a negative
+radius and the fitted branch returns the true locus, an arc of the same centre on the other side.
+The member's remarks now say so explicitly, because it is the first thing a reader expects.
+
+**Verified.** Eight tests. **Three mutations, each caught**: never breaking a run at a corner (two
+tests red), dropping the up-front normal validation (the swallowed-error test red), and restoring
+the old `Line` fast path (three red). The residue guard fired on the new public member and was
+resolved by **naming it against the two `OffsetMany` parity rows** rather than by raising the
+budget — residue re-derived and exact at **346**, parity `Done` 454 → **456**. Build clean with zero
+warnings, format clean, **4035** tests over ten executables, zero failures and zero skips.
+
+**Cost.** One session. Four fifths of it was reading, and the reading is what turned *five families
+remaining* into one member.

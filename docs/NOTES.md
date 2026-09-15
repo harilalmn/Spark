@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N182: prose with no status column rots hardest)
+**Last updated:** 2026-09-15 (N183: a sweep that reads rows instead of code writes new wrong rows)
 
 ---
 
@@ -5216,6 +5216,43 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N183 — A sweep that reads rows instead of code writes new wrong rows, and mine wrote two
+
+**2026-09-15, `E2-T71`.** The morning's sweep of the nine `In progress` rows was careful: one
+artefact read per row, five stale halves found, three rows confirmed accurate. It closed `E2-T71`'s
+description with a list of what remained — *the curve-wide `Curve.Normal`, `Extrude(double)` and
+`ExtrudeAsSolid(double)`, and families (3) to (5)*. **Picking the row up to work it, hours later,
+every item on that list was wrong.**
+
+- **`Curve.Normal` is a deliberate refusal**, and the reason is written out in `PlaneOf`'s own
+  remarks: `NormalAt(parameter)` is the *Frenet* normal, which points at the centre of curvature,
+  and a curve-wide `Normal` beside it would be two unrelated quantities under almost the same name.
+  A caller writes `curve.PlaneOf()?.Normal`. **Listing it as missing would have had somebody build
+  the thing the code argues against.**
+- **`Extrude(double)` and `ExtrudeAsSolid(double)` are `Done` by composition**, and the manifest
+  writes the composition out line by line.
+- **Families (3), (4) and (5) are delivered**, every named member of all three — chord stepping is
+  `DivideByChordLength` and `DivideEquallyByChord`, extension is `Curve.Extended`, `PullOntoPlane`
+  is `PulledOntoPlane`. The row's *Spark has no chord stepping at all* was false when it was
+  written into the row and false when the sweep left it there.
+
+**How a careful sweep does this.** Its rule was *one artefact per row*, and for `E2-T71` the
+artefact read was `ToNurbsCurve` — which was genuinely delivered and genuinely a finding. Having
+verified the row's *largest* claim was stale, the remainder was **rewritten from the row's own prose
+rather than from the tree**. One grep bought one correction and paid for four assertions it did not
+support.
+
+**The rule.** *A sweep may only correct what it verified.* Anything else it must leave exactly as it
+found it, however obviously stale it looks — because a re-dated wrong clause is strictly worse than
+an old wrong clause: it carries today's date, it reads as freshly checked, and the next reader has
+no reason to doubt it. **[N180](NOTES.md) says an `In progress` clause expires; this says a sweep
+must not forge the date on one.**
+
+**The scale of it, since the row was finally read against the code.** Five stale clauses in one
+row — three of its own and two the sweep added — and the whole of what was genuinely outstanding
+was a single member, `OffsetMany`. The row went from *five families remaining* to `Done` in one
+step, and four fifths of that was reading rather than writing.
 
 ## N182 — Prose with no status column rots hardest, and it rots in the direction that hides progress
 

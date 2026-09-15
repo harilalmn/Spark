@@ -94,7 +94,23 @@ public static class CurveOffset
             case Line line:
                 {
                     Vector3d along = line.EndPoint - line.StartPoint;
-                    Vector3d sideways = unit.Cross(along).Normalised() * distance;
+
+                    // A LINE ALONG THE NORMAL HAS NO OFFSET IN THIS PLANE, and until 2026-09-15 it
+                    // reported that as `InvalidOperationException: a zero-length vector cannot be
+                    // normalised` from inside Normalised() - the same condition FitOffset reports
+                    // as an ArgumentException naming the curve. One caller cannot catch both, and
+                    // the message from the fast path described the arithmetic rather than the
+                    // mistake.
+                    if (!unit.Cross(along).TryNormalise(out Vector3d perpendicular))
+                    {
+                        throw new ArgumentException(
+                            "This line runs along the offset normal, so it does not lie in that "
+                            + "plane and has no offset in it. An offset needs a curve and a plane "
+                            + "that contain each other.",
+                            nameof(curve));
+                    }
+
+                    Vector3d sideways = perpendicular * distance;
 
                     return (new Line(line.StartPoint + sideways, line.EndPoint + sideways), true);
                 }
@@ -128,6 +144,164 @@ public static class CurveOffset
         }
 
         return (FitOffset(curve, distance, unit, tolerance), false);
+    }
+
+    /// <summary>
+    /// Offsets a curve and hands back <b>every</b> piece the offset is made of, rather than one
+    /// curve fitted through all of it (<c>E2-T71</c>).
+    /// </summary>
+    /// <param name="curve">The curve to offset.</param>
+    /// <param name="distance">How far to move it. The sign convention is <see cref="Offset"/>'s.</param>
+    /// <param name="normal">The plane normal the offset happens in. Need not be unit length.</param>
+    /// <param name="tolerance">How closely an approximated offset must follow the true one.</param>
+    /// <returns>
+    /// The pieces, in order along the original curve, each with whether it is exact rather than
+    /// fitted. Never empty: a curve whose offset collapses entirely is a refusal, not an empty list.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="distance"/> is not finite.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="normal"/> has no length, the curve does not lie in that plane, or every
+    /// piece of it collapsed.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this is a separate member and not an overload.</b> <see cref="Offset"/> answers *what
+    /// is the offset of this curve*, and for anything but a <see cref="PolyCurve"/> the answer is
+    /// one curve and this member returns exactly that one. For a polycurve it is the wrong
+    /// question: <see cref="Offset"/> samples the whole thing and fits **one** curve through the
+    /// samples, which quietly bridges the places where the offset is not continuous — a fitted
+    /// curve is always connected, whatever it was fitted to.
+    /// </para>
+    /// <para>
+    /// <b>An offset of a polycurve is genuinely several curves, and the arithmetic says where.</b>
+    /// **The common cause is a corner**: the offsets of two segments meeting at an angle end at
+    /// different points, so there is a wedge of nothing between them going outwards and an overlap
+    /// going inwards. The other cause is a segment that **leaves the offset plane** — a run along
+    /// the normal has no offset in that plane at all — which ends the run and lets the rest of the
+    /// curve answer. **Fitting one curve through both sides of a hole draws a curve through a
+    /// region where the offset does not exist**, and that is the defect this member exists to
+    /// avoid.
+    /// </para>
+    /// <para>
+    /// <b>Offsetting an arc past its own radius is *not* one of the causes</b>, which is worth
+    /// saying because it is the first thing a reader expects. The exact branch declines a negative
+    /// radius and the fitted branch then produces the true locus — an arc of the same centre on the
+    /// other side. That is a real curve and a correct answer, so nothing collapses.
+    /// </para>
+    /// <para>
+    /// <b>Pieces are joined where they still meet and separated where they do not</b>, decided on
+    /// the tolerance rather than on the topology of the input: consecutive segments whose offset
+    /// ends coincide continue one run, and anything else starts a new one. So a convex polyline
+    /// offset outwards comes back as one run per contiguous group and not as one piece per segment
+    /// — the member is about where the offset **breaks**, not about how the caller happened to
+    /// build their curve.
+    /// </para>
+    /// <para>
+    /// <b>This does not trim self-intersections</b>, exactly as <see cref="Offset"/> does not. A
+    /// concave corner offset outwards produces overlapping loops, the true offset locus includes
+    /// them, and removing them needs curve-curve intersection.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<(Curve Curve, bool Exact)> OffsetMany(
+        Curve curve, double distance, in Vector3d normal, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+
+        // THE WHOLE-CALL MISTAKES ARE CHECKED HERE, BEFORE THE LOOP, and this is not tidiness.
+        // Below, a segment whose offset does not exist ends the run instead of failing the call -
+        // and that catch is written for ArgumentException, which is also what a zero-length normal
+        // raises. Without these two lines a bad normal makes EVERY segment "collapse", and the
+        // caller is told their curve collapsed under the distance when what was wrong was the
+        // normal. The test named ABadNormalIsRefusedRatherThanTreatedAsACollapsedPiece caught
+        // exactly that on the first run.
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        if (!normal.TryNormalise(out _))
+        {
+            throw new ArgumentException(
+                "An offset needs a plane to happen in, and the normal given has no length. "
+                + "In three dimensions 'offset by 5' does not name a curve on its own.",
+                nameof(normal));
+        }
+
+        // Anything that is not a polycurve has one piece by construction. Delegating rather than
+        // duplicating means the two members can never disagree about the simple case, which is
+        // nearly every case.
+        if (curve is not PolyCurve polyCurve)
+        {
+            return [Offset(curve, distance, normal, tolerance)];
+        }
+
+        List<(Curve Curve, bool Exact)> pieces = [];
+        List<Curve> run = [];
+        bool runIsExact = true;
+
+        // An `in` parameter cannot be captured by a local function, and the copy is free: Tolerance
+        // is a small readonly struct, which is why it is passed `in` in the first place.
+        Tolerance joining = tolerance;
+
+        void CloseRun()
+        {
+            if (run.Count == 1)
+            {
+                pieces.Add((run[0], runIsExact));
+            }
+            else if (run.Count > 1)
+            {
+                pieces.Add((PolyCurve.FromJoinedCurves(run, joining), runIsExact));
+            }
+
+            run = [];
+            runIsExact = true;
+        }
+
+        foreach (Curve segment in polyCurve.Segments())
+        {
+            Curve offset;
+            bool exact;
+
+            try
+            {
+                (offset, exact) = Offset(segment, distance, normal, tolerance);
+            }
+            catch (ArgumentException)
+            {
+                // THIS SEGMENT HAS NO OFFSET IN THIS PLANE, which is the whole reason this member
+                // exists. A segment running along the normal is the case that reaches here - it
+                // leaves the plane, so there is no offset of it to return - and it ends the run
+                // rather than failing the call, because the offset of the REST of the curve is a
+                // real answer and is what the caller asked for. The distance and the normal were
+                // validated above, so nothing that reaches here is a mistake about the whole call.
+                CloseRun();
+                continue;
+            }
+
+            if (run.Count > 0 && !run[^1].EndPoint.EqualsWithin(offset.StartPoint, tolerance))
+            {
+                CloseRun();
+            }
+
+            run.Add(offset);
+            runIsExact &= exact;
+        }
+
+        CloseRun();
+
+        return pieces.Count > 0
+            ? pieces
+            : throw new ArgumentException(
+                "No piece of this curve has an offset in the plane given, so there is nothing to "
+                + "return. Every segment runs along the normal, which means the curve and the "
+                + "plane do not contain each other - the normal is the thing to change, not the "
+                + "distance of "
+                + distance.ToString("R", CultureInfo.InvariantCulture)
+                + ".",
+                nameof(curve));
     }
 
     /// <summary>
