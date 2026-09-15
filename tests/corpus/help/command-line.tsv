@@ -15,75 +15,86 @@ title	The command line
 since	2026.9
 nodes	(none)
 related	concepts.files, concepts.evaluation, concepts.code-blocks
-blocks	70
+blocks	81
 example	yes
-block[0].paragraph	[strong]Status:[text] Current. Describes the three verbs that exist — [code]run[text], [code]check[text] and [code]export[text] — and says plainly which of the seven do not. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-11 ([code]E12-T24[text]: export and code blocks; [code]E7-T25[text]: [code]--trust-packages[text])
+block[0].paragraph	[strong]Status:[text] Current. Describes the four verbs that exist — [code]run[text], [code]check[text], [code]export[text] and [code]render[text] — and says plainly which of the seven do not. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-15 ([code]E12-T5[text]: [code]spark render[text], the fourth verb of seven)
 block[1].quote	[strong]Scope.[text] [code]spark.exe[text] ships beside the desktop application and does everything **without opening
 block[2].quote	[text]a window**. It is the same engine, the same node library and the same value rendering; what it
-block[3].quote	[text]does not have is a canvas. Four of the seven planned verbs — [code]render[text], [code]pkg[text], [code]docs[text] and [code]graph
-block[4].quote	[text]— are not written yet, and [code]spark --help[text] says so rather than pretending otherwise.
-block[5].rule	---
-block[6].heading	level=2 [text]Why there is a command line at all
-block[7].paragraph	[text]A graph is a document and an evaluation is a computation. Both of those claims are easy to make and easy to be wrong about, and the way they stop being claims is that something outside the application can open a file and get the same answer. That is what [code]spark[text] is for: a build that checks graphs, a script that exports a hundred of them, a diff between yesterday's answer and today's.
-block[8].paragraph	[text]Everything it prints is designed to be [strong]redirected[text]. Values go to standard output and problems go to standard error, so [code]spark run graph.spark > values.txt[text] captures the answer and still shows you what went wrong on the way.
-block[9].rule	---
-block[10].heading	level=2 [code]spark run[text] — what did this graph produce?
-block[11].code	lines=1
-block[12].paragraph	[text]Opens the graph, evaluates it with no window, and prints [strong]what its watch nodes saw[text]. A watch is the user saying [emphasis]this one[text]; a graph of two thousand nodes has two thousand values and almost none of them is the one you wanted.
-block[13].code	lines=3
-block[14].paragraph	[text]That first line is on standard error, not standard output: a graph with no watches in it ran perfectly well and simply said nothing, which looks identical to a graph that did nothing. With [code]--all[text] the same file prints every node:
-block[15].code	lines=4
-block[16].paragraph	[text]Values print in the [strong]document's[text] order rather than the graph's, so two runs of one file print the same values in the same order — which is the only reason to print them at all. The rendering is the same one the canvas and the properties pane use, from one shared implementation, so what the command line says and what the application shows cannot drift apart.
-block[17].paragraph	[code]--no-script[text] refuses a graph containing a code block instead of running it. It [strong]refuses rather than dropping the executable parts[text], because a graph that silently ran with its code blocks missing would produce a wrong answer quietly, which is worse than an error. See [link->code-blocks.md]code blocks[text].
-block[18].heading	level=3 [text]A graph's own packages, and [code]--trust-packages
-block[19].paragraph	[text]A graph can carry libraries in a folder beside it named after the file — [code]facade.packages[text] beside [code]facade.spark[text] — and its code blocks compile against them. The window asks before it uses one: it names each assembly and its hash, and [strong]Trust and load[text] remembers the answer against those exact bytes. [code]run[text] and [code]check[text] use [strong]the same record[text], so an assembly you agreed to in Spark is simply used. They have nobody to ask about the rest, so they [strong]refuse the graph and name what they found[text]:
-block[20].code	lines=6
-block[21].paragraph	[text]The hash is printed in full, where the window shows eight characters, so a build can compare it with the one it expects. [code]--trust-packages[text] uses the folder's assemblies [strong]for that run only[text] and writes nothing down — the record is shared with the desktop application, and a scheduled job should not become your consent in the window. A file that cannot be read is refused even then, because it has no hash to agree to.
-block[22].paragraph	[strong]Only a graph with a code block looks at its folder[text], because nothing else compiles against it. A package the file names that is missing from the folder prints as a warning, since it is the reason a block that uses it will not compile; [code]check --strict[text] fails on it.
-block[23].paragraph	[text]Why a DLL is asked about when the code blocks are not: the code is text inside the graph, which a reviewer reads in a diff, and an assembly is not.
-block[24].rule	---
-block[25].heading	level=2 [code]spark check[text] — is this graph broken?
-block[26].code	lines=1
-block[27].paragraph	[text]The same evaluation with the printing taken away. [strong]It says nothing at all when nothing is wrong[text], and its answer is the exit code:
-block[28].table	rows=3 | [text]Exit code ; [text]Meaning | [code]0 ; [text]Every node evaluated. Warnings may have been printed; none of them failed the run. | [code]1 ; [text]A node errored, the file would not open, or the arguments were wrong.
-block[29].code	lines=3
-block[30].paragraph	[text]and when something is wrong:
-block[31].code	lines=4
-block[32].paragraph	[strong]Three things about that output are deliberate.
-block[33].listitem	[strong]Silence on success.[text] A gate that writes a line every time is a gate whose output stops being
-block[34].paragraph	[text]read, and then the one run that had something to say scrolls past with the rest.
-block[35].listitem	[strong]The node is named.[text] [code]spark run[text] prints the code and the message; [code]check[text] prints the node as
-block[36].paragraph	[text]well, because a build log is read by somebody who was not watching and a diagnostic code with no node attached is a message that costs an hour. The name is the same one the canvas draws.
-block[37].listitem	[strong]Every diagnostic is one line.[text] Several exceptions put a newline in their message —
-block[38].paragraph	[code]ArgumentOutOfRangeException[text] appends [emphasis]Actual value was 0.[text] on a line of its own — and a diagnostic split in two is one whose second half has lost its file name, its node and its severity. The canvas keeps the break, because it has the room; the command line does not.
-block[39].listitem	[strong]Warnings print and do not fail.[text] A per-element replication failure is a warning by
-block[40].paragraph	[text]definition — the node produced a value and everything downstream still evaluated — and a gate that refused those is a gate somebody turns off. See [link->evaluation.md]evaluation[text].
-block[41].heading	level=3 [code]--strict[text], and the case that makes it necessary
-block[42].paragraph	[strong]The warning rule holds when one element of eight fails and also when eight of eight do[text], and the second is very nearly always a broken graph:
-block[43].code	lines=4
-block[44].paragraph	[text]The [emphasis]same[text] radius of zero on a node that is not replicating is an [strong]error[text] and fails. That asymmetry is real, it follows from what a warning means rather than from an oversight, and it is exactly the kind of thing a gate should not decide on your behalf. So [code]--strict[text] fails on [strong]any[text] diagnostic at all:
-block[45].code	lines=4
-block[46].paragraph	[text]Use [code]--strict[text] in a build you control and the default when checking graphs other people wrote — a graph that legitimately warns is common, and a gate that has to be argued with gets removed.
-block[47].heading	level=3 [text]Using it in a build
-block[48].code	lines=1
-block[49].paragraph	[text]or over a folder, where the shell's own exit code does the work:
-block[50].code	lines=2
-block[51].rule	---
-block[52].heading	level=2 [code]spark export[text] — write the geometry out
-block[53].code	lines=2
-block[54].paragraph	[text]Evaluates with no window and writes what it produced. The format comes from the extension.
-block[55].code	lines=1
-block[56].paragraph	[text]Curves become polylines and surfaces are tessellated, at a tolerance written into the file's own header. [strong]Solids are not tessellated on the way to STEP or IGES[text] — those carry the exact surfaces, which is the entire point of having them. See [link->solids.md]solids[text].
-block[57].paragraph	[strong]A graph with a code block exports like any other[text], and whatever geometry the block makes is written with the rest. [code]--no-script[text] and [code]--trust-packages[text] mean exactly what they mean for [code]run[text]: the first refuses such a graph, the second uses the assemblies in its package folder for this one run. [strong]A refused export writes no file[text], so a script that checks for the output file cannot mistake a refusal for an empty graph.
-block[58].code	lines=4
-block[59].rule	---
-block[60].heading	level=2 [code]spark --version
-block[61].paragraph	[text]Prints the version, and the third-party notice that the licence requires: which kernel is loaded, under what licence, and that it is dynamically linked and replaceable. The same text appears in the application's About box, from one source, because two copies of a licence notice is one copy that stops matching the build.
-block[62].rule	---
-block[63].heading	level=2 [text]What is not written yet
-block[64].paragraph	[code]render[text], [code]pkg[text], [code]docs[text] and [code]graph[text] are planned and do not exist. [code]spark --help[text] lists them under [emphasis]arrive with later milestones[text] rather than accepting them and doing nothing, which is the failure mode a build script cannot see.
-block[65].rule	---
-block[66].heading	level=2 [text]Related
-block[67].listitem	[link->files.md]Saving and opening graphs[text] — what is in the file these verbs read.
-block[68].listitem	[link->evaluation.md]How a graph evaluates[text] — what a diagnostic is, and why errors do not cascade.
-block[69].listitem	[link->code-blocks.md]Code blocks[text] — and why [code]--no-script[text] refuses rather than skips.
+block[3].quote	[text]does not have is a canvas — and since [code]render[text] it does not need one to draw, either. Three of the
+block[4].quote	[text]seven planned verbs — [code]pkg[text], [code]docs[text] and [code]graph[text] — are not written yet, and [code]spark --help[text] says so
+block[5].quote	[text]rather than pretending otherwise.
+block[6].rule	---
+block[7].heading	level=2 [text]Why there is a command line at all
+block[8].paragraph	[text]A graph is a document and an evaluation is a computation. Both of those claims are easy to make and easy to be wrong about, and the way they stop being claims is that something outside the application can open a file and get the same answer. That is what [code]spark[text] is for: a build that checks graphs, a script that exports a hundred of them, a diff between yesterday's answer and today's.
+block[9].paragraph	[text]Everything it prints is designed to be [strong]redirected[text]. Values go to standard output and problems go to standard error, so [code]spark run graph.spark > values.txt[text] captures the answer and still shows you what went wrong on the way.
+block[10].rule	---
+block[11].heading	level=2 [code]spark run[text] — what did this graph produce?
+block[12].code	lines=1
+block[13].paragraph	[text]Opens the graph, evaluates it with no window, and prints [strong]what its watch nodes saw[text]. A watch is the user saying [emphasis]this one[text]; a graph of two thousand nodes has two thousand values and almost none of them is the one you wanted.
+block[14].code	lines=3
+block[15].paragraph	[text]That first line is on standard error, not standard output: a graph with no watches in it ran perfectly well and simply said nothing, which looks identical to a graph that did nothing. With [code]--all[text] the same file prints every node:
+block[16].code	lines=4
+block[17].paragraph	[text]Values print in the [strong]document's[text] order rather than the graph's, so two runs of one file print the same values in the same order — which is the only reason to print them at all. The rendering is the same one the canvas and the properties pane use, from one shared implementation, so what the command line says and what the application shows cannot drift apart.
+block[18].paragraph	[code]--no-script[text] refuses a graph containing a code block instead of running it. It [strong]refuses rather than dropping the executable parts[text], because a graph that silently ran with its code blocks missing would produce a wrong answer quietly, which is worse than an error. See [link->code-blocks.md]code blocks[text].
+block[19].heading	level=3 [text]A graph's own packages, and [code]--trust-packages
+block[20].paragraph	[text]A graph can carry libraries in a folder beside it named after the file — [code]facade.packages[text] beside [code]facade.spark[text] — and its code blocks compile against them. The window asks before it uses one: it names each assembly and its hash, and [strong]Trust and load[text] remembers the answer against those exact bytes. [code]run[text] and [code]check[text] use [strong]the same record[text], so an assembly you agreed to in Spark is simply used. They have nobody to ask about the rest, so they [strong]refuse the graph and name what they found[text]:
+block[21].code	lines=6
+block[22].paragraph	[text]The hash is printed in full, where the window shows eight characters, so a build can compare it with the one it expects. [code]--trust-packages[text] uses the folder's assemblies [strong]for that run only[text] and writes nothing down — the record is shared with the desktop application, and a scheduled job should not become your consent in the window. A file that cannot be read is refused even then, because it has no hash to agree to.
+block[23].paragraph	[strong]Only a graph with a code block looks at its folder[text], because nothing else compiles against it. A package the file names that is missing from the folder prints as a warning, since it is the reason a block that uses it will not compile; [code]check --strict[text] fails on it.
+block[24].paragraph	[text]Why a DLL is asked about when the code blocks are not: the code is text inside the graph, which a reviewer reads in a diff, and an assembly is not.
+block[25].rule	---
+block[26].heading	level=2 [code]spark check[text] — is this graph broken?
+block[27].code	lines=1
+block[28].paragraph	[text]The same evaluation with the printing taken away. [strong]It says nothing at all when nothing is wrong[text], and its answer is the exit code:
+block[29].table	rows=3 | [text]Exit code ; [text]Meaning | [code]0 ; [text]Every node evaluated. Warnings may have been printed; none of them failed the run. | [code]1 ; [text]A node errored, the file would not open, or the arguments were wrong.
+block[30].code	lines=3
+block[31].paragraph	[text]and when something is wrong:
+block[32].code	lines=4
+block[33].paragraph	[strong]Three things about that output are deliberate.
+block[34].listitem	[strong]Silence on success.[text] A gate that writes a line every time is a gate whose output stops being
+block[35].paragraph	[text]read, and then the one run that had something to say scrolls past with the rest.
+block[36].listitem	[strong]The node is named.[text] [code]spark run[text] prints the code and the message; [code]check[text] prints the node as
+block[37].paragraph	[text]well, because a build log is read by somebody who was not watching and a diagnostic code with no node attached is a message that costs an hour. The name is the same one the canvas draws.
+block[38].listitem	[strong]Every diagnostic is one line.[text] Several exceptions put a newline in their message —
+block[39].paragraph	[code]ArgumentOutOfRangeException[text] appends [emphasis]Actual value was 0.[text] on a line of its own — and a diagnostic split in two is one whose second half has lost its file name, its node and its severity. The canvas keeps the break, because it has the room; the command line does not.
+block[40].listitem	[strong]Warnings print and do not fail.[text] A per-element replication failure is a warning by
+block[41].paragraph	[text]definition — the node produced a value and everything downstream still evaluated — and a gate that refused those is a gate somebody turns off. See [link->evaluation.md]evaluation[text].
+block[42].heading	level=3 [code]--strict[text], and the case that makes it necessary
+block[43].paragraph	[strong]The warning rule holds when one element of eight fails and also when eight of eight do[text], and the second is very nearly always a broken graph:
+block[44].code	lines=4
+block[45].paragraph	[text]The [emphasis]same[text] radius of zero on a node that is not replicating is an [strong]error[text] and fails. That asymmetry is real, it follows from what a warning means rather than from an oversight, and it is exactly the kind of thing a gate should not decide on your behalf. So [code]--strict[text] fails on [strong]any[text] diagnostic at all:
+block[46].code	lines=4
+block[47].paragraph	[text]Use [code]--strict[text] in a build you control and the default when checking graphs other people wrote — a graph that legitimately warns is common, and a gate that has to be argued with gets removed.
+block[48].heading	level=3 [text]Using it in a build
+block[49].code	lines=1
+block[50].paragraph	[text]or over a folder, where the shell's own exit code does the work:
+block[51].code	lines=2
+block[52].rule	---
+block[53].heading	level=2 [code]spark export[text] — write the geometry out
+block[54].code	lines=2
+block[55].paragraph	[text]Evaluates with no window and writes what it produced. The format comes from the extension.
+block[56].code	lines=1
+block[57].paragraph	[text]Curves become polylines and surfaces are tessellated, at a tolerance written into the file's own header. [strong]Solids are not tessellated on the way to STEP or IGES[text] — those carry the exact surfaces, which is the entire point of having them. See [link->solids.md]solids[text].
+block[58].paragraph	[strong]A graph with a code block exports like any other[text], and whatever geometry the block makes is written with the rest. [code]--no-script[text] and [code]--trust-packages[text] mean exactly what they mean for [code]run[text]: the first refuses such a graph, the second uses the assemblies in its package folder for this one run. [strong]A refused export writes no file[text], so a script that checks for the output file cannot mistake a refusal for an empty graph.
+block[59].code	lines=4
+block[60].rule	---
+block[61].heading	level=2 [code]spark render[text] — a picture of the graph
+block[62].code	lines=2
+block[63].paragraph	[text]Evaluates with no window and draws what it produced, 1280×720 by default.
+block[64].code	lines=2
+block[65].paragraph	[strong]It draws with the software rasteriser and never the GPU[text], and that is the whole reason the verb is worth having. GPU output varies by driver, by vendor and by day; this path does not, so the same graph gives the same bytes on a build agent with no display and no driver attached to it. That is what makes [code]spark render[text] usable as a visual check in a build rather than only as a convenience — two runs of one graph produce identical files, and a test asserts it.
+block[66].paragraph	[strong]The camera frames the geometry for you.[text] There is no flag for a viewpoint, because the output then depends on the graph alone, which is the property a regression check rests on. [code]--no-grid[text] leaves out the ground grid and the world axes, for a picture of the geometry by itself; the default keeps them, because the picture is standing in for the viewport.
+block[67].paragraph	[strong]Exit 2 means the graph ran and drew nothing.[text] A graph of pure arithmetic is not broken — it has no geometry in it — but a build that accepted an empty picture without noticing is exactly the failure a visual check exists to catch, so it is a distinct code rather than success. [strong]The file is still written[text], because opening it is how you find out why.
+block[68].code	lines=5
+block[69].paragraph	[code]--no-script[text] and [code]--trust-packages[text] mean exactly what they mean for [code]run[text] and [code]export[text]. A name that is not a [code].png[text] is refused rather than written under a lying extension.
+block[70].rule	---
+block[71].heading	level=2 [code]spark --version
+block[72].paragraph	[text]Prints the version, and the third-party notice that the licence requires: which kernel is loaded, under what licence, and that it is dynamically linked and replaceable. The same text appears in the application's About box, from one source, because two copies of a licence notice is one copy that stops matching the build.
+block[73].rule	---
+block[74].heading	level=2 [text]What is not written yet
+block[75].paragraph	[code]pkg[text], [code]docs[text] and [code]graph[text] are planned and do not exist. [code]spark --help[text] lists them under [emphasis]arrive with later milestones[text] rather than accepting them and doing nothing, which is the failure mode a build script cannot see. [strong]`render` was in this list until 2026-09-15[text] and is now a section of its own above.
+block[76].rule	---
+block[77].heading	level=2 [text]Related
+block[78].listitem	[link->files.md]Saving and opening graphs[text] — what is in the file these verbs read.
+block[79].listitem	[link->evaluation.md]How a graph evaluates[text] — what a diagnostic is, and why errors do not cascade.
+block[80].listitem	[link->code-blocks.md]Code blocks[text] — and why [code]--no-script[text] refuses rather than skips.

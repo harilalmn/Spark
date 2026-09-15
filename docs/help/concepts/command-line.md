@@ -6,15 +6,16 @@ related: [concepts.files, concepts.evaluation, concepts.code-blocks]
 since: "2026.9"
 ---
 
-**Status:** Current. Describes the three verbs that exist — `run`, `check` and `export` — and says
-plainly which of the seven do not.
+**Status:** Current. Describes the four verbs that exist — `run`, `check`, `export` and `render` —
+and says plainly which of the seven do not.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11 (`E12-T24`: export and code blocks; `E7-T25`: `--trust-packages`)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark render`, the fourth verb of seven)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
-> does not have is a canvas. Four of the seven planned verbs — `render`, `pkg`, `docs` and `graph`
-> — are not written yet, and `spark --help` says so rather than pretending otherwise.
+> does not have is a canvas — and since `render` it does not need one to draw, either. Three of the
+> seven planned verbs — `pkg`, `docs` and `graph` — are not written yet, and `spark --help` says so
+> rather than pretending otherwise.
 
 ---
 
@@ -219,6 +220,49 @@ $ echo $?
 
 ---
 
+## `spark render` — a picture of the graph
+
+```
+spark render --open GRAPH.spark --out FILE.png [--width N] [--height N]
+             [--no-grid] [--no-script] [--trust-packages]
+```
+
+Evaluates with no window and draws what it produced, 1280×720 by default.
+
+```
+$ spark render --open docs/examples/solids.spark --out solids.png --no-grid
+spark: wrote 1280x720 to solids.png (23 renderable(s), 26 node(s) evaluated, 0 cache hit(s))
+```
+
+**It draws with the software rasteriser and never the GPU**, and that is the whole reason the verb
+is worth having. GPU output varies by driver, by vendor and by day; this path does not, so the same
+graph gives the same bytes on a build agent with no display and no driver attached to it. That is
+what makes `spark render` usable as a visual check in a build rather than only as a convenience —
+two runs of one graph produce identical files, and a test asserts it.
+
+**The camera frames the geometry for you.** There is no flag for a viewpoint, because the output
+then depends on the graph alone, which is the property a regression check rests on. `--no-grid`
+leaves out the ground grid and the world axes, for a picture of the geometry by itself; the default
+keeps them, because the picture is standing in for the viewport.
+
+**Exit 2 means the graph ran and drew nothing.** A graph of pure arithmetic is not broken — it has
+no geometry in it — but a build that accepted an empty picture without noticing is exactly the
+failure a visual check exists to catch, so it is a distinct code rather than success. **The file is
+still written**, because opening it is how you find out why.
+
+```
+$ spark render --open arithmetic.spark --out out.png
+spark: wrote 1280x720 to out.png (0 renderable(s), 3 node(s) evaluated, 0 cache hit(s))
+spark: the graph produced nothing to draw, so the image is the empty viewport.
+$ echo $?
+2
+```
+
+`--no-script` and `--trust-packages` mean exactly what they mean for `run` and `export`. A name that
+is not a `.png` is refused rather than written under a lying extension.
+
+---
+
 ## `spark --version`
 
 Prints the version, and the third-party notice that the licence requires: which kernel is loaded,
@@ -230,9 +274,10 @@ stops matching the build.
 
 ## What is not written yet
 
-`render`, `pkg`, `docs` and `graph` are planned and do not exist. `spark --help` lists them under
-*arrive with later milestones* rather than accepting them and doing nothing, which is the failure
-mode a build script cannot see.
+`pkg`, `docs` and `graph` are planned and do not exist. `spark --help` lists them under *arrive
+with later milestones* rather than accepting them and doing nothing, which is the failure mode a
+build script cannot see. **`render` was in this list until 2026-09-15** and is now a section of its
+own above.
 
 ---
 

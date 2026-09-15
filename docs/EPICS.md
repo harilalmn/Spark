@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E6-T14` Done: the docked script pane, and `E6` is complete)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark render`, the fourth verb of seven)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1852,13 +1852,17 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       neither does an interface designed without a host to try it against.*
 - [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
-      (**E12-T5**). *Three of seven: `export` since 2026-08-29, `run` since 2026-08-30 and
-      `check` since 2026-09-09. The identical-output half is met structurally rather than by
-      care: the value rendering lives in `Spark.Api.ValueText`, beneath both the shell and the
-      CLI, and a test fails the day a second one appears. `check` is the first verb with tests
-      of its own (**E11-T29**) — the other two shipped verified by eye, and a verb whose
-      contract is an exit code is the worst thing to check that way. The remaining four wait on
-      the milestones that give them something to do.*
+      (**E12-T5**). *Four of seven: `export` since 2026-08-29, `run` since 2026-08-30,
+      `check` since 2026-09-09 and **`render` since 2026-09-15**. The identical-output half is met
+      structurally rather than by care: the value rendering lives in `Spark.Api.ValueText`, beneath
+      both the shell and the CLI, and a test fails the day a second one appears. `check` was the
+      first verb with tests of its own (**E11-T29**) — the two before it shipped verified by eye,
+      and a verb whose contract is an exit code is the worst thing to check that way; `render`
+      arrived with eleven, including the one that matters, which is that two runs of one graph give
+      byte-identical files. **`render` draws through the software rasteriser and never the GPU**,
+      which is what makes it a check a build can rely on rather than a convenience, and is the third
+      of the three jobs **E9-T5** gives the fallback. The remaining three — `pkg`, `docs` and
+      `graph` — wait on the milestones that give them something to do.*
 - [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
       desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
       `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no
@@ -1933,11 +1937,11 @@ done. **What remains needs a person rather than a commit**: the signed installer
 (`E12-T9`), and the CAD-host proof was moved past 1.0 by **D20** because Spark ships standalone and
 that row proves a second claim. `E12-T5`'s remaining verbs wait on nothing but themselves.
 
-*Swept 2026-09-15.* The CLI's verb list above says `export` and `run`; the dispatch in
-`Program.Main` now switches on **four** — `run`, `check`, `export` and `pack`. `pack` is
+*Swept 2026-09-15, and added to the same day.* `Program.Main` now switches on **five** —
+`run`, `check`, `export`, `render` and `pack`. **`pack` is not one of this epic's seven**: it is
 [E3-T20](TASKS.md#e3--graph-engine)'s `.sparkz` bundle under `ADR-0017` rather than `E12-T5`'s
-`pkg`, so *three of seven* still stands for this epic; it is recorded here so the next reader does
-not count it twice. What is left of `E12-T5` is `render`, `pkg`, `docs` and `graph`.
+`pkg`, and it is recorded here so the next reader does not count it twice. So the epic stands at
+*four of seven*, and what is left of `E12-T5` is `pkg`, `docs` and `graph`.
 
 ---
 

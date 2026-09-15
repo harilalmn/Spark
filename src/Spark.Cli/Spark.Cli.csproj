@@ -21,5 +21,14 @@
       it; no library does.
     -->
     <ProjectReference Include="..\Spark.Geometry.Occt\Spark.Geometry.Occt.csproj" />
+
+    <!--
+      `spark render` (E12-T5) draws through the software rasteriser, which lives here. Referencing
+      the viewport from the command line costs no window and no graphics device: `Spark.Viewport`
+      is Avalonia-free by design, and the GL backend inside it is never constructed unless
+      something asks for it. What this buys is the one property the verb exists for - the same
+      graph gives the same bytes on an agent with no display and no driver (E9-T5, E9-T12).
+    -->
+    <ProjectReference Include="..\Spark.Viewport\Spark.Viewport.csproj" />
   </ItemGroup>
 </Project>

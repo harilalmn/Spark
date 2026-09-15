@@ -11,6 +11,8 @@ using Spark.Geometry;
 using Spark.Geometry.Io;
 using Spark.Host;
 using Spark.Packages;
+using Spark.Viewport;
+using Spark.Viewport.Software;
 
 namespace Spark.Cli;
 
@@ -82,6 +84,7 @@ internal static class Program
                 "run" => Run(args.AsSpan(1), Console.Out, Console.Error),
                 "check" => Check(args.AsSpan(1), Console.Error),
                 "export" => Export(args.AsSpan(1), Console.Out, Console.Error),
+                "render" => Render(args.AsSpan(1), Console.Out, Console.Error),
                 "pack" => Pack(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -795,6 +798,219 @@ internal static class Program
     /// construction, and a caller who asked for one file expects one file - glTF's scene graph
     /// could hold several and does not need to here.
     /// </remarks>
+    /// <summary>
+    /// Opens a graph, evaluates it with no window anywhere, and writes a picture of what it made.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The software rasteriser, never the GPU, and that is the whole reason this verb is
+    /// useful.</b> <c>E9-T5</c> gives the fallback three jobs and this is the third: GPU output is
+    /// not testable — it varies by driver, by vendor and by day — where the software path is
+    /// deterministic, so the same graph gives the same bytes on a build agent with no display and
+    /// no driver at all. A <c>render</c> that quietly used a GPU when one was present would be a
+    /// check that passes differently on every machine.
+    /// </para>
+    /// <para>
+    /// <b>It composes; it does not re-implement.</b> <see cref="ThumbnailRenderer"/> says in its own
+    /// summary that it exists to be this verb's mechanism, <c>SceneBuilder</c> turns values into
+    /// renderables through the same walk the viewport uses, and <c>PngImage</c> writes the file.
+    /// What is here is argument handling and the walk over the graph's output ports.
+    /// </para>
+    /// <para>
+    /// <b>Every node's outputs, not the graph's last ones</b>, for the reason
+    /// <see cref="Results"/> records at length: a graph's interesting geometry is routinely
+    /// mid-chain, and the leaves are frequently <c>Display</c> nodes whose output is an appearance.
+    /// <c>SceneBuilder</c> decides what is renderable, so this hands it everything and counts what
+    /// it took.
+    /// </para>
+    /// <para>
+    /// <b>The camera frames the geometry rather than being supplied.</b> A fixed camera would need
+    /// a coordinate convention on the command line before anybody has asked for one, and
+    /// auto-framing is what makes the output depend on the graph alone — which is the property a
+    /// regression check is built on. A <c>--camera</c> flag can arrive when a caller wants a
+    /// specific view; it cannot be taken away once the default is a view nobody chose.
+    /// </para>
+    /// <para>
+    /// <b>Exit 2 means the graph ran and drew nothing.</b> An empty scene is a legitimate picture —
+    /// <see cref="ThumbnailRenderer"/> deliberately renders the empty viewport rather than a black
+    /// rectangle — but a CI job that writes one without complaint is the vacuously-green failure
+    /// this whole verb exists to prevent. The file is still written, because looking at it is how
+    /// somebody finds out why.
+    /// </para>
+    /// </remarks>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="report">Where the summary line goes.</param>
+    /// <param name="error">Where diagnostics and refusals go.</param>
+    /// <param name="trust">
+    /// The record of package-folder assemblies the user has agreed to, or null for the one the
+    /// desktop application keeps. A test passes its own so that the user's is never touched.
+    /// </param>
+    /// <returns>Zero on success, one on error, two when nothing was renderable.</returns>
+    internal static int Render(
+        ReadOnlySpan<string> args, TextWriter report, TextWriter error, PackageTrustStore? trust = null)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(error);
+
+        string? input = null;
+        string? output = null;
+        int width = 1280;
+        int height = 720;
+        bool grid = true;
+        bool scripting = true;
+        bool once = false;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--open" when i + 1 < args.Length:
+                    input = args[++i];
+                    break;
+
+                case "--out" when i + 1 < args.Length:
+                    output = args[++i];
+                    break;
+
+                case "--width" when i + 1 < args.Length:
+                    if (!TrySize(args[++i], "--width", error, out width))
+                    {
+                        return 1;
+                    }
+
+                    break;
+
+                case "--height" when i + 1 < args.Length:
+                    if (!TrySize(args[++i], "--height", error, out height))
+                    {
+                        return 1;
+                    }
+
+                    break;
+
+                case "--no-grid":
+                    grid = false;
+                    break;
+
+                case "--no-script":
+                    scripting = false;
+                    break;
+
+                case "--trust-packages":
+                    once = true;
+                    break;
+
+                default:
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null || output is null)
+        {
+            error.WriteLine("spark: render needs --open PATH and --out FILE.png.");
+            return 1;
+        }
+
+        // PNG and nothing else, and it is said rather than assumed. The rasteriser produces RGBA
+        // and `PngImage` is the only encoder in the tree, so a `--out picture.jpg` that wrote a
+        // PNG under a lying name is the one outcome worth refusing outright.
+        if (!string.Equals(Path.GetExtension(output), ".png", StringComparison.OrdinalIgnoreCase))
+        {
+            error.WriteLine("spark: render writes PNG; give --out a .png file name.");
+            return 1;
+        }
+
+        using SparkSession session = new();
+
+        using OpenedInput opened = OpenedInput.From(input);
+        GraphDocument document = SparkFile.Read(File.ReadAllText(opened.Graph));
+
+        if (!scripting && document.HasScripts)
+        {
+            error.WriteLine(
+                "spark: this graph contains a code block and --no-script was given, so it was not rendered.");
+
+            return 1;
+        }
+
+        IScriptNodeFactory? scripts = scripting && document.HasScripts
+            ? session.EnableScripting()
+            : null;
+
+        if (scripts is not null
+            && !AdmitPackages(opened.Graph, document, session, trust, once, "spark: ", "rendered", error, out _))
+        {
+            return 1;
+        }
+
+        Graph graph = document.Restore(session.Library, scripts);
+
+        EvaluationContext context = new(default, new SequentialEvaluationScheduler());
+        EvaluationResult result = GraphEvaluator.Evaluate(graph, context, CancellationToken.None);
+
+        foreach (SparkDiagnostic diagnostic in result.Diagnostics)
+        {
+            error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
+        }
+
+        SceneBuilder builder = new();
+
+        foreach (NodeInstance node in graph.Nodes())
+        {
+            for (int port = 0; port < node.Definition.Outputs.Count; port++)
+            {
+                builder.Add(new GeometryKey(node.Id.ToString(), port), result.Value(node.Id, port));
+            }
+        }
+
+        ViewportScene scene = new();
+        builder.PublishTo(scene);
+
+        byte[] pixels = ThumbnailRenderer.Render(scene, width, height, grid);
+        File.WriteAllBytes(output, PngImage.Encode(pixels, width, height));
+
+        report.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: wrote {width}x{height} to {output} "
+            + $"({builder.RenderableCount} renderable(s), {result.NodesEvaluated} node(s) evaluated, "
+            + $"{result.CacheHits} cache hit(s))"));
+
+        if (result.HasErrors)
+        {
+            return 1;
+        }
+
+        if (builder.RenderableCount == 0)
+        {
+            error.WriteLine(
+                "spark: the graph produced nothing to draw, so the image is the empty viewport.");
+
+            return 2;
+        }
+
+        return 0;
+    }
+
+    /// <summary>Parses a pixel dimension, refusing the values that make a meaningless image.</summary>
+    /// <remarks>
+    /// An upper bound as well as a lower one: <c>--width 100000</c> is a two-hundred-gigabyte
+    /// allocation and a process the operating system kills, which reads to the caller as Spark
+    /// crashing rather than as an argument they should not have typed.
+    /// </remarks>
+    private static bool TrySize(string text, string option, TextWriter error, out int value)
+    {
+        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
+            || value < 1
+            || value > 16384)
+        {
+            error.WriteLine($"spark: {option} takes a whole number of pixels between 1 and 16384.");
+            value = 0;
+            return false;
+        }
+
+        return true;
+    }
     private static int WriteMeshes(string output, string extension, List<Mesh> meshes)
     {
         Mesh combined = Combine(meshes);
@@ -1146,6 +1362,17 @@ internal static class Program
         Console.WriteLine("      file carries the exact surfaces, which is the point of having them.");
         Console.WriteLine("      Curves become polylines; the tolerance used is in the file's header.");
         Console.WriteLine();
+        Console.WriteLine("  spark render --open GRAPH.spark --out FILE.png [--width N] [--height N]");
+        Console.WriteLine("               [--no-grid] [--no-script] [--trust-packages]");
+        Console.WriteLine("      Evaluate a graph with no window and write a picture of it, through");
+        Console.WriteLine("      the software rasteriser rather than the GPU - so the same graph gives");
+        Console.WriteLine("      the same bytes on a machine with no display and no driver, which is");
+        Console.WriteLine("      what makes it usable as a CI check. 1280x720 by default.");
+        Console.WriteLine("      The camera frames the geometry automatically. --no-grid leaves out");
+        Console.WriteLine("      the ground grid and world axes, for a picture of the geometry alone.");
+        Console.WriteLine("      Exit 2 if the graph ran but produced nothing to draw: an empty image");
+        Console.WriteLine("      written silently is the failure a visual check exists to catch.");
+        Console.WriteLine();
         Console.WriteLine("  spark pack GRAPH.spark [--out FILE.sparkz]");
         Console.WriteLine("      Zip a graph and the GRAPH.packages folder beside it into one .sparkz");
         Console.WriteLine("      file for sharing; by default GRAPH.sparkz, beside the graph. run, check");
@@ -1154,7 +1381,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
-        Console.WriteLine("  render, pkg, docs and graph arrive with later milestones.");
+        Console.WriteLine("  pkg, docs and graph arrive with later milestones.");
     }
 
     /// <summary>
