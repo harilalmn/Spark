@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N181 closed: the check now reads multi-row criteria)
+**Last updated:** 2026-09-15 (N182: prose with no status column rots hardest)
 
 ---
 
@@ -5216,6 +5216,51 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N182 — Prose with no status column rots hardest, and it rots in the direction that hides progress
+
+**2026-09-15.** Every claim in this project's documentation has something that can contradict it,
+with one exception. A register row has a status column. An acceptance criterion has a box, and
+since this morning a cited row and a check that compares the two. **A section intro and a `Status.`
+paragraph have neither**, and they are the last unreconciled surface in the documents.
+
+**Thirteen `Status.` paragraphs in `EPICS.md`. Ten needed work, and the two kinds are different
+problems.**
+
+**Six were false**, not merely old. E1: *four test projects run 315 checks* and *twelve stubs* and
+*five of the eight agent definitions* — ten projects, 4,027 checks, thirteen projects, all eight
+agents. E2: *two slices are landed*, when there are five, with test counts of 313 and 38 against a
+true 1,513 and 51. E5: *57 nodes reach the library*, when it is 141 over 21 families. E11: *four
+test projects exist and `dotnet test Spark.slnx` runs 315 tests* — a command that now reports **Zero
+tests ran** on this machine. E13: *Not started. Nothing of this epic exists in the tree* — and
+**that sentence existed in two files**, the same text at the head of E13 in both `TASKS.md` and
+`EPICS.md`, which is what a claim nothing reconciles does: it gets copied before it goes stale, and
+then neither copy is checked. **E7 was the worst of the six** because it was falsifiable in one
+command: *Every row in this epic is `Done`* while `E7-T20` was `In progress`, and had been when the
+sentence was written.
+
+**Four more were not false but understated, and that is its own failure.** E3, E4 and E9 are
+**100% `Done`** and their paragraphs still said *substantially built in `7ef0919`* and *built in
+`85e3183`*; E8 is 81 of 82 with the eighty-second `Withdrawn`. Under a run parameter that reads *go
+non stop till all Epics are done*, **a paragraph that fails to say an epic is finished is as
+expensive as one that claims it wrongly** — it is the sentence somebody uses to decide what to work
+on next.
+
+**The direction is the finding.** Every one of the ten was wrong in the direction that makes the
+project look **less finished than it is**, which is the same direction as the six register rows
+found waiting on delivered work ([N180](NOTES.md)) and the ten stale criterion boxes
+([N181](NOTES.md)). Documentation written while work is in flight records the moment it was written,
+and work only moves one way — so **staleness has a sign**, and a sweep can predict what it will
+find.
+
+**And the sweep made the same mistake inside itself, which is the part worth keeping.** The
+correction to E13's count said *eighteen tasks, seventeen `Done`* — because it counted the estimate
+table and **four `E13` rows were sitting inside `E8`'s table**, appended wherever the cursor was
+when they were filed. It is 22 rows, 19 `Done`, 3 `Blocked`. **Nothing in the machinery was ever
+wrong**: a row is found by its ID, so every check, count and dashboard figure was right the whole
+time, and only a person scrolling the document would have seen it. *Correcting a stale count with a
+count taken the same careless way* is exactly the failure being swept for, and it happened once
+inside the sweep.
 
 ## N181 — The sweep's own filter was the blind spot, and it hid ten of the boxes it was built to find
 

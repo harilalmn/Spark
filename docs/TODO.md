@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T34`: the kernel's shape rules are guarded, not grepped)
+**Last updated:** 2026-09-15 (the intro sweep: E3, E4 and E9 are complete and did not say so)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -650,6 +650,21 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     hierarchies, no public settable property or instance field, **no member handing back
 >     the array it is built on**, and no drafting type declared. Proved on four mutations.
 >     Architecture tests 20 → **26**.
+> 18. **The intro sweep, 2026-09-15 — the last unreconciled surface.** A row has a status
+>     column; a criterion has a box and a cited row; **a `Status.` paragraph has neither**.
+>     Thirteen in `EPICS.md`, **ten needed work** ([N182](NOTES.md)). **Six were false**: E1
+>     (*four test projects run 315 checks*), E2 (*two slices are landed*, counts out by 4x),
+>     E5 (*57 nodes*, it is 141), E11 (*`dotnet test Spark.slnx` runs 315 tests* — a command
+>     that now reports *Zero tests ran*), E13 (*nothing of this epic exists in the tree*,
+>     **the same sentence in two files**), and worst, E7 — *every row in this epic is
+>     `Done`* with `E7-T20` `In progress` then and now. **Four understated completion**:
+>     **E3, E4 and E9 are 100% `Done`** and said *substantially built*; E8 is 81 of 82 with
+>     one `Withdrawn`. **Three were accurate** — E6, E10, E12.
+>     **Every one of the ten erred in the direction that hides progress**, which is the same
+>     sign as the six stale rows and the ten stale boxes. **And a filing defect fell out of
+>     it**: four `E13` rows had been sitting inside `E8`'s table since they were filed, and
+>     the first attempt at E13's count missed them and got it wrong the same careless way.
+>     Nothing in the machinery was affected — a row is found by its ID.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

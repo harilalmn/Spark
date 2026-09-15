@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T34`: the two code criteria are guarded and now cite a row)
+**Last updated:** 2026-09-15 (the intro sweep: ten of thirteen `Status.` paragraphs were stale)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -155,12 +155,21 @@ exemption for everything that already exists.
 - [x] The eight agent definitions in `.claude/agents/` exist with disjoint file ownership
       (**E1-T25**, **E1-T30**). *Five of eight.*
 
-**Status.** Partly done, and further along than the milestone plan expected at this point.
-The solution, the twelve stubs, the reference graph, the build properties, the pinned package
-versions, the licence and the git metadata all exist; the solution builds clean with
-`--no-incremental -warnaserror`; `global.json` pins the toolchain; the public-API baselines
-are live on all four contract projects; **four test projects run 315 checks**; and
-`.github/workflows/ci.yml` and five of the eight agent definitions are written.
+**Status.** **Complete as of 2026-09-15 — `E1` has no `Open` row left**, and the paragraph below
+described 2026-08-27 until the intro sweep of 2026-09-15 read it.
+
+*What it said, and what is true.* *Twelve stubs* — **thirteen `src/` projects**, `Spark.Geometry.Occt`
+being the one E13 added. *Four test projects run 315 checks* — **ten test projects and 4,027 checks**,
+run as per-project executables because `dotnet test Spark.slnx` reports *Zero tests ran* on the
+development machine under SDK 10.0.400 ([N135](NOTES.md)). *Five of the eight agent definitions* —
+**all eight**. What has not changed: the solution builds clean under
+`--no-incremental -warnaserror`, `global.json` pins the toolchain, and the public-API baselines are
+live on all four contract projects. CI runs both legs again since 2026-09-14, the repository having
+been made public so its Actions minutes are free.
+
+*One thing needs a person rather than a commit*: `E1-T28`'s **branch protection**, which is a
+decision and not work — requiring a green pull request on `main` would refuse every commit this
+marathon makes.
 
 **What is not true: CI has run against this.** It has been green on Windows and Linux for
 earlier commits and has seen nothing of the geometry kernel — which is the half of the
@@ -400,15 +409,25 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       class. A negative criterion has to be checked by looking for the thing and not finding it,
       and the reason to make it a test is that a search is run once.*
 
-**Status.** Two slices are landed. The **value layer** — `Angle`, `Tolerance`, `Point3d`,
-`Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
-`CoordinateSystem`, plus an internal `NamespaceDoc` carrying the conventions the whole namespace
-obeys — was reviewed, repaired and accepted. The **curve layer** followed: a `Curve` base whose
-constructor is `private protected`, so the set of curve types is closed to the assembly, with
-`Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` over it. Everything is
-documented, because CS1591 is an error here, and everything is recorded in
-`PublicAPI.Unshipped.txt`. Coverage is `tests/Spark.Geometry.Tests` (313 example-based tests)
-and `tests/Spark.Geometry.Properties` (38 CsCheck properties), both green.
+**Status.** **Swept 2026-09-15, and the paragraph below said *two slices are landed* when there are
+five.** It described the kernel as it stood in late August and was never re-read; the two counts in
+its last sentence were out by a factor of four.
+
+*What is landed.* The **value layer** — `Angle`, `Tolerance`, `Point3d`, `Vector3d`, `Point2d`,
+`Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and `CoordinateSystem`, plus an
+internal `NamespaceDoc` carrying the conventions the whole namespace obeys. The **curve layer**: a
+`Curve` base whose constructor is `private protected`, so the set of curve types is closed to the
+assembly, with `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve`, `NurbsCurve` and
+`Helix` over it. The **surface layer**, the **mesh layer** with `MeshTopology` and
+`MeshPrimitives`, and the **BRep layer** — `Brep`, `BrepBuilder`, `BrepAdjacency`, `BrepPrimitives`
+and the `readonly ref struct` navigator views. Everything is documented, because CS1591 is an error
+here, and everything is recorded in `PublicAPI.Unshipped.txt`.
+
+*Coverage*: `tests/Spark.Geometry.Tests` **1,513** example-based tests (the paragraph said 313) and
+`tests/Spark.Geometry.Properties` **51** CsCheck properties (it said 38), plus
+`tests/Spark.Geometry.Occt.Tests` **78** against the real provider, all green with nothing skipped.
+**And the shape rules are now guarded rather than assumed** (`E11-T34`): sealing, the closed
+hierarchies, no public mutable state, and no member handing back its backing array.
 
 **What the curve layer settled, and it was settled before it was written.** The contract came
 from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-141-reachable)
@@ -545,11 +564,13 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       for stale criteria matched a tick box and a row ID on the same line and so missed this
       one, which puts the ID two lines down.*
 
-**Status.** Substantially built in `7ef0919`, and **evaluated by walking the source tree rather
-than the commit message**. The graph model, package-qualified node identity, expression-tree
-compiled invocation, the wire-compatibility rules with same-name refusal, Kahn ordering over the
-dirty subgraph, cycle refusal at wire creation and detection at load, the provenance cache, the
-`SPK####` diagnostic space and the non-cascading error rule are all in.
+**Status.** **Complete. All 24 rows are `Done`, and the paragraph below said *substantially built*
+until the sweep of 2026-09-15 counted them.** Originally built in `7ef0919` and **evaluated by
+walking the source tree rather than the commit message**: the graph model, package-qualified node
+identity, expression-tree compiled invocation, the wire-compatibility rules with same-name refusal,
+Kahn ordering over the dirty subgraph, cycle refusal at wire creation and detection at load, the
+provenance cache, the `SPK####` diagnostic space and the non-cascading error rule are all in — and
+so is everything filed against this epic since.
 
 **Four things were half-built, and all four are finished.** The cache evicts against a native
 and a managed memory budget as well as a count (`E3-T9`) - the native half had landed on
@@ -629,11 +650,14 @@ instrument is deliberate, not a flourish.
       stable and never reused, and the table is expected to grow as the engine finds
       situations the document did not anticipate.*
 
-**Status.** Built in `7ef0919`, as a direct transcription of the specification written before
-it — which was the entire point of doing it in that order. Excess and depth, replicate-one-level
-and recurse, promotion at the leaf, Cross Product nesting by *k* rather than by one, multi-output
-lockstep-then-transpose, per-element isolation with an uncaught fast path and a catching replay,
-and `Auto` as a sentinel resolving to the definition's default rather than as an algorithm.
+**Status.** **Complete. All 13 rows are `Done`.** Built in `7ef0919` as a direct transcription of
+the specification written before it — which was the entire point of doing it in that order. Excess
+and depth, replicate-one-level and recurse, promotion at the leaf, Cross Product nesting by *k*
+rather than by one, multi-output lockstep-then-transpose, per-element isolation with an uncaught
+fast path and a catching replay, and `Auto` as a sentinel resolving to the definition's default
+rather than as an algorithm. The 90-row case table in
+[the lacing topic](help/concepts/lacing.md) is run twice on every build — once against the values it
+specifies, and once to check every diagnostic it raises has a help page.
 
 **The corpus test is a two-way diff against the specification document itself**, parsing its case
 numbers and failing if corpus and document name different sets in either direction. It found two
@@ -724,10 +748,13 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no
       reference to anything above it (**E5-T15**).
 
-**Status.** Built in `35107f0`. **57 nodes reach the library with no registration anywhere** — no
-partial class, no dictionary, no attribute required — and `Spark.Nodes.Core` still holds no
-reference to `Spark.Engine`, so the first-party library is imported by exactly the path a
-third-party package would take.
+**Status.** Built in `35107f0`, and **swept 2026-09-15: the count below had more than doubled and
+nobody had re-read it.** **141 node methods over 21 families reach the library with no registration
+anywhere** — the paragraph said 57, a figure taken before the curve, surface and solid families
+existed — and there is still no partial class, no dictionary and no attribute required.
+`Spark.Nodes.Core` holds no reference to `Spark.Engine`, so the first-party library is imported by
+exactly the path a third-party package would take, which is the claim the number is evidence for
+and the reason the number is worth keeping right.
 
 **The two-way diff is the part that matters, and it was in place before the importer could
 rot.** Every public member is reachable as exactly one node or is excluded **with a stated
@@ -1029,9 +1056,17 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       needs no format migration (**E7-T15**). *Reserved 2026-08-31, with a test asserting it round
       trips although nothing reads it — which is the whole point of reserving it.*
 
-**Status.** **Complete 2026-09-01.** Every row in this epic is `Done`. **A package can be searched
-for on nuget.org, inspected, installed and used, and its nodes unloaded again** — which is this
-epic's goal sentence, and it is now true through the application rather than only through the API.
+**Status.** **Substantially complete, and *not* every row is `Done` — which is what this paragraph
+said until the intro sweep of 2026-09-15 read it against the register.** **A package can be searched
+for on nuget.org, inspected, installed and used, and its nodes unloaded again** — this epic's goal
+sentence, true through the application rather than only through the API since 2026-09-01, and that
+half of the claim holds.
+
+**`E7-T20` is `In progress`**, and it was `In progress` when *every row in this epic is `Done`* was
+written. Its search half landed 2026-09-09 on a client report; **the install half is not started**,
+and it is three named problems in order: transitive dependency resolution, target-framework
+selection against `net10.0`, and two packages wanting different versions of one dependency. Nothing
+in `Spark.Packages` resolves a transitive dependency today.
 
 The load layer and the preservation guarantee came first: `PackageIdentity`, `ContractAssemblies`
 and `PackageLoadContext`. Placeholders followed: a graph naming a package that is not installed
@@ -1205,9 +1240,13 @@ another.
       *Both built by the rows that needed them - `E6-T16`'s code-block banner and `E7-T17`'s
       missing-package banner - and ticked by the 2026-09-11 reconciliation.*
 
-**Status.** Built in `85e3183` and `35107f0`, and **the gate it depended on passed**: M1.5 spike
-(b) measured 2,000 nodes at 0.87 ms median and 2.26 ms p95 for the whole render pass, with cost
-tracking what is on screen rather than graph size ([E11-T20](#e11--quality-and-verification)).
+**Status.** **Complete: 81 of 82 rows `Done` and the eighty-second `Withdrawn`**, which the
+paragraph below did not say. Built in `85e3183` and `35107f0`, and **the gate it depended on
+passed**: M1.5 spike (b) measured 2,000 nodes at 0.87 ms median and 2.26 ms p95 for the whole render
+pass, with cost tracking what is on screen rather than graph size
+([E11-T20](#e11--quality-and-verification)). **It is the largest epic in the register**, and most of
+what came after the spike arrived as client reports against the running application rather than as
+planned work — which is why it is 82 rows and why nearly every one of them names a screenshot.
 
 The shell, the immediate-mode canvas over a retained spatial index, level-of-detail below 40%
 zoom, and pan/zoom/box-select/drag/wire/unwire/delete are all in, driven by headless tests using
@@ -1311,10 +1350,12 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
       and the watch panel alike, and survives recomputation in a way an object ID would not
       (**E9-T9**).
 
-**Status.** Built in `85e3183`, extended with curves, and **the gate it depended on passed**:
-M1.5 spike (a) drew a shaded lit box and sphere with the plinth correctly occluding the ground
-grid, verified by reading the framebuffer back rather than by trusting that it compiled
-([E11-T19](#e11--quality-and-verification)).
+**Status.** **Complete. All 15 rows are `Done`.** Built in `85e3183`, extended with curves, and
+**the gate it depended on passed**: M1.5 spike (a) drew a shaded lit box and sphere with the plinth
+correctly occluding the ground grid, verified by reading the framebuffer back rather than by
+trusting that it compiled ([E11-T19](#e11--quality-and-verification)). The software rasteriser earns
+its place four times over, and one of them is that `VisualRegressionTests` can compare a rendered
+frame byte for byte on a CI runner with no GPU.
 
 **One finding from that spike changes how every shader here is written.** Avalonia on Windows
 defaults to **ANGLE**, so the surface is OpenGL ES 3.0 over Direct3D 11 — never desktop GL 3.3,
@@ -1711,13 +1752,25 @@ nothing.
       **not** for (c): its central claim is executable rather than prose, so what would be deleted
       is the thing that notices when the claim stops being true.*
 
-**Status.** Partly done, and materially further along than at the last pass. **Four test
-projects exist and `dotnet test Spark.slnx` runs 315 tests**, all passing locally on
-2026-08-27: `Spark.Geometry.Tests` (276 example-based), `Spark.Geometry.Properties` (28
-CsCheck properties), `Spark.Architecture.Tests` (6, enforcing the reference graph) and
-`Spark.Docs.Verify` (5, checking the documents against the repository). The two older ones
-were stood up **before the code they now guard**, which was the whole argument for putting
-them in M0.
+**Status.** **Swept 2026-09-15, and this paragraph was the most out of date in the file — including
+its command.** It read *four test projects exist and `dotnet test Spark.slnx` runs 315 tests, all
+passing locally on 2026-08-27*. Both halves are wrong now: there are **ten test projects and 4,027
+tests**, and **`dotnet test Spark.slnx` reports *Zero tests ran*, exit 5, on the development
+machine** under SDK 10.0.400 — for every project, including untouched ones. The suite is not red;
+each project's own executable runs green, and the loop that runs them is in
+[AGENTS.md](../AGENTS.md#before-you-commit). **Checking the project count matters as much as the
+total**: `bin/` is gitignored, so a project deleted from git leaves its executable behind and the
+loop keeps running it, which added twelve phantom passes for eleven days ([N135](NOTES.md)) until
+`E11-T28` made it fail the build.
+
+*Where the 4,027 are*: `Spark.Geometry.Tests` 1,513, `Spark.UI.Tests` 1,404, `Spark.Engine.Tests`
+621, `Spark.Packages.Tests` 124, `Spark.Viewport.Tests` 117, `Spark.Geometry.Occt.Tests` 78,
+`Spark.Docs.Verify` 68, `Spark.Geometry.Properties` 51, `Spark.Architecture.Tests` 26 and
+`Spark.Cli.Tests` 25 — zero failures and **zero skips**, which is the number that matters because
+the OCCT project skips itself when the native shim is absent.
+
+The two oldest projects were stood up **before the code they now guard**, which was the whole
+argument for putting them in M0, and that has not changed.
 
 The harness has already earned its keep rather than merely existing: extending its
 ADR-citation check to scan build files turned up two citations pointing at records nobody had
@@ -1864,6 +1917,12 @@ done. **What remains needs a person rather than a commit**: the signed installer
 (`E12-T9`), and the CAD-host proof was moved past 1.0 by **D20** because Spark ships standalone and
 that row proves a second claim. `E12-T5`'s remaining verbs wait on nothing but themselves.
 
+*Swept 2026-09-15.* The CLI's verb list above says `export` and `run`; the dispatch in
+`Program.Main` now switches on **four** — `run`, `check`, `export` and `pack`. `pack` is
+[E3-T20](TASKS.md#e3--graph-engine)'s `.sparkz` bundle under `ADR-0017` rather than `E12-T5`'s
+`pkg`, so *three of seven* still stands for this epic; it is recorded here so the next reader does
+not count it twice. What is left of `E12-T5` is `render`, `pkg`, `docs` and `graph`.
+
 ---
 
 ## E13 — OCCT provider
@@ -1995,9 +2054,32 @@ real thread-safety envelope; the counsel question; whether `OcctNet.Wrapper` has
 repository at all; and E13-T3's real cost. **None of them is resolved by writing confidently
 about it**, and M1.6 exists to answer the first four.
 
-**Status.** Not started. **Nothing of this epic exists in the tree** — there is no `native/`
-directory, no `Spark.Geometry.Occt` project and no OCCT anywhere. The decision is recorded; the
-work has not begun.
+**Status.** **Nineteen of twenty-two rows `Done`, three `Blocked`, as of 2026-09-15.** *This paragraph
+read "Not started. **Nothing of this epic exists in the tree** — there is no `native/` directory, no
+`Spark.Geometry.Occt` project and no OCCT anywhere. The decision is recorded; the work has not
+begun." Every clause was false and had been for weeks. **It is the second copy of that sentence
+found in one day** — the same text sat at the head of E13 in [TASKS.md](TASKS.md#e13--occt-provider)
+— which is what a claim with no status column and no box to tick does: it gets copied before it
+goes stale, and then neither copy is reconciled by anything.*
+
+`native/spark_occt/` holds the shim's sources, `src/Spark.Geometry.Occt/` is a project in the
+solution, and `Spark.Geometry.Occt.Tests` runs **78 tests against the real provider with nothing
+skipped**. Booleans, fillet, chamfer, loft, sweep, revolve, shell, draft, sew, heal, STEP and IGES
+all go through it, and `v2026.9.0` shipped with it.
+
+**All three `Blocked` rows wait on the same thing: the OpenCascade reinstall.** `E13-T18` (a closed
+shell should come back as a solid), `E13-T21` (the shim meshes a deep copy) and `E13-T22` (a face
+index does not survive the crossing) are each a change to C++ in the shim, and the shim cannot be
+rebuilt here. The toolchain is intact — `scripts/build-native.ps1` finds MSVC 14.51.36231 and enters
+the environment itself — and then refuses, having searched all three vcpkg roots. `E2-T67`'s mass
+properties wait on the same reinstall from the other side of the seam. The staged
+`artifacts/native/win-x64/` is intact, so everything **runs**; nothing native can **change**.
+
+*The count above was itself corrected twice on 2026-09-15.* The first fix said eighteen rows,
+because four `E13` rows were sitting inside `E8`'s table in
+[TASKS.md](TASKS.md#e13--occt-provider) and a count of the estimate table alone missed them. Nothing
+was ever wrong in the checks or the dashboard — a row is found by its ID, not by which table it is
+under — which is exactly why nobody noticed for weeks.
 
 **One thing that could be done before the work began has been.** M1.6's pass/fail criteria were
 written on 2026-08-29, ahead of the spike rather than alongside it
