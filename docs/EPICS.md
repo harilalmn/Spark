@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T7`: renderer parity over the thirteen shipped topics)
+**Last updated:** 2026-09-15 (the sweep: E10's *what that leaves* was five claims stale)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1394,13 +1394,23 @@ twenty-three ADRs exist with an index — one of them, ADR-0009, superseded by A
 holds `curves.spark`, `surfaces.spark` and `solids.spark`, all three of which the application and
 the CLI open.
 
-**What that leaves, and it is the majority of a user-facing Help.** Thirty-five C# samples exist,
-in three of the nine topics; `solids.md` — the newest and most valuable subject — has none. One
-topic names nodes at all, and it names ten of **108**. There is no index, no generated reference,
-**no in-product renderer, so F1 does nothing**, and no topic for any of the **18** `SPK####`
-codes, each of which already carries a `HelpTopicId` seam pointing at a document that does not
-exist. Two of the nine topics are `Specification` rather than `Current`, having been written
-ahead of their code.
+**What that leaves, and it is the majority of a user-facing Help.** *Written when nine topics
+existed and none of the machinery did. **Swept 2026-09-15 and most of it is no longer true** —
+corrected in place rather than deleted, because what it got wrong is the useful part.*
+
+**Still true:** the topic-per-node-family is not written, and there is no concepts index. Both are
+`D19`'s post-1.0 pass.
+
+**No longer true, each checked against the tree.** *One topic names nodes at all, and it names ten
+of 108* — **three do, and they name 34 keys**: `curves.md` 19, `lists.md` 11, `solids.md` 4.
+*Thirty-five C# samples in three of the nine topics* — **77 fenced samples across five of
+thirteen topics**, and `solids.md`, called out here as having none, has five. *No generated
+reference* — `nodes.index` exists and generated pages are filed under it, indented
+(`E10-T13`). ***No in-product renderer, so F1 does nothing*** — `HelpMarkdown` and `HelpWindow`
+are `E10-T13`, `Done` 2026-08-31, and F1 opens the selected node's topic; `E8-T14` closed on it
+2026-09-15. *No topic for any of the 18 `SPK####` codes* — every code has a page, asserted by
+`EveryDiagnosticCodeHasAPage`, and three more tests check that each page carries its own
+explanation, opens with its severity, and links to a topic that exists.
 
 **XML doc comments have started, and started where they are enforced.** All 487 public
 members of `Spark.Geometry` carry them — CS1591-as-error makes that structural rather than

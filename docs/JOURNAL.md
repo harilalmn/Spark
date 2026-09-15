@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E11-T7` Done: the corpus caught what eighteen fixtures could not)
+**Last updated:** 2026-09-15 (the sweep of the nine `In progress` rows: one closed, five stale halves)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Twelve steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Thirteen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T7` `Done` — Markdown renderer parity, thirteen goldens over the shipped help topics, and the row was wrong about what it waited on.** It said the parity half needed `E8-T14`; the renderer is `E10-T13`, `Done` since 2026-09-02, so it had been buildable for thirteen days — **the fifth row this week waiting on something already delivered**. **Parity against a Markdown library would be the wrong reference**: `HelpMarkdown` is a deliberate subset under `ADR-0019`, so it must agree with *itself over the documents that exist*. The goldens record every block and **every inline run with its link target**, which is the half a plain-text golden loses. **Proved on a mutation the existing suite cannot see** ([N179](NOTES.md)): join a wrapped paragraph's lines without a space and **all eighteen `HelpTests` stay green** while every paragraph in the help runs its words together — the corpus reported **78 of 170 parts differing** and named them. The two see disjoint classes of defect. `EveryCorpusFileIsIndexed` caught the thirteen new files before the commit did. |
+| **Last completed step** | **The sweep of the nine `In progress` rows. One closed, five had a stale half, three were exactly right.** `E8-T14` `Done`: its *nothing to drill into until the post-1.0 Help pass* was wrong — `nodes.index`, the indented drill-down and four tests all exist. Stale halves in `E2-T71` (`Curve.ToNurbsCurve` has **eight** implementations, not none, and `NurbsConversion` settles the exactness question the row said blocked it), `E2-T68` (`Smooth` ships), `E11-T16` (tessellation throughput has a committed triangle budget), `E10-T3` (three wrong counts), `E12-T5` (a fourth verb belonging to `E3-T20`). **The worst was not in the register**: `EPICS.md`'s *what that leaves* paragraph for E10 was five claims false, including *no in-product renderer, so F1 does nothing*. **Sixth row this week waiting on delivered work, and five of the six were `In progress`** — which is [N180](NOTES.md): that status is re-read constantly and re-verified never, because the clause naming what is missing is the one nobody checks. The three accurate rows had all been re-checked within the week. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **4020** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E10-T14` — the website — is the only `Open` row left in the register, and it cannot be started.** It waits on [PRD Q8](PRD.md#14-open-questions), *where does the website live and who maintains it*, which is a client decision and not work: a hosting choice, a domain, and somebody who keeps it current after 1.0. **So the honest next step is not to build a website.** It is to **re-read the `Blocked` and `In progress` rows against the tree**, because this week found five rows waiting on something already delivered — `E8-T15`, `E1-T22`, `E1-T19`, `E2-T38`, `E11-T7` — and a sweep that assumes the register is right is the one thing that keeps missing them. Start with the `In progress` rows: `E8-T14`, whose text this step just proved stale in one clause, is the obvious first. **Then put `Q8` to the client with a recommendation rather than a question**, since every other row is done or needs a person. |
-| **Verify with** | **The tree, not the row.** For each row swept: the named type, test or file, read; and where the row claims a gate runs, the run id or the runner exit code. A row closed on *it looks present* is what produced the five. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Next action** | **Put `PRD Q8` to the client with a recommendation, because `E10-T14` is the last `Open` row and cannot start without an answer.** The question is *where does the website live, and who maintains it*. **Bring an answer rather than a question**: the release binaries already live in a public repository holding no source (`Spark-Releases`), the source repository is private since 2026-09-09, and GitHub Pages on the public releases repository therefore costs nothing, needs no new account and puts the site beside the downloads it links to. Say that, say what it does not solve — a custom domain and who edits it after 1.0 — and let the client choose. **Until an answer comes, keep sweeping**: the four `Blocked` rows next (`E1-T28`, `E13-T18`, `E13-T21`, `E2-T67`), then the `Done` rows whose evidence is a claim rather than a run, since [N180](NOTES.md) says the register's error is in what nobody re-verifies. |
+| **Verify with** | **The tree, not the row** — the named type, test or file read, or the command run and its exit code quoted. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16751,3 +16751,65 @@ goldens were read before being committed, not only generated.
 
 **Cost.** One session. **The register now has one `Open` row**: `E10-T14`, the website, waiting on
 `PRD Q8` and therefore on a person.
+
+### 2026-09-15 — The sweep of the nine `In progress` rows: one closed, five stale halves
+
+**What.** No code. The nine `In progress` rows read against the tree, one artefact each. **One
+closes, five had a stale half, three were exactly right** — and a paragraph in `EPICS.md` turned
+out to be five claims out of date.
+
+**Why this and not the last `Open` row.** `E10-T14`, the website, is the only `Open` row left and
+it waits on `PRD Q8` — where the site lives and who maintains it — which is a client decision, not
+work. Meanwhile six rows this week were found waiting on something already delivered: `E8-T15`,
+`E1-T22`, `E1-T19`, `E2-T38`, `E11-T7`, and now `E8-T14`. **Five of the six were `In progress`**,
+and that is not coincidence — it is [N180](NOTES.md). A `Done` row invites no reading and an `Open`
+row gets picked up whole; an `In progress` row is re-read constantly and re-verified never, because
+it already says *part of this is done* and the clause naming the missing part is the one nobody
+checks.
+
+**`E8-T14` closes.** It said the drill-down into generated reference was missing and *there is
+nothing to drill into until the post-1.0 Help pass generates it*. There is. `HelpWindow` has
+`nodes.index` and files generated pages under it, indented — its own remarks say a flat list *is a
+list of generated pages with the topics lost in it*. `NavigateToNode` asks `ForNode` first and
+falls back to the index, which is the row's original sentence exactly. Four tests hold it, one of
+them asserting the landing topic is **not** `nodes.index` for a real key and **is** for
+`Nobody/Nothing.AtAll`. What `D19` defers is writing more topics, not the drill-down; the row was
+reading the deferral as covering both.
+
+**Five stale halves, each found by one grep.**
+
+- **`E2-T71`** says `Curve.ToNurbsCurve()` has **no implementation anywhere in Spark**. It has
+  eight — a virtual on `Curve` and seven overrides — and returns a `NurbsConversion` rather than a
+  bare curve, which is precisely the exactness question the row said had to be settled before the
+  member could exist. `Curve.IsPlanar` and `PlaneOf` exist too. This is the row's *largest* family,
+  delivered.
+- **`E2-T68`** lists `Smooth` as missing; it ships, holding an open mesh's boundary still.
+- **`E11-T16`** calls tessellation throughput its remaining work; `TessellationMeasurement` has a
+  committed `maxTriangles` budget, and is a verb rather than a BenchmarkDotNet case for a stated
+  reason — a case on the ubuntu leg would measure a *failed* operation and report an excellent
+  time.
+- **`E10-T3`** carried three wrong counts: eleven topics (thirteen), one topic naming ten node keys
+  (three naming 34), and two `related` targets missing (both exist).
+- **`E12-T5`** had gained a fourth verb, `pack`, which is `E3-T20`'s bundle and not this row's
+  `pkg`. Recorded so the next sweep does not count it twice.
+
+**Three were exactly right** — `E5-T14`, `E6-T14`, `E7-T20` — and what they have in common is not
+care but a re-check inside the last week. `E7-T20`'s install half really is unstarted: no
+transitive resolution anywhere in `Spark.Packages`.
+
+**The worst of it was not in the register.** `EPICS.md`'s *what that leaves* paragraph for E10 said
+there is *no index, no generated reference, **no in-product renderer, so F1 does nothing***, no
+topic for any of the 18 `SPK####` codes, thirty-five samples in three of nine topics, and one topic
+naming ten of 108 nodes. **Five of those six are false.** There are 77 samples across five of
+thirteen topics; `solids.md`, singled out as having none, has five; every diagnostic code has a
+page with three tests over it. Corrected in place rather than deleted, because what a stale
+paragraph got wrong is the useful part of it.
+
+**Verified.** Per row, the named member, file or test read — `ToNurbsCurve`'s eight declarations,
+`Mesh.Smooth`, `TessellationMeasurement` and its budget key, `nodes.index` in `HelpWindow`, the
+verb switch in `Program.Main`, the absence of transitive resolution in `Spark.Packages`, and 77
+against a `grep -c` of the fences. Build clean with zero warnings, format clean, **4020** tests over
+ten executables, zero failures and zero skips.
+
+**Cost.** One session, no code. Six rows this week; the cheapest place to find the seventh is the
+next `In progress` clause somebody re-reads.

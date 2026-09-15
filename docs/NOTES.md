@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N179: eighteen tests green while every paragraph lost its spaces)
+**Last updated:** 2026-09-15 (N180: `In progress` is where a stale register hides)
 
 ---
 
@@ -5216,6 +5216,34 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N180 — `In progress` is where a stale register hides, because the row is never wrong enough to notice
+
+**2026-09-15.** Six rows this week turned out to be waiting on work that already existed — `E8-T15`,
+`E1-T22`, `E1-T19`, `E2-T38`, `E11-T7`, `E8-T14`. That is not six unrelated oversights. **Five of
+the six were `In progress` or carried an *In progress*-shaped clause**, and that status is what let
+them sit.
+
+**Why the status is the hiding place.** A `Done` row invites no further reading and an `Open` row
+gets picked up whole. **An `In progress` row is re-read often and re-verified never** — it already
+says *part of this is done*, so a reader who sees the feature working concludes the row is right,
+and the specific clause naming what is *missing* is the one nobody checks. It is the only status
+whose text can be half stale and still read as accurate from every angle.
+
+**What the sweep of the nine actually found.** One row closed outright: `E8-T14` said *there is
+nothing to drill into until the post-1.0 Help pass generates it*, and the generated reference,
+its index and four tests over the drill-down all existed. Five more had a stale half — `E2-T71`
+said `Curve.ToNurbsCurve()` has **no implementation anywhere in Spark** and there are eight, plus
+the `NurbsConversion` result type answering the exactness question the row said had to be settled
+first; `E2-T68` listed `Smooth` as missing and it ships; `E11-T16` called tessellation throughput
+its remaining work and `TessellationMeasurement` has a committed triangle budget; `E10-T3` carried
+three wrong counts; `E12-T5` had gained a fourth verb belonging to another row. Three were exactly
+right, and all three had been re-checked within the last week.
+
+**The rule that falls out, and it is cheap.** *A row's `In progress` clause is a claim with a date,
+and it expires.* When one is re-read, verify the clause naming what is **missing** against the
+tree — one grep for the named member is enough — and re-date it. **The three accurate rows are the
+evidence that this works**: what they have in common is not care, it is a recent re-check.
 
 ## N179 — Eighteen tests of the parser stayed green while every paragraph in the help lost its spaces
 

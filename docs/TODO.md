@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T7` Done; one `Open` row left, and it needs a person)
+**Last updated:** 2026-09-15 (the sweep of the nine `In progress` rows)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -600,6 +600,18 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     the help runs its words together — the corpus reported 78 of 170 parts differing. **One
 >     `Open` row left in the whole register**: `E10-T14`, the website, which waits on
 >     [PRD Q8](PRD.md#14-open-questions) and therefore on a person.
+> 14. **The sweep of the nine `In progress` rows, 2026-09-15.** With one `Open` row left and
+>     it needing a person, the useful work is re-reading the register against the tree —
+>     six rows this week were waiting on something already delivered, and five of the six
+>     were `In progress` ([N180](NOTES.md)). **One closed**: ~~`E8-T14`~~, whose *nothing to
+>     drill into* clause was wrong — the generated reference, its index and four tests over
+>     the drill-down all exist. **Five had a stale half**: `E2-T71` (`Curve.ToNurbsCurve` has
+>     eight implementations, not none, and `NurbsConversion` settles the exactness question),
+>     `E2-T68` (`Smooth` ships, so four remain not five), `E11-T16` (tessellation throughput
+>     has a committed triangle budget; only the 100k replication case is left), `E10-T3`
+>     (three wrong counts), `E12-T5` (a fourth verb that belongs to `E3-T20`). **Three were
+>     exactly right**, and all three had been re-checked within the week. **E10's *what that
+>     leaves* paragraph in EPICS was five claims stale** and is corrected in place.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.
