@@ -39,10 +39,12 @@ namespace Spark.Cli.Tests;
 /// report a clean run forever.
 /// </para>
 /// <para>
-/// <b>And one of the three is a capability rather than a cost.</b>
+/// <b>And two of the four are a capability rather than a cost.</b>
 /// <see cref="GraphDescribesACodeBlockWithoutLoadingSparkScripting"/> points <c>spark graph</c> at
 /// the graph the test above uses to prove Roslyn <i>does</i> load, and requires that it does not —
-/// which is what makes that verb usable on a file this build cannot open (<c>E12-T5</c>).
+/// which is what makes that verb usable on a file this build cannot open (<c>E12-T5</c>). And
+/// <see cref="DocsBuildsTheWholeHelpLibraryWithoutLoadingSparkScripting"/> covers the verb that
+/// touches <i>every</i> definition in the library rather than the few a graph names.
 /// </para>
 /// </remarks>
 public sealed class ScriptingResidencyTests
@@ -137,10 +139,38 @@ public sealed class ScriptingResidencyTests
     }
 
     /// <summary>
+    /// <c>spark docs</c> builds the whole help library — a page for every node — and loads no
+    /// Roslyn doing it (<c>E12-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The reason it is worth asserting is that this verb touches every definition there is.</b>
+    /// The other verbs reach a handful of nodes, the ones a particular graph names; this one walks
+    /// the library end to end and renders each. If any node's page generation were to reach the
+    /// script factory — a code-block definition rendered by asking the compiler what its ports are,
+    /// say — this is the only place it would show, and it would show as twenty megabytes on a verb
+    /// that prints documentation.
+    /// </remarks>
+    [Fact]
+    public void DocsBuildsTheWholeHelpLibraryWithoutLoadingSparkScripting()
+    {
+        (int exitCode, IReadOnlyCollection<string> loaded) = RunCli(path: null, "docs");
+
+        Assert.Equal(0, exitCode);
+
+        Assert.DoesNotContain(loaded, name =>
+            name.StartsWith("Spark.Scripting", StringComparison.Ordinal));
+
+        Assert.DoesNotContain(loaded, name =>
+            name.StartsWith("Microsoft.CodeAnalysis", StringComparison.Ordinal));
+
+        Assert.Contains("Spark.Nodes.Core", loaded);
+    }
+
+    /// <summary>
     /// Runs <c>spark run --all PATH</c> in a child process under the startup hook and returns what
     /// it exited with and what it loaded.
     /// </summary>
-    /// <param name="path">The graph to run.</param>
+    /// <param name="path">The graph to run, or null for a verb that takes none.</param>
     /// <param name="verb">The verb to run it under. <c>run</c> unless a caller says otherwise.</param>
     /// <returns>The exit code and the child's loaded-assembly names.</returns>
     /// <remarks>
@@ -150,7 +180,7 @@ public sealed class ScriptingResidencyTests
     /// <c>run</c>, which is the only verb that has it.
     /// </remarks>
     private static (int ExitCode, IReadOnlyCollection<string> Loaded) RunCli(
-        string path, string verb = "run")
+        string? path, string verb = "run")
     {
         string log = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".assemblies");
 
@@ -168,7 +198,10 @@ public sealed class ScriptingResidencyTests
             start.ArgumentList.Add("--all");
         }
 
-        start.ArgumentList.Add(path);
+        if (path is not null)
+        {
+            start.ArgumentList.Add(path);
+        }
 
         start.Environment["SPARK_LOADED_ASSEMBLIES"] = log;
         start.Environment["DOTNET_STARTUP_HOOKS"] = typeof(StartupHook).Assembly.Location;

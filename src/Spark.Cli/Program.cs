@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using NuGet.Versioning;
 using Spark.Api;
+using Spark.Api.Help;
 using Spark.Engine;
 using Spark.Geometry;
 using Spark.Geometry.Io;
@@ -52,7 +53,11 @@ namespace Spark.Cli;
 /// is the moment somebody reaches for it.
 /// </para>
 /// <para>
-/// <c>docs</c> is `E12-T5`'s last verb and arrives with the milestone that gives it something to do.
+/// <c>spark docs</c> is the help the application shows under F1, from a terminal: it lists the
+/// topics, prints one as Markdown, or writes them all out as files. It generates nothing — the node
+/// reference is produced from the live library by <c>NodeReference</c> and the concept topics are
+/// files, and <c>HelpComposition</c> assembles the same library for both hosts. With it, `E12-T5`'s
+/// seven verbs all exist.
 /// </para>
 /// </remarks>
 internal static class Program
@@ -94,6 +99,7 @@ internal static class Program
                 "render" => Render(args.AsSpan(1), Console.Out, Console.Error),
                 "pkg" => Pkg(args.AsSpan(1), Console.Out, Console.Error),
                 "graph" => Graph(args.AsSpan(1), Console.Out, Console.Error),
+                "docs" => Docs(args.AsSpan(1), Console.Out, Console.Error),
                 "pack" => Pack(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -1485,6 +1491,264 @@ internal static class Program
     }
 
     /// <summary>
+    /// Lists, prints or writes out the help library (<c>E12-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It generates nothing.</b> The node reference is already produced from the live library by
+    /// <c>NodeReference</c> (<c>E10-T5</c>), the diagnostic pages by <c>DiagnosticReference</c>, and
+    /// the concept topics are files; <c>HelpComposition</c> assembles the three and the F1 window
+    /// shows exactly what this writes. <b>So this verb is a second destination for one library, not
+    /// a second copy of it</b> — <c>ValueText</c>'s rule, which is the only way <i>the command line
+    /// agrees with the application</i> stays true rather than merely asserted.
+    /// </para>
+    /// <para>
+    /// <b>Three modes over one mechanism.</b> Bare, it lists what there is. <c>--topic</c> prints
+    /// one page, which is <c>man</c> for a Spark node and the mode a person will actually use from
+    /// a terminal. <c>--out</c> writes the lot as Markdown files, for publishing, for reading on a
+    /// machine with no Spark, and for putting a documentation change in a pull request diff.
+    /// </para>
+    /// <para>
+    /// <b>A topic that does not exist exits 1 and suggests</b>, rather than printing nothing and
+    /// succeeding. The suggestions come from <c>HelpLibrary.Search</c>, which is the same search the
+    /// help window's box uses — a misspelt id is the ordinary case and an empty answer is the one
+    /// outcome that helps nobody.
+    /// </para>
+    /// <para>
+    /// <b>It never loads Roslyn</b>, because it never asks for a script factory: the node pages come
+    /// from definitions already in the library (<c>E6-T14</c>).
+    /// </para>
+    /// </remarks>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="output">Where the listing or the page goes.</param>
+    /// <param name="error">Where problems go.</param>
+    /// <returns>Zero on success, one otherwise.</returns>
+    internal static int Docs(ReadOnlySpan<string> args, TextWriter output, TextWriter error)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+
+        string? topic = null;
+        string? directory = null;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--topic" when i + 1 < args.Length:
+                    topic = args[++i];
+                    break;
+
+                case "--out" when i + 1 < args.Length:
+                    directory = args[++i];
+                    break;
+
+                default:
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (topic is not null && directory is not null)
+        {
+            error.WriteLine("spark: docs takes --topic or --out, not both.");
+            return 1;
+        }
+
+        using SparkSession session = new();
+        HelpLibrary help = HelpComposition.Build(session.Library);
+
+        if (topic is not null)
+        {
+            return Print(help, topic, output, error);
+        }
+
+        return directory is not null
+            ? WriteAll(help, directory, output, error)
+            : Catalogue(help, output);
+    }
+
+    /// <summary>Prints one topic as Markdown.</summary>
+    /// <param name="help">The library.</param>
+    /// <param name="id">The topic id asked for.</param>
+    /// <param name="output">Where the page goes.</param>
+    /// <param name="error">Where a miss is reported.</param>
+    /// <returns>Zero when the topic was found, one otherwise.</returns>
+    private static int Print(HelpLibrary help, string id, TextWriter output, TextWriter error)
+    {
+        if (help.TryGet(id, out HelpDocument? found) && found is not null)
+        {
+            output.Write(HelpMarkdown.Write(found));
+            return 0;
+        }
+
+        error.WriteLine($"spark: no help topic '{id}'.");
+
+        IReadOnlyList<HelpDocument> near = help.Search(id, limit: 5);
+
+        // A whole id that matches nothing is usually one segment wrong rather than gibberish -
+        // `nodes.Point.FromCoordinates` with the package left out, most often - so the last
+        // segment is asked for before giving up. Searching for the full id first still matters:
+        // when it does match, it ranks the exact topic where a bare member name would not.
+        if (near.Count == 0 && id.LastIndexOfAny(['.', '/']) is > 0 and int cut)
+        {
+            near = help.Search(id[(cut + 1)..], limit: 5);
+        }
+
+        if (near.Count > 0)
+        {
+            error.WriteLine("spark: did you mean:");
+
+            foreach (HelpDocument candidate in near)
+            {
+                error.WriteLine($"  {candidate.Id}");
+            }
+        }
+        else
+        {
+            error.WriteLine("spark: run 'spark docs' with no arguments to list every topic.");
+        }
+
+        return 1;
+    }
+
+    /// <summary>Lists every topic: its id, and its title.</summary>
+    /// <remarks>
+    /// <b>Generated pages are marked as such</b>, because the distinction is the one a reader of
+    /// this list needs: a concept topic is a file somebody can edit and send a change to, and a
+    /// node page is produced from the node and cannot be edited at all. Telling somebody to fix a
+    /// page that does not exist as a file wastes an afternoon.
+    /// </remarks>
+    /// <param name="help">The library.</param>
+    /// <param name="output">Where the listing goes.</param>
+    /// <returns>Zero.</returns>
+    private static int Catalogue(HelpLibrary help, TextWriter output)
+    {
+        int generated = 0;
+
+        foreach (HelpDocument document in help.Topics.OrderBy(t => t.Id, StringComparer.Ordinal))
+        {
+            bool fromLibrary = IsGenerated(document.Id);
+            generated += fromLibrary ? 1 : 0;
+
+            output.WriteLine($"  {(fromLibrary ? "generated" : "written  ")}  {document.Id}  {document.Title}");
+        }
+
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: {help.Topics.Count} topic(s); {help.Topics.Count - generated} written, {generated} generated"));
+
+        return 0;
+    }
+
+    /// <summary>Writes every topic into a directory as Markdown.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The tree mirrors what a topic id actually means, which is not every dot.</b> An id is a
+    /// kind, then the rest: <c>concepts.lacing</c>, <c>diagnostics.SPK1042</c>,
+    /// <c>nodes.Spark.Nodes.Core/Point.FromCoordinates</c>. Splitting on every dot was tried first
+    /// and it shreds the two parts that are single names — the package becomes three directories and
+    /// <c>Point.FromCoordinates</c> becomes a <c>Point</c> folder holding a
+    /// <c>FromCoordinates.md</c>, which is a node family nobody declared. So it splits on the
+    /// <i>first</i> dot and on <c>/</c>, the separator a node key already uses for exactly this
+    /// distinction, and the result is <c>nodes/Spark.Nodes.Core/Point.FromCoordinates.md</c>.
+    /// </para>
+    /// <para>
+    /// <b>The directory is created and files in it are overwritten, but nothing is deleted.</b>
+    /// Emptying a directory the user named is not this verb's business — a mistyped path would take
+    /// somebody's work with it, and the failure would be silent and total.
+    /// </para>
+    /// </remarks>
+    /// <param name="help">The library.</param>
+    /// <param name="directory">Where to write.</param>
+    /// <param name="output">Where progress goes.</param>
+    /// <param name="error">Where failures go.</param>
+    /// <returns>Zero when every topic was written, one otherwise.</returns>
+    private static int WriteAll(
+        HelpLibrary help, string directory, TextWriter output, TextWriter error)
+    {
+        Directory.CreateDirectory(directory);
+
+        int written = 0;
+
+        foreach (HelpDocument document in help.Topics.OrderBy(t => t.Id, StringComparer.Ordinal))
+        {
+            string path = Path.Combine(directory, RelativePathFor(document.Id) + ".md");
+
+            string? parent = Path.GetDirectoryName(path);
+
+            if (parent is { Length: > 0 })
+            {
+                Directory.CreateDirectory(parent);
+            }
+
+            // A line feed, not the platform's newline, for the reason `HelpMarkdown.Write` gives:
+            // a generated tree written on Windows and one written on Linux have to be the same
+            // bytes, or every file in it reads as changed on the other machine.
+            File.WriteAllText(path, HelpMarkdown.Write(document));
+            written++;
+        }
+
+        if (written == 0)
+        {
+            error.WriteLine("spark: there were no topics to write, which should be impossible.");
+            return 1;
+        }
+
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture, $"spark: wrote {written} topic(s) to {directory}"));
+
+        return 0;
+    }
+
+    /// <summary>The path a topic is written to, relative to the output directory.</summary>
+    /// <param name="id">The topic id.</param>
+    /// <returns>The relative path, without an extension.</returns>
+    private static string RelativePathFor(string id)
+    {
+        int dot = id.IndexOf('.', StringComparison.Ordinal);
+
+        // No dot at all is not an id this build produces, but a hand-written topic could carry one
+        // and a verb that threw over it would be refusing to write documentation it had been given.
+        return dot <= 0
+            ? Sanitise(id)
+            : Path.Combine([Sanitise(id[..dot]), .. id[(dot + 1)..].Split('/').Select(Sanitise)]);
+    }
+
+    /// <summary>Makes one path segment safe to write.</summary>
+    /// <param name="segment">The segment.</param>
+    /// <returns>The segment with anything a file name cannot hold replaced by <c>_</c>.</returns>
+    /// <remarks>
+    /// Node keys and topic ids are already conservative, so this replaces nothing in practice. It
+    /// is here because a package identity comes from a third party and <c>docs --out</c> writes
+    /// files: a key holding a colon or a backslash would otherwise escape the directory it was
+    /// pointed at, which is a path traversal wearing a documentation verb's clothes.
+    /// </remarks>
+    private static string Sanitise(string segment)
+    {
+        if (segment is "." or "..")
+        {
+            return "_";
+        }
+
+        char[] invalid = Path.GetInvalidFileNameChars();
+        return invalid.Any(segment.Contains)
+            ? string.Concat(segment.Select(c => invalid.Contains(c) ? '_' : c))
+            : segment;
+    }
+
+    /// <summary>Whether a topic id names a page produced from the library rather than a file.</summary>
+    /// <param name="id">The topic id.</param>
+    /// <returns>True for a node page, the node index or a diagnostic page.</returns>
+    /// <remarks>
+    /// The index's own id is <c>nodes.index</c>, so the node prefix catches it without a third
+    /// case — which is the reason that id was given that shape.
+    /// </remarks>
+    private static bool IsGenerated(string id) =>
+        id.StartsWith(NodeReference.TopicPrefix, StringComparison.Ordinal)
+        || id.StartsWith(DiagnosticReference.TopicPrefix, StringComparison.Ordinal);
+
+    /// <summary>
     /// Describes a <c>.spark</c> file without binding it (<c>E12-T5</c>).
     /// </summary>
     /// <remarks>
@@ -1870,6 +2134,14 @@ internal static class Program
         Console.WriteLine("      on a graph this build cannot open - which is when you want it.");
         Console.WriteLine("      Exit 1 if anything it names is missing here.");
         Console.WriteLine();
+        Console.WriteLine("  spark docs [--topic ID] [--out DIR]");
+        Console.WriteLine("      The help the application shows under F1, from a terminal. With no");
+        Console.WriteLine("      arguments it lists every topic and marks which are generated from");
+        Console.WriteLine("      the node library rather than written by hand. --topic prints one as");
+        Console.WriteLine("      Markdown, which is man for a Spark node. --out writes them all as");
+        Console.WriteLine("      .md files, for publishing or for reading with no Spark installed.");
+        Console.WriteLine("      It is the same library the window shows, not a second copy of it.");
+        Console.WriteLine();
         Console.WriteLine("  spark pack GRAPH.spark [--out FILE.sparkz]");
         Console.WriteLine("      Zip a graph and the GRAPH.packages folder beside it into one .sparkz");
         Console.WriteLine("      file for sharing; by default GRAPH.sparkz, beside the graph. run, check");
@@ -1877,8 +2149,6 @@ internal static class Program
         Console.WriteLine("      temporary folder that is removed afterwards.");
         Console.WriteLine();
         Console.WriteLine("  spark --version");
-        Console.WriteLine();
-        Console.WriteLine("  docs arrives with a later milestone.");
     }
 
     /// <summary>

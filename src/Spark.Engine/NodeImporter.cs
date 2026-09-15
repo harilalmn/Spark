@@ -833,17 +833,33 @@ public static class NodeImporter
 
         // Several outputs, so the block returns a named tuple - the shape a code block uses for
         // exactly this, and the shape the canvas already shows for this node.
+        // The line break is `Feed`, and its remarks say why it is not Environment.NewLine.
         if (method.ReturnType == typeof(void))
         {
             return outNames.Count == 1
-                ? call + ";" + Environment.NewLine + "return " + outNames[0] + ";"
-                : call + ";" + Environment.NewLine + "return (" + Tuple(outNames) + ");";
+                ? call + ";" + Feed + "return " + outNames[0] + ";"
+                : call + ";" + Feed + "return (" + Tuple(outNames) + ");";
         }
 
         string returned = candidate.Outputs[0].Name;
-        return "var " + returned + " = " + call + ";" + Environment.NewLine
+        return "var " + returned + " = " + call + ";" + Feed
             + "return (" + Tuple([returned, .. outNames]) + ");";
     }
+
+    /// <summary>
+    /// The line break inside a generated code example: a line feed, never
+    /// <see cref="Environment.NewLine"/>.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than written inline so that the reason survives beside it. This string is the
+    /// text of a code block on a generated help page, so with the platform's newline the page for a
+    /// multi-output node is different bytes on Windows and on Linux — and the corpus golden, the
+    /// round trip through <c>HelpMarkdown</c> and any generated tree of Markdown then all disagree
+    /// across machines for a reason nobody would look for. The <c>.spark</c> writer and the help
+    /// reader each took this decision already, both with a comment saying why; this was the one
+    /// place that had not. Found by <c>HelpMarkdownWriterTests</c>.
+    /// </remarks>
+    private const string Feed = "\n";
 
     private static string Tuple(IReadOnlyList<string> names) =>
         string.Join(", ", names.Select(name => name + ": " + name));

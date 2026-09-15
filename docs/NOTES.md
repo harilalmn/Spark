@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N189: the tool for a file that will not open is the one that never opens it)
+**Last updated:** 2026-09-15 (N190: an inverse function is a test you did not have)
 
 ---
 
@@ -5216,6 +5216,48 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N190 — A writer nobody asked for found a page that was different bytes on Windows and on Linux
+
+`spark docs` (`E12-T5`) needed `HelpMarkdown.Write`, because the reader had no inverse. The writer
+itself is unremarkable — seven block kinds, five inline kinds, and the same subset the reader
+understands, deliberately, so that a construct this cannot write is a construct nothing can parse.
+**What it was worth was the test it made possible**, and that test failed on its first run against
+something that had nothing to do with writing Markdown.
+
+**The contract is a round trip over real documents**: `Parse(Write(d))` equals `d`, asserted over
+the thirteen shipped topics *and* over every one of the 221 generated node pages. The generated half
+is the valuable half, because a node page is built from XML doc comments written by somebody who was
+not thinking about Markdown — which is exactly the input a writer gets wrong and exactly the input no
+fixture contains.
+
+**It went red on `
+` inside a code block.** `NodeImporter.MethodExample` built a node's *In a
+code block* example with `Environment.NewLine` between the call and the `return`. On Windows that is
+`
+`; the reader normalises every `
+` to `
+` when it parses; so the in-memory page and the
+parsed page differed and the round trip could not hold.
+
+**The round trip was the symptom. The defect is that the page is different bytes on the two
+platforms** — and it had been since the node reference was switched on. The help window renders
+both identically, so nothing showed. But the corpus golden, any generated tree of Markdown, and
+anything that diffs one against another all disagree across machines, for a reason nobody would
+look for, on a page nobody edits.
+
+**What makes this worth a note is that the project had already decided this, twice, in writing.**
+The `.spark` writer has a comment saying a line feed explicitly and never `Environment.NewLine`,
+because the same graph must be the same file on both platforms. The help reader's code-block branch
+has the same comment, citing the `.spark` writer. The importer was the third place that needed the
+rule and the one place that had not heard it — and a comment in two files is not a mechanism, it is
+two people having remembered. The fix is a named `Feed` constant carrying the reason.
+
+**The general shape: an inverse function is a test you did not have.** Nothing about writing
+Markdown suggested it would find a platform-dependent code example three assemblies away. A
+round trip asserts that a representation is *complete*, and every place the representation quietly
+loses or normalises something shows up as one failure — which is why building the inverse of a
+parser is worth doing even when only one caller wants it.
 
 ## N189 — The tool for a file that will not open is the one tool that never opens it
 

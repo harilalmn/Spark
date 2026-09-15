@@ -1838,57 +1838,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <c>E10-T5</c>'s whole claim, and it holds only because nothing is generated ahead of time.
     /// </para>
     /// </remarks>
-    public HelpLibrary Help()
-    {
-        if (_help is not null)
-        {
-            return _help;
-        }
-
-        HelpLibrary library = new();
-
-        foreach (string directory in HelpDirectories())
-        {
-            if (library.LoadDirectory(directory) > 0)
-            {
-                break;
-            }
-        }
-
-        library.AddRange(NodeReference.ForAll(_session.Library));
-        library.Add(NodeReference.Index(_session.Library));
-        library.AddRange(DiagnosticReference.ForAll());
-
-        _help = library;
-        return _help;
-    }
-
-    /// <summary>
-    /// Where the hand-written topics might be: beside the executable in an install, or up the tree
-    /// in a source checkout.
-    /// </summary>
-    /// <remarks>
-    /// Two candidates rather than one, because a developer running from <c>bin/Debug</c> and a
-    /// user running an install are both ordinary cases, and a help window that works for only one
-    /// of them gets tested by only one of them.
-    /// </remarks>
-    private static IEnumerable<string> HelpDirectories()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "help");
-
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            string candidate = Path.Combine(directory.FullName, "docs", "help");
-            if (Directory.Exists(candidate))
-            {
-                yield return candidate;
-                yield break;
-            }
-
-            directory = directory.Parent;
-        }
-    }
+    public HelpLibrary Help() => _help ??= HelpComposition.Build(_session.Library);
 
     /// <summary>
     /// The packages this graph needs and this machine does not have (<c>E7-T6</c>).

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E12-T5`: `spark graph`, six verbs of seven)
+**Last updated:** 2026-09-15 (`E12-T5` Done: `spark docs`, and all seven verbs exist)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1897,10 +1897,10 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       `Spark.Host` is proven inside a real Revit or AutoCAD add-in (**E12-T4**). *The
       mechanism ships in 1.0; the demonstration inside a commercial product does not, and
       neither does an interface designed without a host to try it against.*
-- [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
+- [x] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
-      (**E12-T5**). *Six of seven: `export` since 2026-08-29, `run` since 2026-08-30,
-      `check` since 2026-09-09, and **`render`, `pkg` and `graph` since 2026-09-15**. The identical-output half is met
+      (**E12-T5**). *All seven, since 2026-09-15: `export` since 2026-08-29, `run` since 2026-08-30,
+      `check` since 2026-09-09, and **`render`, `pkg`, `graph` and `docs` on 2026-09-15**. The identical-output half is met
       structurally rather than by care: the value rendering lives in `Spark.Api.ValueText`, beneath
       both the shell and the CLI, and a test fails the day a second one appears. `check` was the
       first verb with tests of its own (**E11-T29**) — the two before it shipped verified by eye,
@@ -1918,8 +1918,13 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       records against the folder — without calling `GraphDocument.Restore`, so it still answers on a
       graph this build cannot open, which is exactly when somebody needs it. Its strongest test lives
       in `ScriptingResidencyTests` rather than beside the verb: the same code-block graph that proves
-      Roslyn *does* load under `run` must not load it under `graph`. The remaining one — `docs` —
-      waits on the milestone that gives it something to do.*
+      Roslyn *does* load under `run` must not load it under `graph`. **`docs` is the identical-output
+      rule applied to the help**: the concept topics, the generated node reference (**E10-T5**) and
+      the diagnostic pages are assembled by one `HelpComposition` that both the F1 window and the
+      command line call, so the verb is a second destination rather than a second copy. What it
+      needed was the writer the reader had never had — `HelpMarkdown.Write`, whose contract is the
+      round trip over every topic that ships, and which failed first against a node page that was
+      different bytes on Windows and on Linux (**N190**).*
 - [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
       desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
       `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no

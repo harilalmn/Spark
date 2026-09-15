@@ -29,3 +29,5 @@ static Spark.Api.SparkConsole.Write(string? text) -> void
 static Spark.Api.SparkConsole.WriteLine() -> void
 static Spark.Api.SparkConsole.WriteLine(object? value) -> void
 static Spark.Api.SparkConsole.WriteLine(string? text) -> void
+static Spark.Api.Help.HelpMarkdown.Write(Spark.Api.Help.HelpDocument! topic) -> string!
+static Spark.Api.Help.HelpMarkdown.WriteBody(System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpBlock!>! blocks) -> string!

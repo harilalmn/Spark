@@ -6,16 +6,14 @@ related: [concepts.files, concepts.evaluation, concepts.code-blocks]
 since: "2026.9"
 ---
 
-**Status:** Current. Describes the six verbs that exist — `run`, `check`, `export`, `render`,
-`pkg` and `graph` — and says plainly which of the seven does not.
+**Status:** Current. Describes all seven verbs, which all exist.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-15 (`E12-T5`: `spark graph`, six verbs of seven)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark docs`, and the seventh verb of seven)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
-> does not have is a canvas — and since `render` it does not need one to draw, either. One of the
-> seven planned verbs — `docs` — is not written yet, and `spark --help` says so rather than
-> pretending otherwise.
+> does not have is a canvas — and since `render` it does not need one to draw, either. **All seven
+> planned verbs now exist**, the last of them on 2026-09-15.
 
 ---
 
@@ -395,6 +393,82 @@ identical bytes and a build log diffs cleanly.
 
 ---
 
+## `spark docs` — the help, from a terminal
+
+```
+spark docs [--topic ID] [--out DIR]
+```
+
+This is the same help the application shows under F1. Not a copy of it, and not a second generator:
+the concept topics you are reading are files, the node pages are produced from the node library
+itself, and one piece of code assembles the three for both the window and this verb. A node that
+exists has a page here; one that does not, does not.
+
+**With no arguments it lists what there is.**
+
+```
+$ spark docs
+  written    concepts.code-blocks  Code blocks
+  written    concepts.command-line  The command line
+  written    concepts.curves  Curves, parameters and arc length
+  ...
+  generated  nodes.Spark.Nodes.Core/Point.FromCoordinates  Point.FromCoordinates
+  generated  nodes.index  Node reference
+spark: 234 topic(s); 13 written, 221 generated
+```
+
+**`written` and `generated` is the distinction you need**, because only the written ones are files.
+A concept topic is something you can edit and send a change to; a node page is produced from the
+node and there is nothing to edit — if it is wrong, the node's own documentation is wrong.
+
+**`--topic` prints one page as Markdown**, which is `man` for a Spark node:
+
+```
+$ spark docs --topic nodes.Spark.Nodes.Core/Point.FromCoordinates
+---
+id: nodes.Spark.Nodes.Core/Point.FromCoordinates
+title: Point.FromCoordinates
+nodes: [Spark.Nodes.Core/Point.FromCoordinates]
+related: [concepts.lacing, concepts.code-blocks]
+---
+
+# Point.FromCoordinates
+
+Makes a point from its three world coordinates.
+...
+```
+
+Get the id wrong and it says so and suggests, rather than printing nothing and succeeding:
+
+```
+$ spark docs --topic nodes.Point.FromCoordinates
+spark: no help topic 'nodes.Point.FromCoordinates'.
+spark: did you mean:
+  nodes.Spark.Nodes.Core/Point.FromCoordinates
+  nodes.Spark.Nodes.Core/Vector.FromCoordinates
+$ echo $?
+1
+```
+
+**`--out` writes them all out as Markdown files** — for publishing, for reading on a machine with no
+Spark, or for putting a documentation change in a pull request diff:
+
+```
+$ spark docs --out site
+spark: wrote 234 topic(s) to site
+```
+
+The tree mirrors what a topic id means — kind, then package, then node — so the page above lands at
+`site/nodes/Spark.Nodes.Core/Point.FromCoordinates.md`. **Writing twice gives identical bytes**, so
+regenerating a published tree produces an empty diff rather than churn, and the files use line feeds
+on every platform so a tree written on Windows and one written on Linux are the same.
+
+**Nothing is deleted.** The directory is created if it is missing and files in it are overwritten,
+but a topic that no longer exists leaves its old file behind — emptying a directory somebody named
+is not this verb's business, and a mistyped path would make that failure silent and total.
+
+---
+
 ## `spark --version`
 
 Prints the version, and the third-party notice that the licence requires: which kernel is loaded,
@@ -404,12 +478,11 @@ stops matching the build.
 
 ---
 
-## What is not written yet
+## All seven exist
 
-`docs` is planned and does not exist. `spark --help` lists it under *arrives with a later milestone*
-rather than accepting it and doing nothing, which is the failure mode a build script cannot see.
-**`render`, `pkg` and `graph` were all in this list on 2026-09-15** and all three have sections of
-their own above.
+This section listed what was missing from the day the topic was written until **2026-09-15**, when
+`render`, `pkg`, `graph` and `docs` all landed and emptied it. `spark --help` names every verb it
+accepts and accepts every verb it names.
 
 ---
 
