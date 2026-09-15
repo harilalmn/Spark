@@ -173,7 +173,7 @@ XML doc = what this member does.*
 
    ```
    dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --artifacts artifacts/benchmarks
-   dotnet run --project bench/Spark.Benchmarks --configuration Release -- check --results artifacts/benchmarks/results --no-canvas
+   dotnet run --project bench/Spark.Benchmarks --configuration Release -- check --results artifacts/benchmarks/results --no-canvas --no-tessellation
    ```
 
    **The native shim is built separately and is not part of `dotnet build`.** If you have touched

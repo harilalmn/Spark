@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T68` Done: `Remesh`, and `E2` has no open rows left)
+**Last updated:** 2026-09-15 (`E11-T16` Done: replication over 100 000 items, measured at last)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -608,7 +608,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     the drill-down all exist. **Five had a stale half**: `E2-T71` (`Curve.ToNurbsCurve` has
 >     eight implementations, not none, and `NurbsConversion` settles the exactness question),
 >     `E2-T68` (`Smooth` ships, so four remain not five), `E11-T16` (tessellation throughput
->     has a committed triangle budget; only the 100k replication case is left), `E10-T3`
+>     has a committed triangle budget; only the 100k replication case is left — **and that
+>     landed the same day, so the row is `Done`**), `E10-T3`
 >     (three wrong counts), `E12-T5` (a fourth verb that belongs to `E3-T20`). **Three were
 >     exactly right**, and all three had been re-checked within the week. **E10's *what that
 >     leaves* paragraph in EPICS was five claims stale** and is corrected in place.

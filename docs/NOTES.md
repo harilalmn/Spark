@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N184: three ways to tear a mesh that all look like one bug)
+**Last updated:** 2026-09-15 (N185: two benchmark numbers that agree are not two measurements)
 
 ---
 
@@ -5216,6 +5216,46 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N185 — Two numbers that agree are not two measurements, and the allocation ratio said where the time went
+
+`E11-T16` wanted replication over 100 000 items measured, and the new cases came back with two
+results worth keeping — one about the engine, one about benchmarks in general.
+
+**The engine one.** Replicating a node over 100 000 elements costs **377 times** what 1 000 costs,
+not the hundred a linear path would. That looks like an algorithmic fault in replication and it is
+not, and the thing that settles it is the *allocation* ratio measured in the same run: **100.6**,
+which is linear to within rounding. A quadratic in the fan-out or the pairing would allocate
+quadratically too. So the extra 3.8× is collection, not computation — the run shows gen2
+collections at the large size and none at the small one — and the boxing that causes it is already
+written down as `E4-T3`'s known cost, with `NumbersFromClr`'s own ratio of **747** two sections
+above it in `bench/budgets.jsonc`. An end-to-end figure sitting between 100 and 747 is exactly what
+a mixture of a linear leg and that one has to produce. **Two ratios from one run localised a
+superlinearity that either one alone would have mis-attributed**, and neither needed a profiler.
+
+**The benchmark one, which is the more general.** The two shapes — a list against a scalar, and two
+lists paired — measure **123.9 µs against 123.1 µs**, and allocate **359,768 bytes against 359,824**.
+Fifty-six bytes apart on a third of a megabyte. The correct reading is that both inputs of the
+paired case are the *same node output*, so the evaluator hands out the list it already has rather
+than building a second one, and there is genuinely almost nothing extra to pay for.
+
+**But that is bit-for-bit what a silently dropped wire would look like**, and `TryConnect` returns
+a `ConnectionResult` whose `Wire` is null on refusal rather than throwing — so a benchmark that
+discards the return value measures whatever graph it happens to have built and reports it under the
+name of the one it meant to. The fix is three lines: check the wire was made, and name the
+`PortCompatibility` that refused it. **It was proved by breaking it**, which is the only way to
+know a check works — wiring `Math.Add`'s output into its own input is refused as `Incompatible`,
+and the guard says so and stops. An earlier attempt at the same proof used an out-of-range port
+number and proved nothing about the guard: `TryConnect` throws `ArgumentOutOfRangeException` before
+it can return a result, so the setup died on the framework's check rather than on ours.
+
+**The rule.** When two benchmark cases that should differ agree to three significant figures, the
+first hypothesis is that they are the same case. Assert the difference you believe you built —
+cheaply, in setup, where it costs nothing per iteration — rather than reasoning about why the
+agreement is fine. It usually is fine. The cost of being wrong is a budget guarding a graph nobody
+has.
+
+---
 
 ## N184 — Three ways to tear a mesh that all look like one bug, and the probe that separated them
 

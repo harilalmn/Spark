@@ -40,7 +40,7 @@
 // rewording a description is free, and changing a [Params] value renames every case it appears in
 // (N29).
 {
-  "lastUpdated": "2026-08-29",
+  "lastUpdated": "2026-09-15",
 
   "cases": {
     // ── Evaluation ───────────────────────────────────────────────────────────────────────────
@@ -122,6 +122,41 @@
       "maxAllocatedBytes": 7590000
     },
 
+    // ── Replication ──────────────────────────────────────────────────────────────────────────
+    // E11-T16's fourth named measurement, and the one that was missing: a single node replicating
+    // over a list, evaluated cold through the real evaluator. Marshalling above is ONE LEG of this
+    // measured with the evaluator taken away — it says nothing about deciding how many times to
+    // call, about pairing two inputs, or about assembling the result — so "replication over 100 000
+    // items" was covered only by proxy until these four cases existed.
+    //
+    // Scalar fans a list against a literal; Zipped pairs two lists. They measure within a
+    // microsecond of each other and within 60 bytes, which is CORRECT rather than suspicious: both
+    // inputs of the zipped case are the same node output, so the evaluator hands out the list it
+    // already has instead of building a second one. The benchmark checks the wire was actually made
+    // rather than trusting that agreement, because a silently dropped wire looks identical.
+    //
+    // MEASURED ON A DIFFERENT MACHINE FROM EVERY FIGURE ABOVE, and that is worth knowing before
+    // anybody compares them: 2026-09-15 on a 12th Gen Intel Core i7-12650H, where the provenance
+    // paragraph at the top of this file names a 13th Gen i9-13900H for 2026-08-29. Wall clock does
+    // not travel between the two and was never allowed to (N29); the ratios below do, which is the
+    // whole reason the sharp guard is a ratio.
+    "Spark.Benchmarks.ReplicationBenchmarks.Scalar(Elements: 1000)": {
+      "maxMeanNs": 1300000,
+      "maxAllocatedBytes": 396000
+    },
+    "Spark.Benchmarks.ReplicationBenchmarks.Zipped(Elements: 1000)": {
+      "maxMeanNs": 1300000,
+      "maxAllocatedBytes": 396000
+    },
+    "Spark.Benchmarks.ReplicationBenchmarks.Scalar(Elements: 100000)": {
+      "maxMeanNs": 480000000,
+      "maxAllocatedBytes": 39900000
+    },
+    "Spark.Benchmarks.ReplicationBenchmarks.Zipped(Elements: 100000)": {
+      "maxMeanNs": 480000000,
+      "maxAllocatedBytes": 39900000
+    },
+
     // ── Canvas spatial index ─────────────────────────────────────────────────────────────────
     // The managed half of ADR-0013. Cull and hit-test run on every frame and every pointer move,
     // and they allocate NOTHING — that zero is an exact budget rather than a rounded one, because
@@ -173,6 +208,20 @@
       "numerator": "Spark.Benchmarks.SceneIndexBenchmarks.HitTest(Nodes: 2000)",
       "denominator": "Spark.Benchmarks.SceneIndexBenchmarks.Rebuild(Nodes: 2000)",
       "maxRatio": 0.10
+    },
+    {
+      "name": "replicating over 100 000 elements against 1 000, list against a scalar",
+      "why": "The measurement E11-T16 named and the sharpest guard on the evaluator's hot path. Measured 377 and 414 in two runs an hour apart, so replication is NOT linear in time — but ALLOCATION IS, at 100.6 for the same pair, which places the superlinearity outside the replication algorithm. It is the return path's boxing through a List<object?> (E4-T3), whose own ratio is 747 two sections above; an end-to-end figure between 100 and 747 is what a mix of a linear leg and that one has to look like. A quadratic in the pairing or the fan-out would move this to five figures.",
+      "numerator": "Spark.Benchmarks.ReplicationBenchmarks.Scalar(Elements: 100000)",
+      "denominator": "Spark.Benchmarks.ReplicationBenchmarks.Scalar(Elements: 1000)",
+      "maxRatio": 1200
+    },
+    {
+      "name": "replicating over 100 000 elements against 1 000, two lists paired",
+      "why": "The same, for the shape where the engine holds two sequences at once — which is where a quadratic pairing would live and where the scalar case could not see one. Measured 379 and 409 in the same two runs, indistinguishable from the scalar figure each time because the paired input is the same cached list. The ceiling carries roughly threefold slack over the higher of the two, which is the convention this file states above and not a number widened after a failure.",
+      "numerator": "Spark.Benchmarks.ReplicationBenchmarks.Zipped(Elements: 100000)",
+      "denominator": "Spark.Benchmarks.ReplicationBenchmarks.Zipped(Elements: 1000)",
+      "maxRatio": 1200
     },
     {
       "name": "marshalling numbers out: 100 000 elements against 1 000",

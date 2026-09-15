@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E2-T68` Done: `Remesh`, and `E2` has no open rows left)
+**Last updated:** 2026-09-15 (`E11-T16` Done: replication measured, and two ratios beat a profiler)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Twenty steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twenty-one steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T68` `Done` with `Remesh` — the Botsch–Kobbelt loop — and `E2` now has no open rows at all.** **Three independent defects produced one symptom**: a closed sphere with 283 naked edges, and the count read **283, 283, 283 across three builds** while two of the three fixes were real, because a third cause was saturating it ([N184](NOTES.md)). **A per-pass probe separated them in ten minutes** where guessing had not: split and collapse were clean and the flip pass was doing all of it. Splitting *faces* rather than *edges* leaves T-junctions; a flip needs refusing when its new edge exists and when its faces are already touched; and **which face traverses `a→b` decides the winding of both new triangles** — the key is sorted and says nothing about direction, so taking the first is right half the time and the other half makes a hole. **Relaxation is tangential** because plain Laplacian smoothing returned 75% of the sphere's volume. **The boundary rule was too strong**: freezing every edge *touching* the border left a ring of stubs, and those now collapse onto the boundary vertex, which still never moves. **And the tests' own metric was replaced** — max over min is set by two edges out of hundreds — for the share within half and double the target, 0.32 to 0.86. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4051** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **Nothing in the register can be started without a person, and `PRD Q8` is the one to chase.** `E10-T14` (the website) is the only `Open` row and waits on it; the recommendation went to the client on 2026-09-15 — **GitHub Pages on the public `Spark-Releases` repository**, since the source repository is private, the binaries are already public there, Pages costs nothing and sits beside the downloads — and what it does not settle is a custom domain and *who maintains it after 1.0*, which is the half a recommendation cannot answer. **The other four blockers are also people**: branch protection (`E1-T28`, one `gh api -X PUT` on the day the marathon ends), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours at full CPU, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once** and is the highest-value unblock left. **If a session resumes with none of those answered**, the honest work is the six `In progress` rows, each of which names its own remaining half: `E5-T14`, `E6-T14`'s docked script pane, `E7-T20`'s install half (three named problems, in order), `E10-T3` and `E12-T5`. **Read each against the tree before starting** — [N183](NOTES.md), which this week proved twice in two consecutive rows. |
-| **Verify with** | **The artefact, never the row** — this week found six rows, ten criterion boxes and ten status paragraphs stale, and every one read as plausible. **And when a measurement does not move after a real fix, find out what is setting it** rather than reverting ([N184](NOTES.md)). The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E11-T16` `Done`: replication over 100 000 items measured at last, which was the one thing that row had left.** Four cases, four budgets, two ratios — one `Math.Add` over a `Number.Range` of 1 000 and 100 000, **cold**, as a list against a literal and as two lists paired. **The ratios paid for themselves in the first run** ([N185](NOTES.md)): time is **377×** for 100× the data, which reads as a quadratic — and **allocation is 100.6×**, linear, which places the cost in collection and in `E4-T3`'s known boxing rather than in the replication algorithm. A quadratic allocates quadratically; this one does not. **And the two shapes measure identically** — 56 bytes apart on a third of a megabyte — which is correct, because the paired input is the same cached node output, and is indistinguishable from a wire `TryConnect` silently refused. The wire is asserted now, and **the assertion was proved by breaking it**; the first attempt proved nothing, dying on `ArgumentOutOfRangeException` before the check could run. **Three stale things fell out**: a criterion exemption that existed only because this row lagged its own ticked box, `AGENTS.md`'s budget-check command missing `--no-tessellation` and so failing on a clean tree, and `TASKS.md` still opening *Nothing runs in CI any more* three days after CI came back. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4051** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks. **Every budget holds** over a full 23-case run. No stashes. |
+| **Next action** | **`E11` is closed out — zero non-`Done` rows, checked — and the honest work is the five remaining `In progress` rows, of which `E6-T14` is the one to take.** It is *the whole of what `E6` still owes* — a docked C# Script Node pane, a second presentation of a pipeline that already works, with `CodeBlockEditor` (six partial files: brackets, diagnostics, search, selection, signature help, snippets) already built and nothing docked reading it. The other four each name their own half: `E7-T20`'s install (transitive resolution, then target-framework selection against `net10.0`, then two packages wanting different versions of one dependency — in that order), `E12-T5`'s `render`, `pkg`, `docs` and `graph` verbs, and `E5-T14`, whose criterion arrived as `NodeClaimChecks` and may simply be closable — **read it against the tree first**. `E10-T3` is a deliberate `D19` placeholder and is not work. **The five blockers are still people**: `PRD Q8` and the website (`E10-T14`, the only `Open` row), branch protection (`E1-T28`, one `gh api -X PUT` on the day the marathon ends), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours at full CPU, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once** and is still the highest-value unblock left. **Read every row against the tree before starting** — [N183](NOTES.md). |
+| **Verify with** | **The artefact, never the row** — and **the runner's exit code, never a grep of its output**, which is how the three docs-harness failures in this step were seen at all. When a measurement looks wrong, **find the second measurement that localises it** rather than guessing: an allocation ratio settled in one run what a wall-clock ratio could not ([N185](NOTES.md)). The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated by `scripts/build-progress.py`, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **A benchmark change also needs the full 23-case run and `check ... --no-canvas --no-tessellation`** — 10½ minutes, and there is no shorter honest version. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -17205,3 +17205,62 @@ exact at **346**, zero failures and zero skips.
 
 **Cost.** One session, most of it on the torn sphere. The ten minutes spent building the probe were
 the only ten that moved it.
+
+### 2026-09-15 — `E11-T16` Done: replication measured at last, and two ratios beat a profiler
+
+**What.** `bench/Spark.Benchmarks/ReplicationBenchmarks.cs`, four budget entries and two ratios in
+`bench/budgets.jsonc`. One `Math.Add` replicating over a `Number.Range` of 1 000 and of 100 000,
+evaluated **cold**, in two shapes: a list against a literal, and two lists paired. That was the one
+named thing `E11-T16` had left — *replication over 100 000 items is still covered only through
+`MarshallingBenchmarks`* — and marshalling was a proxy rather than a substitute, being one leg of
+replication measured with the evaluator taken away.
+
+**Why cold.** A warm run measures a dictionary lookup. The cache is keyed by provenance and neither
+node changes between iterations, so there is nothing left of replication in the number.
+`EvaluationBenchmarks` owns the warm-against-cold claim; this file owns the cost of doing it once.
+
+**What surprised me, and it is [N185](NOTES.md).** Two things, and the second is the one worth
+carrying.
+
+*Replication is not linear in time* — **377×** for 100× the data, and 414× in a second run an hour
+later. That reads as a quadratic in the fan-out or the pairing, and it is not: **allocation over
+the same pair is 100.6×**, linear to within rounding, and a quadratic allocates quadratically too.
+So the extra factor is collection, not computation — gen2 collections at the large size and none at
+the small one — and the cause is already written down as `E4-T3`'s boxing through `List<object?>`,
+whose own `NumbersFromClr` ratio is **747** two sections above in the same budgets file. An
+end-to-end figure between 100 and 747 is what a mixture of a linear leg and that one must produce.
+**Two ratios from one run localised it; no profiler was opened.**
+
+*And the two shapes measure the same* — 123.9 µs against 123.1 µs, 359,768 bytes against 359,824.
+Fifty-six bytes apart on a third of a megabyte. That is **correct**: both inputs of the paired case
+are the same node output, so the evaluator hands out the list it already has. It is also bit-for-bit
+what a **silently dropped wire** looks like, and `TryConnect` returns a `ConnectionResult` whose
+`Wire` is null on refusal rather than throwing. So the wire is asserted in setup now, naming the
+`PortCompatibility` that refused it.
+
+**Verified.** Three gates: build clean with zero warnings, **4051** tests over **ten** executables
+with zero failures and zero skips read from each runner's **exit code**, format clean. The full
+23-case benchmark run plus `check` — **every budget holds**, with the four new cases and both new
+ratios among them. `check-no-native-binaries.sh` clean. Dashboard regenerated.
+
+**The guard was proved by breaking it, and the first attempt at that proved nothing.** Wiring a
+port number of 7 made the setup die — on `TryConnect`'s own `ArgumentOutOfRangeException`, thrown
+before any result comes back, so it exercised the framework and not the check. Wiring `Math.Add`'s
+output into its own input is refused as `Incompatible` with a null `Wire`, and *that* is what makes
+the guard speak.
+
+**Three things were stale and the harness found two of them.** `Spark.Docs.Verify` went red the
+moment the row closed: an **exemption in `tests/corpus/epic-criterion-exemptions.tsv` existed
+precisely because `E11-T16`'s criterion was ticked while its row was not**, and the harness refuses
+an exemption that excuses nothing — deleted. The dashboard disagreed with the register by one row —
+regenerated. The third the harness could not see: **`AGENTS.md`'s own budget-check command fails as
+written**, because it predates the tessellation budget and omits `--no-tessellation`; anybody
+following it got a red `check` on a clean tree. And `TASKS.md`'s intro still opened *Nothing runs in
+CI any more*, three days after CI came back — corrected, along with its claim about four rows held
+open by a job that never ran, **all four of which are now `Done`** (checked, not assumed).
+
+**Also recorded:** the budgets file names a **13th Gen i9-13900H** for its 2026-08-29 figures, and
+this machine is a **12th Gen i7-12650H**. The new block says so rather than letting two machines'
+wall-clock numbers sit in one table looking comparable. The ratios travel; the milliseconds do not.
+
+**Cost.** One session. The full benchmark run is 10½ minutes and is the floor on this kind of step.

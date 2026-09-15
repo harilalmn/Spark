@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the intro sweep: ten of thirteen `Status.` paragraphs were stale)
+**Last updated:** 2026-09-15 (`E11-T16`'s last measurement landed: replication over 100 000 items)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1735,8 +1735,14 @@ nothing.
       benchmark yet* is wrong: `TessellationMeasurement` exists with a committed `maxTriangles`
       budget, and it is a verb rather than a BenchmarkDotNet case for a stated reason — a case on
       the ubuntu leg would measure a **failed** operation and report an excellent time. **What is
-      left is one measurement rather than the criterion**: replication over 100 000 items is still
-      covered only through `MarshallingBenchmarks`, which is `E11-T16`'s remaining work.*
+      left is nothing: the last measurement landed the same day.** `ReplicationBenchmarks`
+      evaluates one node over 1 000 and 100 000 elements, cold, in two shapes — a list against a
+      literal and two lists paired — so replication is no longer covered only through
+      `MarshallingBenchmarks`, which was one leg of it with the evaluator taken away. Four cases,
+      four budgets, two ratios, and the ratios earned their place immediately: **377× the time for
+      100× the data against 100.6× the allocation**, which places the superlinearity in collection
+      and in `E4-T3`'s known boxing rather than in the replication algorithm ([N185](NOTES.md)).
+      `E11-T16` is `Done`.*
 - [x] `tests/corpus/` grows with every bug found (**E11-T17**). *And it now says what it is:
       [a README](../tests/corpus/README.md) naming every file, what reads it and where it came
       from, with `CorpusIndexChecks` failing a file that arrives without a row — because a corpus
