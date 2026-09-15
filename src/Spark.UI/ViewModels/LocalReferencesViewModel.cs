@@ -44,7 +44,7 @@ public sealed partial class LocalReferencesViewModel : ObservableObject, IDispos
 {
     private readonly LocalReferenceStore _store;
     private readonly LocalReferenceWatcher _watcher = new();
-    private readonly Func<Spark.Scripting.ReferenceCatalog?> _catalogue;
+    private readonly Func<Spark.Api.IReferenceCatalog?> _catalogue;
     private readonly Action<Action> _toUiThread;
     private LocalReference? _pending;
     private bool _disposed;
@@ -70,7 +70,7 @@ public sealed partial class LocalReferencesViewModel : ObservableObject, IDispos
     /// </param>
     public LocalReferencesViewModel(
         LocalReferenceStore? store = null,
-        Func<Spark.Scripting.ReferenceCatalog?>? catalogue = null,
+        Func<Spark.Api.IReferenceCatalog?>? catalogue = null,
         Action<Action>? toUiThread = null)
     {
         _store = store ?? new LocalReferenceStore();
@@ -93,25 +93,48 @@ public sealed partial class LocalReferencesViewModel : ObservableObject, IDispos
     /// </summary>
     /// <returns>How many were applied.</returns>
     /// <remarks>
+    /// <para>
     /// <b>Only assemblies whose hash still matches are applied.</b> One that changed while Spark
     /// was closed is listed and marked, and is not compiled against until the user has looked at
     /// it — which is what <i>a changed hash re-prompts</i> means when the change happened between
     /// sessions rather than during one.
+    /// </para>
+    /// <para>
+    /// <b>The catalogue is asked for only when there is something to put in it</b> (<c>E6-T14</c>).
+    /// This runs from the shell's constructor, on every start, so that a rebuilt assembly announces
+    /// itself whether or not the user ever opens the list — and <c>SparkSession.ScriptReferences</c>
+    /// <i>builds the script factory</i>, which is the whole of Roslyn. Fetching it before the loop
+    /// cost every user who has never referenced an assembly twenty megabytes at startup, which is
+    /// precisely what <c>E6-T14</c> exists to prevent. The watcher is still started for every
+    /// recorded assembly, because that half needs no compiler.
+    /// </para>
     /// </remarks>
     public int Apply()
     {
-        Spark.Scripting.ReferenceCatalog? catalogue = _catalogue();
+        Spark.Api.IReferenceCatalog? catalogue = null;
+        bool asked = false;
         int applied = 0;
 
         foreach (LocalReference reference in _store.All())
         {
             _ = _watcher.Watch(reference.Path);
 
+            if (!_store.IsTrusted(reference.Path))
+            {
+                continue;
+            }
+
+            if (!asked)
+            {
+                catalogue = _catalogue();
+                asked = true;
+            }
+
             // Reload rather than Add, and count what came back rather than how much the
             // catalogue grew. Add returns the change in the catalogue's size, and the catalogue
             // also picks up assemblies the process has loaded since it was built - so on a cold
             // start it reports more than it was asked for. Found by a test expecting one.
-            if (_store.IsTrusted(reference.Path) && catalogue is not null && catalogue.Reload(reference.Path))
+            if (catalogue is not null && catalogue.Reload(reference.Path))
             {
                 applied++;
             }
@@ -163,7 +186,7 @@ public sealed partial class LocalReferencesViewModel : ObservableObject, IDispos
             LocalReference agreed = _store.Trust(path);
             _ = _watcher.Watch(path);
 
-            Spark.Scripting.ReferenceCatalog? catalogue = _catalogue();
+            Spark.Api.IReferenceCatalog? catalogue = _catalogue();
             bool referenced = catalogue is not null && catalogue.Reload(path);
 
             Status = catalogue is null

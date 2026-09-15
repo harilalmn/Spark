@@ -33,7 +33,7 @@ namespace Spark.Scripting;
 /// in their own library would keep getting the old behaviour with no way to explain it.
 /// </para>
 /// </remarks>
-public sealed class ReferenceCatalog
+public sealed class ReferenceCatalog : Spark.Api.IReferenceCatalog
 {
     private static readonly string[] DefaultImports =
     [

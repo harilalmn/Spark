@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E6-T14`: the Roslyn-residency claim asserted, and it failed)
+**Last updated:** 2026-09-15 (`E6-T14`: Roslyn kept out of both hosts, and the box ticked)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -710,8 +710,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.
 
-- [ ] **The shell loads Roslyn at startup, and the code that does it was written to prevent
-      exactly that.** `MainWindowViewModel.Packages()` — reached from the constructor, through
+- [x] ~~**The shell loads Roslyn at startup, and the code that does it was written to prevent
+      exactly that.**~~ **Fixed 2026-09-15.** `MainWindowViewModel.Packages()` — reached from the constructor, through
       `LoadInstalledPackages()` — builds a `Func<Spark.Scripting.ReferenceCatalog?>` and hands it
       to `PackageBrowserViewModel` as a delegate, with a comment saying the delegate exists *so
       that opening the Packages window does not load Roslyn (`E6-T14`)*. Constructing the delegate
@@ -721,7 +721,16 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       --screenshot` under a `DOTNET_STARTUP_HOOKS` assembly names
       `MainWindowViewModel.Packages()` in the stack at the moment of load. The command-line half
       of this defect is fixed and guarded — see below — and this is the half that remains.
-      `E6-T14`'s acceptance box stays unticked until it is done. [N188](NOTES.md)
+      **`Spark.Api.IReferenceCatalog` is the fix** - the deferred type has to be one the caller
+      can name without loading anything - together with a session that holds its catalogue by
+      interface, so `ReferencesVersion()` stops narrowing `Scripts` to the concrete factory, and
+      an `Apply` that asks for the catalogue only when it has something to put in it. **Probed in
+      both hosts and both directions**: `curves`, `solids` and `surfaces` each open on 98
+      assemblies with no Roslyn; one code block brings `Spark.Scripting` and seven
+      `Microsoft.CodeAnalysis` assemblies, and `ShellResidencyTests` now guards both directions
+      from a child process the way `ScriptingResidencyTests` guards the command line.
+      **`E6-T14`'s acceptance box is ticked.**
+      [N188](NOTES.md)
 
 - [x] ~~**Every `spark` command loaded Roslyn, whatever the graph contained.**~~ **Fixed
       2026-09-15.** `SparkSession.Dispose` read a field *declared* as `ScriptCompletion?`; the JIT

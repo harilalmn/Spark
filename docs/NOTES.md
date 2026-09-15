@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N188: a field's declared type loads its assembly, null or not)
+**Last updated:** 2026-09-15 (N188: a field's declared type loads its assembly, null or not — both hosts)
 
 ---
 
@@ -5261,11 +5261,52 @@ worse than no check. The probe is a `DOTNET_STARTUP_HOOKS` assembly writing
 `AssemblyLoadContext.Default.Assemblies` at process exit; the product needs no flag, no hook and
 no diagnostic verb, because the runtime already has one.
 
-**The same probe found the same shape in the shell**, where it is not yet fixed:
-`MainWindowViewModel.Packages()` builds a `Func<Spark.Scripting.ReferenceCatalog?>` — a delegate
+**The same probe then found the same shape twice more in the shell**, and both are fixed.
+`MainWindowViewModel.Packages()` built a `Func<Spark.Scripting.ReferenceCatalog?>` — a delegate
 written *specifically* so that opening the Packages window would not load Roslyn — and constructing
-it loads Roslyn at application startup, before any document is opened. The comment above it names
-`E6-T14`. Laziness expressed as a delegate is still a mention of the return type.
+it loaded Roslyn at application startup, before any document was opened; the comment above it names
+`E6-T14`. And `SparkSession.ReferencesVersion()`, whose own documentation says it is *asked on every
+run, so it must never load Roslyn itself*, narrowed `Scripts` to the concrete `ScriptNodeFactory` —
+a pattern that never matched, in a method whose compilation resolved the type anyway. **Laziness
+expressed as a delegate, or as a type test, is still a mention of the type.**
+
+**The fix is `Spark.Api.IReferenceCatalog`**, declared beside `IScriptNodeFactory` and there for
+exactly the reason that interface gives: *the deferred type has to be one the caller can name
+without loading anything*. `ReferenceCatalog` is its only implementation and is not meant to
+acquire a second; the interface is a naming device, not an abstraction over alternatives. With it,
+`SparkSession` holds its catalogue in an `IReferenceCatalog?` field filled in by `EnableScripting`
+— which has loaded Roslyn by the time it runs — and `ReferencesVersion()` reads that field instead
+of asking what `Scripts` really is.
+
+**A third kind of load hid behind the first two, and only fixing them revealed it.**
+`LocalReferencesViewModel.Apply()` runs from the shell's constructor on every start, so that a
+rebuilt assembly announces itself whether or not the user opens the list — and it fetched the
+catalogue *before* its loop, which is a real call to `ScriptReferences()` and therefore a real
+construction of the whole Roslyn factory, not a JIT artefact. It now asks only once it has found a
+trusted reference to reload. The watcher still starts for every recorded assembly, because that
+half needs no compiler.
+
+**Making it lazy broke a test, and that was the most useful thing in the step.**
+`AGraphOpenedAtStartupWithACodeBlockIsNotRun` went red, because the shell's startup door built its
+document with `_session.Scripts` and relied on `Apply()` having switched scripting on as a side
+effect forty lines earlier. Take the accident away and a graph named with `--open` that holds a
+code block opens with no factory — which is `--no-script`'s refusal arriving where nobody asked for
+it. The door now asks for a factory when the document has scripts, the way `TryOpenDocument` always
+did. **An eager cost that something else has quietly come to depend on is the ordinary shape of
+this**: the fix is never only the deferral.
+
+**Guarded in both hosts, from a child process each time.** `ScriptingResidencyTests` starts
+`spark.exe`; `ShellResidencyTests` starts `Spark.Desktop.exe` under `--screenshot`, which is what
+makes a window terminate on its own. Both assert the negative *and* the positive, and both
+negatives were watched going red with a fix reverted. Two costs worth knowing: the shell test
+needs `Spark.Desktop` built, which `Spark.Cli.Tests` does not reference, and a shell that fails to
+exit locks the next build.
+
+**Measured, in both hosts and both directions.** `spark run`, `check`, `render`, `export` and
+`pkg`, with and without `--no-script`; `Spark.Desktop --graph curves|solids|surfaces` — each opens
+on **98 assemblies with no `Spark.Scripting` and no `Microsoft.CodeAnalysis` at all**. Place one
+code block and `Spark.Scripting` plus seven Roslyn assemblies appear, which is what makes the
+negative measurement mean something.
 
 ---
 

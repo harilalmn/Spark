@@ -46,14 +46,14 @@ public sealed class GraphPackageGate
     private const int Named = 5;
 
     private readonly PackageTrustStore _trust;
-    private readonly Func<Spark.Scripting.ReferenceCatalog?> _catalogue;
+    private readonly Func<Spark.Api.IReferenceCatalog?> _catalogue;
 
     /// <summary>
     /// The catalogue this graph's assemblies were handed to, so releasing takes them out of the
     /// same one. Null when nothing was referenced — which is what keeps a graph with no package
     /// folder from ever touching Roslyn (`E6-T14`).
     /// </summary>
-    private Spark.Scripting.ReferenceCatalog? _into;
+    private Spark.Api.IReferenceCatalog? _into;
 
     /// <summary>Creates a gate over a trust record and a way to reach the compiler's catalogue.</summary>
     /// <param name="trust">Where decisions are recorded.</param>
@@ -62,7 +62,7 @@ public sealed class GraphPackageGate
     /// when there is an agreed assembly to reference.
     /// </param>
     /// <exception cref="ArgumentNullException">An argument is null.</exception>
-    public GraphPackageGate(PackageTrustStore trust, Func<Spark.Scripting.ReferenceCatalog?> catalogue)
+    public GraphPackageGate(PackageTrustStore trust, Func<Spark.Api.IReferenceCatalog?> catalogue)
     {
         ArgumentNullException.ThrowIfNull(trust);
         ArgumentNullException.ThrowIfNull(catalogue);

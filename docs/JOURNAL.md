@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E6-T14`: the residency claim asserted, and it failed)
+**Last updated:** 2026-09-15 (`E6-T14`: Roslyn kept out of both hosts, and the box ticked)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Twenty-seven steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twenty-eight steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T14`'s Roslyn-residency criterion asserted for the first time — and the assertion failed.** *A graph containing no script nodes never loads `Spark.Scripting`* was called *true by construction* by the sweep the day before, and it was false in every build that ever shipped. **`SparkSession.Dispose` read a field declared as `ScriptCompletion?`**; the JIT resolves a field's declared type when it compiles the method, so the assembly loaded with the value null and the branch never taken, on every `spark` command ([N188](NOTES.md)). The field is `IDisposable?` now. **`ScriptingResidencyTests` guards it from a child process** under a `DOTNET_STARTUP_HOOKS` probe — a child process because `Spark.Cli.Tests` references `Spark.Cli`, so an in-process check would pass on a broken tree. **Both directions asserted, and the negative one was watched going red** with the fix reverted. **The box is still unticked**, because the same probe found the shell loading Roslyn at startup and that is a second defect in a second host. **The CRLF trap bit again**: python writing files on Windows turned six files to CRLF against an `eol=lf` `.gitattributes`, invisible to `git diff` and caught by gate 3. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4089** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68**. No stashes. |
-| **Next action** | **Fix the shell half of `E6-T14`, then tick the box.** `MainWindowViewModel.Packages()` loads `Spark.Scripting` at application startup — reached from the constructor through `LoadInstalledPackages()`, which is real work and legitimately eager, so the fix is not to defer the call. What loads Roslyn is **constructing** `Func<Spark.Scripting.ReferenceCatalog?>` to pass as the `catalogue:` delegate; `LocalReferencesViewModel` holds the identical shape. **The stack is already captured** and is in [N188](NOTES.md). The likely fix is to type both delegates so their return type lives outside `Spark.Scripting` and cast at the use site — which is inside the browser, on a path where the user has asked for a library and Roslyn is loaded by definition — but weigh that against a small abstraction, because a `Func<object?>` is a cast waiting to be got wrong. **Verify by probing the built shell, not by reading**: `Spark.Desktop.exe --graph curves --screenshot PREFIX` under the same `DOTNET_STARTUP_HOOKS` assembly, which is `tests/Spark.Cli.Tests/StartupHook.cs`. **Then decide whether the shell probe becomes a test**; the CLI one is cheap and the desktop one opens a window, so it may belong in the screenshot run rather than the suite. **After that**: `spark graph`, the nearer of `E12-T5`'s two remaining verbs, since a graph-inspection verb needs only the document format. **The five blockers are still people**: `PRD Q8`, branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once. |
+| **Last completed step** | **`E6-T14`'s Roslyn-residency criterion met in both hosts, and its box ticked** — the second half of the step before it. The shell was loading `Spark.Scripting` at startup in **three** distinct ways, each hiding the next: a `Func<ReferenceCatalog?>` whose *construction* resolved the type, a `Scripts is ScriptNodeFactory` pattern that never matched but resolved it anyway, and — only visible once those two were gone — `LocalReferencesViewModel.Apply()` **genuinely calling** `ScriptReferences()` from the constructor on every start. **The fix is a name**: `Spark.Api.IReferenceCatalog`, beside `IScriptNodeFactory` and for the reason its remarks give — the deferred type must be one the caller can name without loading anything. It is a naming device with one implementation, not an abstraction over alternatives. **Making `Apply` lazy broke a test and that was the best part**: startup had been relying on it to switch scripting on as a side effect, so `--open` on a graph with a code block opened with no factory once the accident was removed. **Measured both ways in both hosts**: 98 assemblies and zero Roslyn for `curves`, `solids` and `surfaces`; one code block brings `Spark.Scripting` and seven `Microsoft.CodeAnalysis` assemblies. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4089** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68**. No stashes. **The count was `4091` for one step and nothing had 4091 tests**: `E6-T14`'s entry wrote the number down without re-summing the ten totals, and the dashboard reads this cell, so the wrong number was published. Re-summed 2026-09-15 from the ten `Total:` lines. |
+| **Next action** | **`spark graph`, the nearer of `E12-T5`'s two remaining verbs**, and then the register's last coded row is `docs`. A graph-inspection verb needs only the document format, which is finished. **Decide what it prints before writing any of it**, and the decision is the work: `GraphDocument` already knows nodes, wires, scripts, packages and the recorded library, so the verb's value is in choosing the view a person reading a build log actually needs, not in reaching the data. **Follow `check`'s shape, not `run`'s** — `Check` takes its `TextWriter`s as arguments and was the first verb testable at all; `run` and `export` shipped verified by eye. **And when the verb list changes, `PRD.md`'s FR-70 is the row nothing links to and everybody forgets** — it was stale for two steps running. **Then the eleven remaining `EPICS` criteria** are the measure of *all Epics are done*; two of them are struck-through withdrawals, `E10-T3` is a deliberate `D19` placeholder, and `E10-T14` (the website) waits on `PRD Q8`. **The five blockers are still people**: `PRD Q8`, branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once. |
 | **Verify with** | **The artefact, never the row — and a re-check that cannot name what it read has not happened** ([N187](NOTES.md)). **Run the three gates, all three**: this step's build and tests were green on a tree `dotnet format` refused. **For anything that writes an image, open it; for a message a person must act on, print it.** When a guard could not fail, break it once and watch it speak. The residue budget **re-derived**, the dashboard regenerated by `scripts/build-progress.py`, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **A help-topic edit needs its renderer golden** (`SPARK_UPDATE_GOLDEN=1`, then read the diff — only the topic you touched should differ). **A benchmark change needs the full 23-case run and `check ... --no-canvas --no-tessellation`.** **And when a verb list changes, `PRD.md`'s FR row is the one nothing links to and everybody forgets.** **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -17609,3 +17609,97 @@ read — while `dotnet format` failed with `ENDOFLINE` on a file whose *content*
 lines. Gate 3 caught it for the second step running. Write bytes, or pass `newline=''`.
 
 **Cost.** One session. The fix is one word; finding it was a probe, and the probe is the deliverable.
+
+### 2026-09-15 — `E6-T14`: Roslyn kept out of the shell as well, and the box finally ticked
+
+**What.** The other half of the previous step. The command line had been fixed and guarded; the
+shell still loaded `Spark.Scripting` at startup, before any document was opened. It turned out to
+be doing it in **three** distinct ways, found one at a time because each one hid the next.
+
+**(1) A delegate's return type.** `MainWindowViewModel.Packages()` built a
+`Func<Spark.Scripting.ReferenceCatalog?>` to hand the package browser — a delegate written
+*specifically* so that opening the Packages window would not load Roslyn, with a comment above it
+naming `E6-T14`. Constructing the delegate is a mention of the return type, so the JIT resolved it
+when it compiled `Packages()`, which the constructor calls. `LocalReferencesViewModel` held the
+same shape.
+
+**(2) A type test that never matched.** `SparkSession.ReferencesVersion()` — documented as *asked
+on every run, so it must never load Roslyn itself* — read
+`Scripts is Spark.Scripting.ScriptNodeFactory factory ? factory.References.Version : null`. With
+`Scripts` null the pattern never matched and the type was resolved anyway.
+
+**(3) A call that was genuinely eager.** With the first two fixed, the probe pointed at
+`LocalReferencesViewModel.Apply()`, which runs from the constructor on every start so that a
+rebuilt assembly announces itself. It fetched the catalogue *before* its loop — a real call to
+`ScriptReferences()`, which builds the whole factory. Not a JIT artefact this time: an ordinary
+eager call nobody had reason to look at, because from the outside it reads as *ask for a thing you
+are about to need*.
+
+**The fix is a name, not a mechanism.** `Spark.Api.IReferenceCatalog`, declared beside
+`IScriptNodeFactory` and there for the reason that interface's own remarks give: the deferred type
+has to be one the caller can name without loading anything. `ReferenceCatalog` is its only
+implementation and is not meant to acquire a second — it is a naming device, not an abstraction
+over alternatives, and the remarks say so, because the next reader will otherwise try to make it
+general. The session now holds its catalogue in an `IReferenceCatalog?` field filled in by
+`EnableScripting`, which has loaded Roslyn by the time it runs, so `ReferencesVersion()` reads a
+field instead of asking what `Scripts` really is. `Apply()` asks for the catalogue only once it has
+found a trusted reference to reload; the watcher still starts for every recorded assembly, because
+that half needs no compiler.
+
+**Making `Apply` lazy broke a test, and that was the most useful thing in the step.**
+`AGraphOpenedAtStartupWithACodeBlockIsNotRun` went red. The shell's startup door builds its document
+with `_session.Scripts`, and it had been relying on `Apply()` switching scripting on as a side
+effect forty lines earlier. Take the accident away and a graph named with `--open` holding a code
+block opens with **no factory** — which is `--no-script`'s refusal arriving where nobody asked for
+it. The door now asks for a factory when the document has scripts, exactly as `TryOpenDocument`
+always has. **An eager cost that something else has quietly come to depend on is the ordinary shape
+of this**, and the lesson is that the fix is never only the deferral.
+
+**Verified in both hosts and both directions.** `spark run`, `check`, `render`, `export` and `pkg`,
+with and without `--no-script`; `Spark.Desktop --graph curves`, `solids` and `surfaces`. Each opens
+on **98 assemblies with no `Spark.Scripting` and no `Microsoft.CodeAnalysis` at all**. Add
+`--code-block "return 1 + 2;"` and `Spark.Scripting` plus **seven** Roslyn assemblies appear —
+which is the measurement that makes the negative one mean anything. The shell screenshot and the GL
+read-back were both opened and read: the recovery banner carries its warning triangle and the
+curves demo draws.
+
+**Both halves are guarded from a child process.** `ScriptingResidencyTests` starts `spark.exe`;
+`ShellResidencyTests` starts `Spark.Desktop.exe` under `--screenshot`, which is what lets a window
+terminate on its own rather than being killed on a timer. Each asserts the negative and the
+positive, and **each negative was watched going red with a fix reverted** — reverting
+`ReferencesVersion()` to its type test turned the shell's negative red, naming `Spark.Scripting` in
+the collection it printed. The manual probe stays in [AGENTS.md](../AGENTS.md#before-you-commit)
+beside the screenshot step, because it hands you the *stack* at the moment of load where the test
+only says that it happened.
+
+**Two costs the shell test brings, both written down rather than discovered twice.** It needs
+`Spark.Desktop` built, which `Spark.Cli.Tests` does not reference — so build the solution, not the
+test project. And **a shell that fails to exit locks the next build**: a stray `Spark.Desktop.exe`
+left over from a probe made `dotnet build` fail with `MSB3027` on nine assemblies at once.
+
+**The docs harness caught the last thing.** `tests/corpus/epic-criterion-exemptions.tsv` carried an
+exemption saying this box was *expected* unticked, with the previous sweep's reasoning inside it —
+including, word for word, that a real check *needs a separate process or a separate
+`AssemblyLoadContext`, or an IL scan*. Ticking the box made the exemption stale and
+`NoExemptionIsStale` failed, which is exactly its job. The exemption is deleted: the criterion and
+the row now agree without one.
+
+**Three gates**: build clean with zero warnings, **4089** tests over **ten** executables with zero
+failures and zero skips read from each runner's exit code, format clean, docs harness 68.
+
+**Cost.** One session, three faults, one interface and one accident repaid.
+
+**Written up 2026-09-15 by the session after, because this one died between step 8 and step 9.**
+Everything above was true and none of it was committed: the gates had been run, the documents
+written and *Current state* set to `CLEAN`, and then the process stopped before `git commit`. The
+next session found a fifteen-file working tree under a journal that said the tree was clean — the
+one disagreement the protocol tells you to resolve in the repository's favour, and the cheapest
+possible version of it, because the write-ahead note was already complete. **The tree was
+re-verified rather than trusted**: all three gates again, green.
+**And re-verifying found the one thing a write-ahead note cannot protect** — this entry said
+**4091** tests and no run has ever produced 4091. The ten totals sum to **4089**
+(26, 49, 68, 621, 78, 51, 1537, 127, 1415, 117). The number had been carried forward and adjusted
+by eye instead of re-summed, and because `scripts/build-progress.py` reads the suite size out of
+*Current state* rather than restating it, the published dashboard said 4,091 too. Corrected in
+both, and in `TODO.md`. **A number small enough to look right is the kind that survives**, which is
+the argument for the gate printing its own total rather than a person copying one.

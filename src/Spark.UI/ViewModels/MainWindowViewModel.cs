@@ -490,7 +490,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 // `E7-T16`: the graph's own packages, on this door as on File > Open, and before the
                 // document is built - building a code block compiles it.
                 _ = PackageGate.Open(startupDocumentPath);
-                opened = CanvasDocument.Open(startupText, _session.Library, _session.Scripts);
+
+                // `E6-T14`: scripting is switched on here, at this door, for exactly the reason
+                // `TryOpenDocument` switches it on at the other one - a document with a code block
+                // in it needs a factory to build the block, and a document without one must not
+                // pay for Roslyn. **This used to work by accident**: `LocalReferences().Apply()`,
+                // forty lines above, asked for the reference catalogue unconditionally and that
+                // built the factory as a side effect, so `_session.Scripts` happened to be
+                // non-null by the time this line ran. Making `Apply` lazy - which is what stopped
+                // every start of the shell loading twenty megabytes of Roslyn - took the accident
+                // away and left this door opening a code block's graph with no factory, which is
+                // `--no-script`'s refusal arriving where nobody asked for it. Caught by
+                // `AGraphOpenedAtStartupWithACodeBlockIsNotRun` ([N188](../../../docs/NOTES.md)).
+                IScriptNodeFactory? startupFactory = startupScripts.Count > 0 && _session.ScriptingAllowed
+                    ? _session.EnableScripting()
+                    : _session.Scripts;
+
+                opened = CanvasDocument.Open(startupText, _session.Library, startupFactory);
             }
             catch (SparkFileException error)
             {
@@ -2162,7 +2178,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <see cref="SparkSession.ScriptReferences"/> which it forwards to.
     /// </summary>
     /// <returns>The catalogue, or null when scripting is off.</returns>
-    internal Spark.Scripting.ReferenceCatalog? ScriptReferences() => _session.ScriptReferences();
+    internal Spark.Api.IReferenceCatalog? ScriptReferences() => _session.ScriptReferences();
 
     /// <summary>
     /// Where the document on the canvas lives on disk, or null when it has never been saved

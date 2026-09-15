@@ -45,7 +45,7 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     private readonly PackageTrustStore _trust;
     private readonly PackageManager _manager;
     private readonly NuGetPackageClient _client;
-    private readonly Func<Spark.Scripting.ReferenceCatalog?> _catalogue;
+    private readonly Func<Spark.Api.IReferenceCatalog?> _catalogue;
     private PendingInstall? _pending;
     private bool _pendingIsLibrary;
 
@@ -90,7 +90,7 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
         NodeLibrary library,
         PackageStore? store = null,
         string? source = null,
-        Func<Spark.Scripting.ReferenceCatalog?>? catalogue = null,
+        Func<Spark.Api.IReferenceCatalog?>? catalogue = null,
         PackageTrustStore? trust = null)
     {
         ArgumentNullException.ThrowIfNull(library);
@@ -492,7 +492,7 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
                     + PackageFrameworks.Current.GetShortFolderName() + ".";
         }
 
-        Spark.Scripting.ReferenceCatalog? catalogue = _catalogue();
+        Spark.Api.IReferenceCatalog? catalogue = _catalogue();
 
         if (catalogue is null)
         {

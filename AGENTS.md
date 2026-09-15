@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-09-15 (`E10-T12`: changelog fragments, and the release step that assembles them)
+**Last updated:** 2026-09-15 (`E6-T14`: the shell's startup probed for Roslyn, and the command that does it)
 
 ---
 
@@ -262,6 +262,30 @@ src/Spark.Desktop --  --graph curves --screenshot PREFIX` opens the application,
 writes a picture of the shell and a GPU read-back of the viewport, and exits. The curve layer
 passed 873 tests and its first screenshot still showed an empty viewport, because three
 evaluations were racing at startup — a defect no test in the suite was positioned to see.
+
+**And when you have touched anything the shell builds at startup, run that same command under the
+assembly-load probe.** `E6-T14` promises that a graph containing no script nodes never loads
+`Spark.Scripting`, and the shell broke it for eleven months in two places at once, neither of them
+visible by reading ([N188](docs/NOTES.md)). The probe is
+`tests/Spark.Cli.Tests/StartupHook.cs`, already built into `Spark.Cli.Tests.dll`:
+
+```
+SPARK_LOADED_ASSEMBLIES=/tmp/loaded.txt DOTNET_STARTUP_HOOKS=tests/Spark.Cli.Tests/bin/Debug/net10.0/Spark.Cli.Tests.dll   src/Spark.Desktop/bin/Debug/net10.0/Spark.Desktop.exe --graph curves --screenshot PREFIX
+```
+
+`grep -ci 'Spark.Scripting\|CodeAnalysis' /tmp/loaded.txt` must answer **0**, against a file of
+about 98 lines — check the line count too, because an empty file also greps to zero. Add
+`--code-block "return 1 + 2;"` and it must answer **8**, which is what proves the probe was
+watching.
+
+**`scripts/probe-shell-residency.ps1` does all of that for you** and checks both directions,
+so prefer it; the command above is what to fall back to when you want the *stack* at the moment
+of load, which the script does not capture. **The command line's half of the same promise is in
+the suite** (`ScriptingResidencyTests`) and needs no ceremony. The shell's half is deliberately
+**not** in the suite: it needs a display, which the ubuntu CI leg has not, and the posed
+direction takes over three minutes because loading Roslyn is most of what it measures. **A stray
+`Spark.Desktop.exe` locks the next build**, so kill one before you rebuild if a probe was
+interrupted.
 
 ## Cutting a release
 

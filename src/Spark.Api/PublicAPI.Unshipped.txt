@@ -9,6 +9,13 @@ Spark.Api.NodeUnwiredAttribute.NodeUnwiredAttribute() -> void
 Spark.Api.SparkNodeAliasAttribute
 Spark.Api.SparkNodeAliasAttribute.Name.get -> string!
 Spark.Api.SparkNodeAliasAttribute.SparkNodeAliasAttribute(string! name) -> void
+Spark.Api.IReferenceCatalog
+Spark.Api.IReferenceCatalog.Add(System.Collections.Generic.IEnumerable<string!>! paths) -> int
+Spark.Api.IReferenceCatalog.Reload(string! path) -> bool
+Spark.Api.IReferenceCatalog.Remove(string! path) -> bool
+Spark.Api.IReferenceCatalog.RemoveUnder(string! folder) -> int
+Spark.Api.IReferenceCatalog.SkippedImports.get -> System.Collections.Immutable.ImmutableArray<string!>
+Spark.Api.IReferenceCatalog.Version.get -> int
 Spark.Api.IScriptNodeFactory.Share(System.Collections.Generic.IReadOnlyList<string!>! scripts) -> bool
 Spark.Api.SparkConsole
 const Spark.Api.SparkConsole.Capacity = 10000 -> int

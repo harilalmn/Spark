@@ -41,6 +41,13 @@ public sealed class SparkSession : IDisposable
     // reached from a code block's editor, which has loaded Roslyn by definition.
     private IDisposable? _completion;
 
+    // `E6-T14`, and the same rule as `_completion` above: `ReferencesVersion()` is asked on every
+    // run, so the type it names decides whether every run loads Roslyn. Holding the catalogue as
+    // `IReferenceCatalog` rather than reaching it through `Scripts is ScriptNodeFactory` is what
+    // lets that method be compiled without `Spark.Scripting`. It is filled in by `EnableScripting`,
+    // which has loaded Roslyn by the time it runs.
+    private Spark.Api.IReferenceCatalog? _references;
+
     /// <summary>Creates a session with the built-in node library imported.</summary>
     /// <param name="tolerance">The document tolerance, hashed into every cache key.</param>
     /// <param name="scheduler">
@@ -91,7 +98,17 @@ public sealed class SparkSession : IDisposable
 
         // The first touch of ScriptNodeFactory is the first touch of Roslyn, which is why this is
         // a method rather than a field initialiser.
-        return Scripts ??= new Spark.Scripting.ScriptNodeFactory();
+        if (Scripts is not null)
+        {
+            return Scripts;
+        }
+
+        Spark.Scripting.ScriptNodeFactory factory = new();
+
+        _references = factory.References;
+        Scripts = factory;
+
+        return factory;
     }
 
     /// <summary>
@@ -169,6 +186,7 @@ public sealed class SparkSession : IDisposable
     {
         _completion?.Dispose();
         _completion = null;
+        _references = null;
         Scripts = null;
         ScriptingAllowed = false;
     }
@@ -192,13 +210,18 @@ public sealed class SparkSession : IDisposable
     /// <c>E6-T14</c>'s promise — a graph with no script nodes never loads
     /// <c>Spark.Scripting</c> — true in a session that has a reference list.
     /// </remarks>
-    public Spark.Scripting.ReferenceCatalog? ScriptReferences()
+    public Spark.Api.IReferenceCatalog? ScriptReferences()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        return ScriptingAllowed && EnableScripting() is Spark.Scripting.ScriptNodeFactory factory
-            ? factory.References
-            : null;
+        if (!ScriptingAllowed)
+        {
+            return null;
+        }
+
+        _ = EnableScripting();
+
+        return _references;
     }
 
     /// <summary>
@@ -207,13 +230,19 @@ public sealed class SparkSession : IDisposable
     /// </summary>
     /// <returns>The catalogue's version, without building the script factory.</returns>
     /// <remarks>
-    /// <b>Asked on every run, so it must never load Roslyn itself</b> — which is why it reads the
-    /// factory only if one already exists, where <see cref="ScriptReferences"/> would build one. A
-    /// block's key cannot see the catalogue ([N146](../../docs/NOTES.md)), so this number is how the
-    /// canvas learns that a library arrived or left since its blocks were compiled.
+    /// <b>Asked on every run, so it must never load Roslyn itself</b> — which is why it reads a
+    /// catalogue only if one already exists, where <see cref="ScriptReferences"/> would build one.
+    /// A block's key cannot see the catalogue ([N146](../../docs/NOTES.md)), so this number is how
+    /// the canvas learns that a library arrived or left since its blocks were compiled.
+    /// <para>
+    /// <b>It reads <c>_references</c> rather than narrowing <c>Scripts</c> to the concrete factory,
+    /// and the difference is the whole of <c>E6-T14</c> here</b> ([N188](../../docs/NOTES.md)): the
+    /// JIT resolves the types a method mentions when it compiles the method, so
+    /// <c>Scripts is ScriptNodeFactory</c> loaded <c>Spark.Scripting</c> on every start of the
+    /// shell — with <c>Scripts</c> null and the pattern never matching.
+    /// </para>
     /// </remarks>
-    public int? ReferencesVersion() =>
-        Scripts is Spark.Scripting.ScriptNodeFactory factory ? factory.References.Version : null;
+    public int? ReferencesVersion() => _references?.Version;
 
     /// <summary>The definitions that can be placed.</summary>
     public NodeLibrary Library { get; }
