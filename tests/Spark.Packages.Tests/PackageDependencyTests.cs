@@ -253,6 +253,96 @@ public sealed class PackageDependencyTests : IDisposable
     /// Puts a package on the folder feed: a real assembly under <c>lib/net10.0</c>, a Spark
     /// manifest, and whatever dependencies were asked for.
     /// </summary>
+    /// <summary>
+    /// <b>Two packages wanting different versions of one dependency get a version that satisfies
+    /// both</b> — the last of <c>E7-T20</c>'s three named problems.
+    /// </summary>
+    /// <remarks>
+    /// <b>The walk used to take the first requirement it met and discard the rest.</b> Its
+    /// <c>seen</c> set was keyed by package id alone, so the second requirer was skipped before its
+    /// range was ever read: <c>Acme.Left</c> asking for <c>Shared 1.0.0</c> and <c>Acme.Right</c>
+    /// asking for <c>2.0.0</c> staged 1.0.0 and left <c>Acme.Right</c> holding a dependency that
+    /// does not satisfy it. Nothing failed at install time; it failed at first use, as a
+    /// <c>TypeLoadException</c> naming an assembly, a week after the install that caused it.
+    /// </remarks>
+    [Fact]
+    public async Task ADependencyTwoPackagesDisagreeAboutResolvesToAVersionSatisfyingBoth()
+    {
+        Publish("Acme.Shared", "1.0.0");
+        Publish("Acme.Shared", "2.0.0");
+        Publish("Acme.Left", "1.0.0", dependencies: [("Acme.Shared", "1.0.0")]);
+        Publish("Acme.Right", "1.0.0", dependencies: [("Acme.Shared", "2.0.0")]);
+        Publish("Acme.Nodes", "1.0.0", dependencies: [("Acme.Left", "1.0.0"), ("Acme.Right", "1.0.0")]);
+
+        PackageStore store = new(_store);
+
+        using PendingInstall pending = await Client().PrepareAsync(
+            PackageIdentity.Create("Acme.Nodes", "1.0.0"), store, TestContext.Current.CancellationToken);
+
+        // NuGet ranges are minimums, so "1.0.0" means 1.0.0 or later and 2.0.0 satisfies both.
+        Assert.Contains("Acme.Shared 2.0.0", pending.Disclosure.Dependencies, StringComparer.Ordinal);
+        Assert.DoesNotContain("Acme.Shared 1.0.0", pending.Disclosure.Dependencies, StringComparer.Ordinal);
+
+        // And exactly one copy of it: a second staged version is two assemblies with one name.
+        Assert.Single(
+            pending.Disclosure.Dependencies,
+            entry => entry.StartsWith("Acme.Shared ", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// <b>When no version satisfies everybody, the install refuses and says who wanted what.</b>
+    /// </summary>
+    /// <remarks>
+    /// The alternative is picking one and hoping, which is the same silent wrong answer in a
+    /// different disguise. A person who is told <i>Acme.Left needs [1.0.0, 2.0.0) and Acme.Right
+    /// needs [2.0.0, )</i> can act; a person holding a <c>TypeLoadException</c> cannot.
+    /// </remarks>
+    [Fact]
+    public async Task ADependencyNoVersionSatisfiesIsRefusedWithBothRequirementsNamed()
+    {
+        Publish("Acme.Shared", "1.0.0");
+        Publish("Acme.Shared", "2.0.0");
+        Publish("Acme.Left", "1.0.0", dependencies: [("Acme.Shared", "[1.0.0, 2.0.0)")]);
+        Publish("Acme.Right", "1.0.0", dependencies: [("Acme.Shared", "[2.0.0, )")]);
+        Publish("Acme.Nodes", "1.0.0", dependencies: [("Acme.Left", "1.0.0"), ("Acme.Right", "1.0.0")]);
+
+        PackageStore store = new(_store);
+
+        SparkPackageException failure = await Assert.ThrowsAsync<SparkPackageException>(
+            async () => await Client().PrepareAsync(
+                PackageIdentity.Create("Acme.Nodes", "1.0.0"), store, TestContext.Current.CancellationToken));
+
+        Assert.Contains("Acme.Shared", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("Acme.Left", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("Acme.Right", failure.Message, StringComparison.Ordinal);
+
+        // It says nothing was installed, because nothing was - the staging folder is swept.
+        Assert.Contains("nothing has been installed", failure.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// <b>The common case still costs nothing.</b> Two packages agreeing on one dependency resolve
+    /// it once and stage it once, rather than re-resolving because a second requirement arrived.
+    /// </summary>
+    [Fact]
+    public async Task TwoPackagesAgreeingOnADependencyStageItOnce()
+    {
+        Publish("Acme.Shared", "1.0.0");
+        Publish("Acme.Left", "1.0.0", dependencies: [("Acme.Shared", "1.0.0")]);
+        Publish("Acme.Right", "1.0.0", dependencies: [("Acme.Shared", "1.0.0")]);
+        Publish("Acme.Nodes", "1.0.0", dependencies: [("Acme.Left", "1.0.0"), ("Acme.Right", "1.0.0")]);
+
+        PackageStore store = new(_store);
+
+        using PendingInstall pending = await Client().PrepareAsync(
+            PackageIdentity.Create("Acme.Nodes", "1.0.0"), store, TestContext.Current.CancellationToken);
+
+        Assert.Single(
+            pending.Disclosure.Dependencies,
+            entry => entry.StartsWith("Acme.Shared ", StringComparison.Ordinal));
+        Assert.Equal(3, pending.Disclosure.Dependencies.Length);
+    }
+
     private void Publish(string id, string version, (string Id, string Range)[]? dependencies = null)
     {
         System.Reflection.Assembly assembly = typeof(Spark.Nodes.Core.Point).Assembly;

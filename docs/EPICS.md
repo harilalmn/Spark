@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E5-T14` Done: `E5` is complete, and its status paragraph was four clauses stale)
+**Last updated:** 2026-09-15 (`E7-T20` Done: `E7` complete, and a re-check that re-read the row not the code)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1042,7 +1042,7 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       error (**E7-T14**). *Built 2026-09-01. `Frozen` and `UpstreamFrozen` are states of their
       own rather than reuses of `NotEvaluated`, because one of them is something the user asked
       for and the other is not. Reported once, on the node that was frozen, as information.*
-- [ ] **A graph's packages live beside the graph** (**E7-T16** … **E7-T20**,
+- [x] **A graph's packages live beside the graph** (**E7-T16** … **E7-T20**,
       [ADR-0024](adr/0024-graph-local-package-folder.md)). `<name>.packages` beside `<name>.spark`,
       one folder per NuGet package and loose `.dll` files for anything hand-added, loaded when the
       file opens — so a graph and its libraries travel together and two graphs may disagree about a
@@ -1084,11 +1084,20 @@ for on nuget.org, inspected, installed and used, and its nodes unloaded again** 
 sentence, true through the application rather than only through the API since 2026-09-01, and that
 half of the claim holds.
 
-**`E7-T20` is `In progress`**, and it was `In progress` when *every row in this epic is `Done`* was
-written. Its search half landed 2026-09-09 on a client report; **the install half is not started**,
-and it is three named problems in order: transitive dependency resolution, target-framework
-selection against `net10.0`, and two packages wanting different versions of one dependency. Nothing
-in `Spark.Packages` resolves a transitive dependency today.
+**`E7-T20` closed on 2026-09-15, and `E7` now has no open rows.** What this paragraph said until
+then is worth recording, because it was not merely out of date. It said **the install half is not
+started** and that **nothing in `Spark.Packages` resolves a transitive dependency today** — and
+`StageDependenciesAsync` had been resolving them transitively since `E7-T2` closed on **2026-09-01**,
+a fortnight earlier, with tests of its own. Target-framework selection against `net10.0` was
+`E7-T23`, closed 2026-09-09 (`a9bfb22`). Two of the three named problems were delivered before this
+sentence was last confirmed, and the row carries a *Re-checked 2026-09-09* stamp that repeated them
+anyway: **the re-check re-read the row rather than the code**, which is worse than no re-check,
+because the date is what the next reader trusts ([N187](NOTES.md)).
+
+The third problem was real and was four lines: the dependency walk's `seen` set was keyed by package
+**id** while the loop's job was to choose a **version**, so the second package to require a
+dependency was skipped before its range was read. Ranges are now accumulated per id and resolved
+against all of them at once, and a set nothing can satisfy refuses while naming the requirers.
 
 The load layer and the preservation guarantee came first: `PackageIdentity`, `ContractAssemblies`
 and `PackageLoadContext`. Placeholders followed: a graph naming a package that is not installed

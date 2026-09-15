@@ -204,7 +204,7 @@ public sealed class NuGetPackageClient
             SparkPackageManifest manifest = ReadManifest(staging, identity);
 
             IReadOnlyList<PackageIdentity> dependencies =
-                await StageDependenciesAsync(staging, cancellationToken).ConfigureAwait(false);
+                await StageDependenciesAsync(identity, staging, cancellationToken).ConfigureAwait(false);
 
             PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity) with
             {
@@ -321,6 +321,7 @@ public sealed class NuGetPackageClient
     /// <summary>
     /// Walks the staged package's dependencies and stages them beside it (<c>E7-T2</c>).
     /// </summary>
+    /// <param name="root">The package being installed, named in a refusal it is party to.</param>
     /// <param name="staging">The root package's staging folder.</param>
     /// <param name="cancellationToken">Cancels the downloads.</param>
     /// <returns>Everything staged, transitively, in the order it was resolved.</returns>
@@ -340,14 +341,40 @@ public sealed class NuGetPackageClient
     /// <c>TypeLoadException</c> at first use naming an assembly the user has never heard of, at a
     /// moment when nothing on screen connects it to an install they did last week.
     /// </para>
+    /// <para>
+    /// <b>Every requirement for a package, not the first one met</b> (<c>E7-T20</c>). The walk used
+    /// to key its <c>seen</c> set on the package id alone, so the second package to ask for a
+    /// dependency was skipped before its range was read: <c>Left</c> wanting <c>Shared 1.0.0</c>
+    /// and <c>Right</c> wanting <c>2.0.0</c> staged 1.0.0, and <c>Right</c> was quietly given a
+    /// version that does not satisfy it. Ranges are now accumulated per id and the choice is made
+    /// against all of them, so the answer does not depend on which package the walk reached first.
+    /// </para>
+    /// <para>
+    /// <b>A later requirement can move a package that is already staged</b>, and when it does the
+    /// old folder is swept and the new one is walked in its turn — a different version declares
+    /// different dependencies, and keeping the first version's would stage a tree nothing asked
+    /// for. What this does not do is <i>un</i>stage a package that only the superseded version
+    /// needed: it stays, unreferenced and harmless, because removing it means proving nothing else
+    /// in the tree still wants it, and a spare assembly on disk is cheaper than a wrong one missing.
+    /// </para>
+    /// <para>
+    /// <b>When nothing satisfies everybody, the install refuses and names the requirers.</b>
+    /// Choosing one and hoping is the same silent wrong answer wearing a different hat, and the
+    /// person holding the resulting <c>TypeLoadException</c> has no way back to this moment.
+    /// </para>
     /// </remarks>
     private async Task<IReadOnlyList<PackageIdentity>> StageDependenciesAsync(
-        string staging, CancellationToken cancellationToken)
+        PackageIdentity root, string staging, CancellationToken cancellationToken)
     {
         List<PackageIdentity> staged = [];
-        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
-        Queue<string> folders = new();
-        folders.Enqueue(staging);
+
+        // Every requirement seen so far, and who made it. The requirer is carried only so that a
+        // refusal can name it; resolution uses the ranges alone.
+        Dictionary<string, List<Requirement>> required = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, PackageIdentity> chosen = new(StringComparer.OrdinalIgnoreCase);
+
+        Queue<(string Folder, string Requirer)> folders = new();
+        folders.Enqueue((staging, root.Id));
 
         string deps = Path.Combine(staging, DependencyFolder);
 
@@ -355,10 +382,40 @@ public sealed class NuGetPackageClient
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            foreach ((string id, VersionRange range) in PackageInspector.DependenciesIn(folders.Dequeue()))
+            (string folder, string requirer) = folders.Dequeue();
+
+            foreach ((string id, VersionRange range) in PackageInspector.DependenciesIn(folder))
             {
-                if (!seen.Add(id))
+                if (chosen.TryGetValue(id, out PackageIdentity already))
                 {
+                    if (range.Satisfies(NuGetVersion.Parse(already.Version)))
+                    {
+                        // The common case, and it costs one comparison: everybody agrees and
+                        // nothing is downloaded twice.
+                        required[id].Add(new Requirement(requirer, range));
+                        continue;
+                    }
+
+                    required[id].Add(new Requirement(requirer, range));
+
+                    PackageIdentity better =
+                        await ResolveAsync(id, required[id], cancellationToken).ConfigureAwait(false);
+
+                    if (better.Equals(already))
+                    {
+                        continue;
+                    }
+
+                    Sweep(Path.Combine(deps, already.FolderName));
+                    staged.Remove(already);
+
+                    string moved = Path.Combine(deps, better.FolderName);
+                    await DownloadIntoAsync(better, moved, cancellationToken).ConfigureAwait(false);
+
+                    chosen[id] = better;
+                    staged.Add(better);
+                    folders.Enqueue((moved, better.Id));
+
                     continue;
                 }
 
@@ -369,24 +426,42 @@ public sealed class NuGetPackageClient
                         + "more than Spark will install in one step; it has not been installed.");
                 }
 
-                PackageIdentity resolved = await ResolveAsync(id, range, cancellationToken)
-                    .ConfigureAwait(false);
+                required[id] = [new Requirement(requirer, range)];
 
-                string folder = Path.Combine(deps, resolved.FolderName);
+                PackageIdentity resolved =
+                    await ResolveAsync(id, required[id], cancellationToken).ConfigureAwait(false);
 
-                await DownloadIntoAsync(resolved, folder, cancellationToken).ConfigureAwait(false);
+                string destination = Path.Combine(deps, resolved.FolderName);
 
+                await DownloadIntoAsync(resolved, destination, cancellationToken).ConfigureAwait(false);
+
+                chosen[id] = resolved;
                 staged.Add(resolved);
-                folders.Enqueue(folder);
+                folders.Enqueue((destination, resolved.Id));
             }
         }
 
         return staged;
     }
 
-    /// <summary>Picks the lowest version on the feed that satisfies a range.</summary>
+    /// <summary>One package's version requirement on another, kept so a refusal can name it.</summary>
+    /// <param name="Requirer">The package that declared the dependency.</param>
+    /// <param name="Range">The version range it asked for.</param>
+    private readonly record struct Requirement(string Requirer, VersionRange Range);
+
+    /// <summary>Picks the lowest version on the feed that satisfies every requirement.</summary>
+    /// <remarks>
+    /// <b>Lowest, and against all of them at once.</b> Satisfying each range separately is not the
+    /// same question — 1.0.0 satisfies <c>[1.0.0, 2.0.0)</c> and 2.0.0 satisfies <c>[2.0.0, )</c>,
+    /// and no version satisfies both, which is exactly the case that has to be refused rather than
+    /// resolved to whichever was asked first.
+    /// </remarks>
+    /// <param name="id">The package to resolve.</param>
+    /// <param name="requirements">Every range asked for so far, with who asked.</param>
+    /// <param name="cancellationToken">Cancels the feed query.</param>
+    /// <returns>The identity to install.</returns>
     private async Task<PackageIdentity> ResolveAsync(
-        string id, VersionRange range, CancellationToken cancellationToken)
+        string id, IReadOnlyList<Requirement> requirements, CancellationToken cancellationToken)
     {
         FindPackageByIdResource? source = await _repository
             .GetResourceAsync<FindPackageByIdResource>(cancellationToken).ConfigureAwait(false);
@@ -399,16 +474,46 @@ public sealed class NuGetPackageClient
         IEnumerable<NuGetVersion> versions = await source
             .GetAllVersionsAsync(id, _cache, NullLogger.Instance, cancellationToken).ConfigureAwait(false);
 
-        NuGetVersion? best = range.FindBestMatch(versions.Where(version => !version.IsPrerelease));
+        NuGetVersion? best = versions
+            .Where(version => !version.IsPrerelease)
+            .Where(version => requirements.All(requirement => requirement.Range.Satisfies(version)))
+            .OrderBy(version => version)
+            .FirstOrDefault();
 
         if (best is null)
         {
-            throw new SparkPackageException(
-                $"This package depends on '{id}' {range.PrettyPrint()}, and the feed at {Source} has "
-                + "no version that satisfies it. Nothing has been installed.");
+            throw new SparkPackageException(Unsatisfiable(id, requirements, Source));
         }
 
         return new PackageIdentity(id, best.ToNormalizedString());
+    }
+
+    /// <summary>
+    /// Says which requirements could not be met together, and by whom.
+    /// </summary>
+    /// <remarks>
+    /// <b>The requirers are the useful half.</b> <i>No version of Acme.Shared satisfies everything</i>
+    /// tells somebody nothing they can act on; <i>Acme.Left needs [1.0.0, 2.0.0) and Acme.Right
+    /// needs [2.0.0, )</i> tells them which two packages cannot be used together, which is a
+    /// decision they can actually make.
+    /// </remarks>
+    /// <param name="id">The dependency nothing satisfied.</param>
+    /// <param name="requirements">What was asked of it.</param>
+    /// <param name="source">The feed that was consulted.</param>
+    /// <returns>The message.</returns>
+    private static string Unsatisfiable(
+        string id, IReadOnlyList<Requirement> requirements, string source)
+    {
+        string asked = string.Join(
+            ", and ",
+            requirements.Select(r => $"{r.Requirer} needs {r.Range.PrettyPrint()}"));
+
+        return requirements.Count == 1
+            ? $"This package depends on '{id}' {requirements[0].Range.PrettyPrint()}, and the feed "
+                + $"at {source} has no version that satisfies it. Nothing has been installed."
+            : $"These packages disagree about '{id}': {asked}. The feed at {source} has no version "
+                + "that satisfies all of them, so they cannot be used together and nothing has "
+                + "been installed.";
     }
 
     private static void Sweep(string folder)
@@ -473,7 +578,7 @@ public sealed class NuGetPackageClient
             await DownloadIntoAsync(identity, staging, cancellationToken).ConfigureAwait(false);
 
             IReadOnlyList<PackageIdentity> dependencies =
-                await StageDependenciesAsync(staging, cancellationToken).ConfigureAwait(false);
+                await StageDependenciesAsync(identity, staging, cancellationToken).ConfigureAwait(false);
 
             PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity) with
             {

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N186: a new term in a normalised set redefines every saved value)
+**Last updated:** 2026-09-15 (N187: a dedupe key coarser than the decision drops the deciding input)
 
 ---
 
@@ -5216,6 +5216,59 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N187 — A dedupe key coarser than the decision drops the input that would have changed it
+
+`E7-T20`'s last open problem was two packages wanting different versions of one dependency, and the
+whole defect was four lines in `StageDependenciesAsync`:
+
+```csharp
+if (!seen.Add(id))
+{
+    continue;
+}
+```
+
+`seen` is a `HashSet<string>` of package **ids**. The loop's job is to decide a *version*, and it
+skipped on a key that does not mention one — so the second package to require a dependency was
+`continue`d past before its range was ever read. `Left` needing `Shared [1.0,)` and `Right` needing
+`Shared [2.0,)` staged 1.0.0, and `Right` silently received a version that does not satisfy it. The
+symptom arrives much later as a `TypeLoadException` naming an assembly, with nothing on screen
+connecting it to an install done the week before.
+
+**The shape, stated so it is recognisable elsewhere.** A dedupe guard is an assertion that the
+inputs it collapses are interchangeable *for the decision being made*. When the key is coarser than
+the decision, the guard is silently discarding evidence — and it discards it in the direction that
+does damage, because the first input encountered wins and order is an implementation detail. Here
+the fix is to accumulate rather than skip: keep every range per id, resolve against all of them at
+once, and re-resolve when a later requirement moves the answer.
+
+**Satisfying each constraint separately is not satisfying them together**, and the test that proves
+it is the unsatisfiable pair: 1.0.0 satisfies `[1.0.0, 2.0.0)`, 2.0.0 satisfies `[2.0.0, )`, and
+nothing satisfies both. A resolver that checks ranges one at a time answers *yes* to each and picks
+one, which is the same silent wrong answer wearing a different hat. That case has to **refuse**, and
+the refusal has to name the requirers — *Acme.Left needs (>= 1.0.0 && < 2.0.0), and Acme.Right needs
+(>= 2.0.0)* — because *no version satisfies everything* tells nobody which two packages cannot be
+used together.
+
+**What the fix deliberately does not do** is unstage a package only the superseded version needed.
+Removing it means proving nothing else in the tree still wants it, and a spare assembly on disk is
+cheaper than a missing one. Stated on the method rather than left for somebody to notice.
+
+**And the cheap half, worth as much as the fix.** The row said three problems remained *in this
+order*, and **two of them were already delivered** — transitive resolution as `E7-T2`,
+target-framework selection as `E7-T23`, each with its own tests. Reading the tree first
+([N183](NOTES.md)) turned a large step into a small one.
+
+**The dates make it worse than staleness, and that is the lesson.** `E7-T2` closed **2026-09-01**.
+The row carries a *Re-checked 2026-09-09* stamp that restates *the install half is not started* — a
+re-check written eight days after the thing it says is missing was delivered, and `EPICS` went
+further and asserted *nothing in `Spark.Packages` resolves a transitive dependency today*. The row
+did not drift; **the re-check re-read the row instead of the code and stamped a date on it**, which
+is worse than no stamp at all, because a date is exactly what the next reader trusts. A re-check
+that does not name the artefact it looked at has not happened.
+
+---
 
 ## N186 — A new term in a normalised set silently redefines every value already saved
 

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E5-T14` Done: `E5` complete, and one paragraph four rows had made wrong)
+**Last updated:** 2026-09-15 (`E7-T20` Done: `E7` complete, and a re-check that re-read the row)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Twenty-four steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twenty-five steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E5-T14` `Done`: `E5` is complete, and it closed on a check rather than a count.** `NodeClaimChecks` is green over **28** *Exposed as the node X.Y* claims, each resolving to a public method of a public type. The row had refused to close on a number — *a node count with no target is not a criterion* — and was right. **Three things it got wrong**: it said 29 claims (28, and the floor of 25 held while it drifted); its counts were *141 over 21 families* (**199 over 27**, and 199 is the first figure here two independent measures agree on — summing public static members per file, and the application's own status bar); and the claims are in **`tests/corpus/dynamo-parity.tsv`**, which the check's prose called *the register* — a name that means `docs/TASKS.md` everywhere else here, and cost a grep that returned 1 against an expected 29. **The `E5` *Still open* paragraph had four stale clauses, each delivered by a different row**, so no single closure would ever have prompted a re-read. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4073** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks. No stashes. |
-| **Next action** | **`E7-T20`'s install half is the largest honest piece of work left, and it names its own order**: transitive dependency resolution, then target-framework selection against `net10.0`, then two packages wanting different versions of one dependency — **in that order**, because each needs the one before it. The search half landed 2026-09-09 and is not to be touched. **Read it against the tree first** ([N183](NOTES.md)): `src/Spark.Packages` already has the feed, the reachability check and the two-query search, so what is new is resolution, and `Spark.Packages.Tests` is 124 tests that say what is already guarded. **The other two rows are not work**: `E12-T5`'s `pkg` is package management and should follow `E7-T20` rather than precede it, and `E10-T3` is a deliberate `D19` placeholder. **A step of its own, still unclaimed**: assert that a graph with no script nodes never loads `Spark.Scripting` — it needs a separate process, a separate `AssemblyLoadContext`, or an IL scan, because an in-process `GetAssemblies()` is contaminated by sibling tests. **The five blockers are still people**: `PRD Q8` and the website (`E10-T14`, the only `Open` row), branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once**. |
-| **Verify with** | **The artefact, never the row** — and **for anything that writes an image, open it**: this step's two renders were checked by eye, and the previous step's first screenshot showed a diagnostic rather than the feature. **The runner's exit code, never a grep of its output.** When a guard could not fail, break it once and watch it speak. The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated by `scripts/build-progress.py`, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **A help-topic edit also needs its renderer golden** — `SPARK_UPDATE_GOLDEN=1` rewrites all thirteen and fails on purpose so you read the diff; only the topic you touched should differ. **A benchmark change needs the full 23-case run and `check ... --no-canvas --no-tessellation`.** **No tag, no release.** |
+| **Last completed step** | **`E7-T20` `Done`: the dependency walk resolves against every requirement, and `E7` has no open rows.** **Two of its three named problems were already delivered** — transitive resolution is `E7-T2` (**2026-09-01**), target-framework selection is `E7-T23` (2026-09-09) — which [N183](NOTES.md) found in twenty minutes and which turned the largest remaining piece of work into a small one. **The dates are the finding**: the row carries a *Re-checked 2026-09-09* stamp restating *the install half is not started*, and `EPICS` asserted *nothing in `Spark.Packages` resolves a transitive dependency today* — eight days after it did. **The re-check re-read the row, not the code**, and a stamped date is worse than none ([N187](NOTES.md)). **The third problem was four lines**: `seen` was keyed by package **id** while the loop chose a **version**, so the second requirer was skipped before its range was read — `Left` wanting `Shared [1.0,)` and `Right` wanting `[2.0,)` staged 1.0.0 and gave `Right` something that does not satisfy it. Ranges are accumulated per id now; an unsatisfiable set **refuses and names the requirers**. Three tests on a local folder feed, no network, **red before the fix and red again on reverting it**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4076** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks. No stashes. |
+| **Next action** | **The register is down to three rows and none of them is ordinary work.** `E10-T14` (the website) is the only `Open` row and waits on `PRD Q8`, a person. `E10-T3` is a deliberate `D19` placeholder for the post-1.0 Help pass and is *not* work. `E12-T5` wants `pkg`, `docs` and `graph`, and **`pkg` is now the one to take**: `E7` is complete, so package management has a finished library underneath it and `spark pkg` is a command-line face on `PackageStore`, `NuGetPackageClient` and `GraphPackages` rather than new machinery — read those three against the tree first ([N183](NOTES.md)), because this week that check has twice turned a large step into a small one and once into none at all. **Twelve unticked acceptance criteria remain in `EPICS`** and they are the better measure of *all Epics are done* than the register is; sweep them when the rows run out. **A step of its own, still unclaimed**: assert that a graph with no script nodes never loads `Spark.Scripting` — it needs a separate process, a separate `AssemblyLoadContext`, or an IL scan. **The five blockers are still people**: `PRD Q8`, branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once**. |
+| **Verify with** | **The artefact, never the row — and a re-check that cannot name what it read has not happened** ([N187](NOTES.md)). **For anything that writes an image, open it**; for anything that writes a message a person must act on, **print it** — this step failed a test on purpose to read its own refusal. **The runner's exit code, never a grep of its output.** When a guard could not fail, break it once and watch it speak. The three gates, the residue budget **re-derived**, the dashboard regenerated by `scripts/build-progress.py`, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **A help-topic edit needs its renderer golden** (`SPARK_UPDATE_GOLDEN=1`, then read the diff — only the topic you touched should differ). **A benchmark change needs the full 23-case run and `check ... --no-canvas --no-tessellation`.** **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -17421,3 +17421,64 @@ over an open row.
 
 **Cost.** Under an hour, most of it reading. The step was a status change; the value was in finding
 out whether it was *allowed* to be one.
+
+### 2026-09-15 — `E7-T20` Done: `E7` complete, and a re-check that re-read the row instead of the code
+
+**What.** The dependency walk resolves a package against **every** requirement rather than the first
+one it meets. `E7-T20` closes and `E7` has no open rows.
+
+**Two of the row's three named problems were already delivered, and finding that out cost twenty
+minutes.** The row said what was left, *in this order*: transitive dependency resolution,
+target-framework selection against `net10.0`, version conflicts. The first is `E7-T2`'s
+`StageDependenciesAsync` — breadth-first over each extracted `.nuspec`, a ceiling of 64, reporting
+an unresolvable dependency rather than skipping it. The second is `E7-T23`'s `PackageFrameworks`, on
+NuGet's own `FrameworkReducer`. Both have their own tests. [N183](NOTES.md), and it turned the
+largest remaining piece of work into a small one.
+
+**The dates make it worse than staleness, and that is [N187](NOTES.md)'s real lesson.** `E7-T2`
+closed **2026-09-01**. The row carries a *Re-checked 2026-09-09* stamp that restates *the install
+half is not started*, and `EPICS` went further: *nothing in `Spark.Packages` resolves a transitive
+dependency today*, written while the code had been doing exactly that for eight days. **The row did
+not drift — the re-check re-read the row and stamped a date on it**, which is worse than no stamp,
+because the date is the thing the next reader trusts. A re-check that cannot name the artefact it
+looked at has not happened.
+
+**The third problem was real and it was four lines.**
+
+```csharp
+if (!seen.Add(id))
+{
+    continue;
+}
+```
+
+`seen` is a `HashSet<string>` of package **ids**; the loop's job is to choose a **version**. So the
+second package to require a dependency was `continue`d past before its range was ever read. `Left`
+needing `Shared [1.0,)` and `Right` needing `[2.0,)` staged **1.0.0**, and `Right` was quietly given
+a version that does not satisfy it — surfacing much later as a `TypeLoadException` naming an
+assembly nobody recognises, a week after the install that caused it.
+
+**The general shape**: a dedupe key coarser than the decision being made silently discards the input
+that would have changed it, and discards it in the damaging direction, because first-encountered
+wins and encounter order is an implementation detail.
+
+**Satisfying each range separately is not satisfying them together**, which is why the unsatisfiable
+case had to be a test of its own: 1.0.0 satisfies `[1.0.0, 2.0.0)`, 2.0.0 satisfies `[2.0.0, )`, and
+nothing satisfies both. A resolver that checks one at a time says yes to each and picks one. That
+case now **refuses, and names the requirers** — *These packages disagree about 'Acme.Shared':
+Acme.Left needs (>= 1.0.0 && < 2.0.0), and Acme.Right needs (>= 2.0.0)* — because *no version
+satisfies everything* tells nobody which two packages cannot be used together. **The message was
+read rather than assumed**, by failing the test on purpose to print it.
+
+**Verified.** Three tests on a **local folder feed**, so no network: the satisfiable disagreement,
+the unsatisfiable one, and the common case where two packages agree and nothing is re-resolved.
+**Both new guards were red before the fix and red again when it was reverted.** Three gates: build
+clean with zero warnings, **4076** tests over **ten** executables with zero failures and zero skips
+read from each runner's **exit code**, format clean, docs harness 68.
+
+**Stated on the method rather than left to be discovered**: the fix does not *un*stage a package
+that only the superseded version needed. Removing it means proving nothing else in the tree still
+wants it, and a spare assembly on disk is cheaper than a missing one.
+
+**Cost.** One session, and most of it was reading rather than writing — which is what the twenty
+minutes at the start bought.
