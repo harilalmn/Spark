@@ -1,0 +1,50 @@
+# Help-renderer golden for 'undo' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/undo.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.undo
+title	Undo and redo
+since	0.1
+nodes	(none)
+related	concepts.files, concepts.lacing, concepts.finding-nodes
+blocks	31
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the undo stack in the running application. [strong]Owner:[text] [code]shell[text] [strong]Last updated:[text] 2026-09-02
+block[1].quote	[strong]Scope.[text] Undo covers everything in the document: nodes added and deleted, wires drawn and
+block[2].quote	[text]removed, values typed into unwired ports, and where nodes sit on the canvas. It does [strong]not
+block[3].quote	[text]cover what you are looking at — pan, zoom, selection and pane sizes are not document changes —
+block[4].quote	[text]and it does not reach across opening a file.
+block[5].rule	---
+block[6].heading	level=2 [text]How it works
+block[7].paragraph	[strong]Ctrl+Z[text] steps back. [strong]Ctrl+Y[text] or [strong]Ctrl+Shift+Z[text] steps forward again. Both are under [strong]Edit[text] as well, and each item's tooltip names the step it would take: [emphasis]Undo Move node[text], [emphasis]Redo Change radius[text]. Sixty-four steps are kept.
+block[8].paragraph	[text]A step is one completed edit. Spark records it when the edit finishes — when you let go of a node you were dragging, when you press Enter in a value box, when a wire lands on a port — not while it is in progress, so dragging a node across the canvas is one step and not two hundred.
+block[9].paragraph	[strong]An edit that changed nothing is not a step.[text] Press Enter twice in a value box and there is one step, not two. Drag a node in a circle back to where it started and there is none at all, because the document is exactly as it was. This matters more than it sounds: the alternative is a Ctrl+Z that appears to do nothing, and a user who then presses it four more times and loses real work.
+block[10].heading	level=2 [text]A worked example
+block[11].paragraph	[text]Open Spark. It starts on the demo graph: a [code]Number.Range[text] feeding a [code]Point.FromCoordinates[text], and a hundred points in the viewport.
+block[12].paragraph	[text]1. [strong]Change a value.[text] Select the [code]Number.Range[text] node. In the properties pane, set [code]end[text] to [code]2[text] and press Enter. The viewport drops to thirty points, and the Undo button's tooltip reads [emphasis]Undo Change end[text].
+block[13].paragraph	[text]2. [strong]Place a node.[text] In the library, find [code]Point.Origin[text] and press [emphasis]Place node[text]. It appears on the canvas and a dot appears at the origin in the viewport. The tooltip now reads [emphasis]Undo Add Point.Origin[text].
+block[14].paragraph	[text]3. [strong]Move it.[text] Drag the new node a hundred units to the right. Nothing happens in the viewport — a position cannot change a value — but the tooltip reads [emphasis]Undo Move node[text].
+block[15].paragraph	[text]4. [strong]Step back three times.[text] [code]Ctrl+Z[text] puts the node back where it was. [code]Ctrl+Z[text] removes it, and its dot leaves the viewport. [code]Ctrl+Z[text] puts [code]end[text] back to [code]9[text], and the hundred points return.
+block[16].paragraph	[text]Each of those is instant, including the last one, and that is not an accident of the graph being small — see below.
+block[17].paragraph	[text]5. [strong]Step forward.[text] [code]Ctrl+Y[text] three times reapplies all three edits in order. Now press [code]Ctrl+Z[text] once, and then place a different node: the redo branch is gone, because you have started a new one. That is how every editor behaves, and it is worth knowing rather than discovering.
+block[18].heading	level=2 [text]Why undo is instant
+block[19].paragraph	[text]Spark caches results [strong]by provenance[text]: a node's cached answer is filed under what produced it — its definition, its inputs' keys, the document tolerance — and never under which document it was in ([link->files.md]saving and opening graphs[text], and [code]Spark.Engine.CacheKey[text]).
+block[20].paragraph	[text]Stepping back to a former state therefore asks for results that are still in the cache under exactly the keys they had before. Nothing is recomputed. The same is true of drawing a wire, removing it and drawing it again, or typing a value, changing it and typing the first one back.
+block[21].paragraph	[text]The measured form of that claim: after an undo, the run Spark performs recomputes [strong]zero[text] nodes and serves every one of them from the cache. There is a test that asserts it.
+block[22].heading	level=2 [text]What undo does not do
+block[23].listitem	[strong]It does not cross a document boundary.[text] Opening a file, or loading one of the demo graphs,
+block[24].paragraph	[text]starts a new history. Undo will not bring back the graph you just closed — save it instead.
+block[25].listitem	[strong]It does not undo the view.[text] Panning, zooming, selecting and resizing panes are not document
+block[26].paragraph	[text]changes, and a Ctrl+Z that scrolled the canvas instead of reversing your last edit would be worse than one that did nothing.
+block[27].listitem	[strong]It keeps sixty-four steps.[text] Beyond that, the oldest step falls off the end.
+block[28].listitem	[strong]It does not survive closing the document.[text] History is not saved into the [code].spark[text] file.
+block[29].heading	level=2 [text]What you will notice after an undo
+block[30].paragraph	[text]Your selection is cleared, and nodes that overlap may be drawn in a different order. Undo restores the document by reopening it, exactly as if it had been saved and opened again, and a reopened document is laid out in the file's canonical order. Nothing moves and no value changes; only which node is drawn on top of which.

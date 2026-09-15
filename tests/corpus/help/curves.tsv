@@ -1,0 +1,180 @@
+# Help-renderer golden for 'curves' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/curves.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.curves
+title	Curves, parameters and arc length
+since	0.1
+nodes	Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.Extended, Curve.IntersectWith, Curve.IntersectWithSurface, NurbsCurve.InterpolatePoints, NurbsCurve.InterpolatePointsWithTangents
+related	concepts.geometry-basics, concepts.lacing
+blocks	161
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes [code]Spark.Geometry[text]'s curve layer, which exists and is tested. [strong]Owner:[text] [code]geometry-kernel[text] [strong]Last updated:[text] 2026-09-13
+block[1].quote	[strong]Scope.[text] Eight curve types exist today: [code]Line[text], [code]Arc[text], [code]Circle[text], [code]EllipseCurve[text], [code]Helix[text],
+block[2].quote	[code]NurbsCurve[text], [code]PolyLine[text] and [code]PolyCurve[text]. Curve intersection, offsetting and the closest-point
+block[3].quote	[text]queries are all here; **projection
+block[4].quote	[text]and pull are not**, and neither is a planarity test. Surfaces, meshes and solids arrived at M5
+block[5].quote	[text]and M6. Every example below was run against the assembly.
+block[6].rule	---
+block[7].heading	level=2 [text]Why this page exists
+block[8].paragraph	[text]Curves introduce one idea that points and vectors do not have, and getting it wrong is the single most common source of "why are my points bunched up at the ends?":
+block[9].quote	[text]**Where you are on a curve can be measured two different ways, and they are not the same
+block[10].quote	[text]place.**
+block[11].paragraph	[text]Everything else on this page follows from that.
+block[12].rule	---
+block[13].heading	level=2 [text]1. A parameter is not a distance
+block[14].paragraph	[text]Every curve has a [strong]domain[text] — the range of numbers you can hand it — and asking for the point at a parameter walks that range. Every curve also has a [strong]length[text], and asking for the point at a length walks the curve itself with a tape measure.
+block[15].paragraph	[text]On a line, a circle and a helix these two agree, because those curves travel at a constant speed. On an [strong]ellipse[text] they do not: the curve moves quickly past the ends of the long axis and slowly past the ends of the short one, so equal steps in parameter cover unequal distances. (An ellipse's [emphasis]quarter[text] marks do agree, because its four quadrants are congruent — which is why the example below uses an eighth rather than a quarter.)
+block[16].code	lang=csharp lines=9
+block[17].paragraph	[text]Spark gives you both and makes you say which you meant. In the node library the split is by name: anything called [code]AtParameter[text] runs from 0 to 1 through the curve's own parameter space, and anything called [code]AtLength[text] is measured in real distance from the start.
+block[18].paragraph	[strong]Which do you want?[text] Almost always the length one. [emphasis]Twelve fence posts evenly spaced along this path[text] is a length question. Parameters are for when you are working with the curve's own maths — matching a point to a tangent you already computed, for instance.
+block[19].rule	---
+block[20].heading	level=2 [text]2. Dividing a curve
+block[21].paragraph	[code]Curve.DivideEqually[text] cuts by [strong]arc length[text], so the pieces really are the same length:
+block[22].code	lang=csharp lines=8
+block[23].paragraph	[text]Two things worth knowing:
+block[24].listitem	[strong]You get one more point than you asked for divisions.[text] Eight divisions, nine points, both
+block[25].paragraph	[text]ends included.
+block[26].listitem	[strong]`DivideByLength` drops the remainder.[text] Asking for a point every 3 units along a curve
+block[27].paragraph	[text]10 units long gives you points at 0, 3, 6 and 9 — not a stubby 1-unit piece at the end.
+block[28].paragraph	[strong]And there is a second way to measure, which is not the same one.[text] Everything above walks the curve with a tape measure. [code]DivideByChordLength[text] and [code]DivideEquallyByChord[text] measure the [strong]straight line[text] between consecutive points instead:
+block[29].code	lang=csharp lines=10
+block[30].paragraph	[strong]Which do you want?[text] If the pieces between the points are going to be [emphasis]straight[text] — equal struts, equal panels, a chain of equal members — you want the chord. If what matters is distance travelled along the path, you want the length. On a straight line the two are identical; the tighter the curve, the further apart their answers.
+block[31].paragraph	[code]DivideEquallyByChord(n)[text] is the chord counterpart of [code]DivideEqually(n)[text]. Around a circle it gives the inscribed regular polygon, which is the clearest picture of the difference there is:
+block[32].code	lang=csharp lines=6
+block[33].paragraph	[text]One caution: an equal-chord division has to [emphasis]solve[text] for the chord that fits a whole number of times, and on a curve that doubles back sharply within one step the search can fail. It says so with an error rather than returning separations that are only nearly equal — [code]DivideEqually[text] divides by arc length and always succeeds.
+block[34].rule	---
+block[35].heading	level=2 [text]3. Each curve has its own domain, and none of them is 0 to 1
+block[36].paragraph	[text]Ask, do not assume:
+block[37].table	rows=8 | [text]Curve ; [text]Domain ; [text]Meaning | [code]Line ; [text]0 → 1 ; [text]fraction of the way along | [code]Circle ; [text]0 → 2π ; [text]radians from the plane's x axis | [code]Arc ; [text]0 → sweep ; [text]radians from the arc's [strong]own[text] start | [code]EllipseCurve ; [text]0 → sweep ; [text]the eccentric angle, not the angle at the center | [code]Helix ; [text]0 → sweep ; [text]radians turned about the axis, so 2π is one whole turn | [code]PolyLine ; [text]0 → n ; [text]one unit per segment, so whole numbers are the vertices | [code]PolyCurve ; [text]0 → n ; [text]one unit per segment, so whole numbers are the joints
+block[38].paragraph	[code]Interval.Normalise[text] and [code]Interval.Denormalise[text] convert between a domain parameter and a fraction, which is exactly what the node layer does for you:
+block[39].code	lang=csharp lines=12
+block[40].paragraph	[text]Note that [code]path.PointAt(1.0)[text] and [emphasis]half way along[text] are different places here too: the first segment is 3 long and the second is 4.
+block[41].rule	---
+block[42].heading	level=2 [text]4. Making curves
+block[43].code	lang=csharp lines=28
+block[44].rule	---
+block[45].heading	level=2 [text]5. What a curve will refuse to do
+block[46].paragraph	[text]Spark's kernel answers or fails loudly; it does not return a plausible-looking default.
+block[47].listitem	[strong]A zero-length line is refused.[text] Two identical points have no direction, and every tangent
+block[48].paragraph	[text]query on such a line would be a division by zero wearing a disguise.
+block[49].listitem	[strong]A parameter outside an open curve's domain throws.[text] It is not quietly clamped and not
+block[50].paragraph	[text]extrapolated. On a [emphasis]closed[text] curve it wraps instead, because there it means something.
+block[51].listitem	[strong]A non-uniform scale on a circle throws.[text] Squashing a circle produces an ellipse, and a
+block[52].paragraph	[code]Circle[text] cannot represent one. Scaling [emphasis]along[text] a circle's own axis is fine and is allowed.
+block[53].listitem	[strong]A polycurve with a gap is refused[text], and the message names the segment index and the size
+block[54].paragraph	[text]of the gap.
+block[55].code	lang=csharp lines=6
+block[56].rule	---
+block[57].heading	level=2 [text]6. Curves are immutable
+block[58].paragraph	[text]Every operation returns a new curve and leaves yours alone. The names say so — [code]Reversed[text], [code]Trimmed[text], [code]TransformedBy[text] — rather than reading as commands to change something in place.
+block[59].code	lang=csharp lines=6
+block[60].paragraph	[text]Trimming a circle giving back an [emphasis]arc[text] is the one place an operation changes the type of the thing it was given, and it is right: a circle that is not closed is not a circle.
+block[61].rule	---
+block[62].heading	level=2 [text]7. Cutting a curve with a surface
+block[63].paragraph	[code]Curve.IntersectWithSurface[text] gives the points where a curve passes through a surface. It is the node you reach for when a graph has to find where a line of sight meets a roof, or where a duct crosses a slab.
+block[64].code	lang=csharp lines=12
+block[65].paragraph	[strong]Both parameters come back, and that is deliberate.[text] If you want the part of the curve before the wall, you want [code]Parameter[text] and [code]Trimmed[text]; if you want to mark the panel, you want [code]Uv[text]. Getting either back afterwards would mean doing the intersection again — so the same snippet, carried on:
+block[66].code	lang=csharp lines=11
+block[67].paragraph	[strong]Three things it will not do, and they are worth knowing before you rely on it.
+block[68].listitem	[strong]A crossing outside the surface's patch is not a crossing.[text] A [code]Plane[text] is infinite; a
+block[69].paragraph	[code]PlaneSurface[text] is the rectangle you asked for. Move the sight line past the end of the panel and the answer is empty, which is the right answer to the question you asked.
+block[70].listitem	[strong]A curve lying *in* the surface gives no points.[text] That is a shared curve rather than a set of
+block[71].paragraph	[text]crossings, and [code]hits.LiesOnSurface[text] says so.
+block[72].listitem	[strong]A curve that grazes the surface and turns back may be missed.[text] The intersector finds a
+block[73].paragraph	[text]crossing by looking for a change of side; a tangency touches without changing side. This is the same limit curve/curve intersection has, and it is stated rather than hidden.
+block[74].paragraph	[strong]Surface against surface is not here.[text] That is a much harder problem and it belongs to the solid modelling kernel, not to this layer — see [link->solids.md]Solids[text].
+block[75].rule	---
+block[76].heading	level=2 [text]8. A helix, and the one curve where §1's warning does not bite
+block[77].paragraph	[text]A [strong]helix[text] turns about an axis at a fixed radius while rising along it at a fixed rate. It is what you reach for when a graph has to lay out a spiral stair, a ramp, a thread or a spiral duct.
+block[78].paragraph	[text]It is also the curve that makes §1's distinction easiest to see the [emphasis]other[text] way round, because a helix travels at a [strong]constant speed[text]: a point that has gone a third of the way along it has also turned a third of the way round it and climbed a third of the way up it. So dividing by length and dividing by parameter give the same points — which on an ellipse they emphatically do not.
+block[79].paragraph	[text]A stair, then. Sixteen risers up a 3-metre storey, at a going that puts the treads on a 1.2 m radius:
+block[80].code	lang=csharp lines=15
+block[81].paragraph	[strong]`walk` is the number a stair needs and the one a plan drawing cannot give you.[text] A helix unrolls to the hypotenuse of a right triangle whose legs are the arc it turned through ([code]2π × 1.2 = 7.54[text]) and the height it climbed ([code]3.0[text]) — so the walking line is longer than either. Spark computes it in closed form rather than by adding up chords.
+block[82].paragraph	[text]Three things about the type that are worth knowing before you rely on it:
+block[83].listitem	[strong]The pitch is the rise per *turn*, and it may be negative.[text] A negative pitch is a left-handed
+block[84].paragraph	[text]helix — it descends as it turns anticlockwise. It may [strong]not[text] be zero: a helix that does not rise is an arc, and asking for one gets you an error that says so rather than a degenerate helix.
+block[85].listitem	[strong]A negative sweep flips the axis rather than running the domain backwards.[text] Turning the other
+block[86].paragraph	[text]way about [code]+Z[text] is the same curve as turning this way about [code]-Z[text], so that is what you get, and [code]AxisDirection[text] reports the axis it settled on. This is exactly what [code]Arc[text] does with a negative sweep.
+block[87].listitem	[strong]`AxisPoint` is reported beside the start, not where you put the origin.[text] Only the axis
+block[88].paragraph	[emphasis]line[text] is part of the curve — the start point is what fixes the height — so an origin higher or lower on the same line describes the same helix and gets normalised to the same one.
+block[89].code	lang=csharp lines=13
+block[90].rule	---
+block[91].heading	level=2 [text]9. Turning any curve into a NURBS curve, and knowing whether you lost anything
+block[92].paragraph	[text]A lot of downstream work wants [strong]one[text] curve representation — a solid modelling kernel converts everything to NURBS as a matter of course, and so does every interchange format. [code]Curve.ToNurbsCurve[text] does that, and it hands back two things rather than one:
+block[93].code	lang=csharp lines=7
+block[94].paragraph	[strong]`IsExact` is not a formality, and it is the reason the member does not simply return a curve.
+block[95].table	rows=6 | [text]Curve ; [text]Converts ; [text]Why | [code]Line[text], [code]PolyLine ; [strong]exactly ; [text]a degree-1 B-spline [emphasis]is[text] a polyline | [code]NurbsCurve ; [strong]exactly ; [text]itself | [code]Arc[text], [code]Circle[text], [code]EllipseCurve ; [strong]exactly ; [text]a rational quadratic traces a conic exactly | [code]Helix ; [strong]never exactly ; [text]see below | [code]PolyCurve ; [strong]exactly ; [text]its segments are converted and joined, corners and all
+block[96].paragraph	[strong]A helix is the only row that is not *exactly*, and it is not a gap waiting to be filled — it is a theorem.[text] A NURBS curve's coordinates are ratios of polynomials in its parameter. A helix needs its height to be proportional to the [emphasis]angle[text] it has turned through, and its x coordinate to be the [emphasis]cosine[text] of that same angle, at once — and no function is both rational and the cosine of something rational. So no NURBS curve of any degree, with any knot vector, is a helix. Spark gives you the best approximation it can and tells you that is what it is:
+block[97].code	lang=csharp lines=9
+block[98].paragraph	[text]Pass a tolerance to trade accuracy for size — a tighter one samples the original more finely and gives a heavier curve. It is a sampling target rather than a promise about the worst error, so where the error matters, measure it with [code]DistanceTo[text] as above.
+block[99].paragraph	[strong]A converted circle has nine control points, not three[text], and that is not padding: the rational form is only valid up to a half turn — at exactly half a turn the middle weight reaches zero — so a full circle is four spans joined end to end. An arc of less than 90° is a single span and three points.
+block[100].paragraph	[strong]One thing that surprises people, and it is true of every exact conversion above degree 1.[text] [emphasis]Exact[text] means the converted curve is the [strong]same set of points[text]. It does [strong]not[text] mean [code]circle.PointAt(t)[text] and [code]converted.Curve.PointAt(t)[text] are the same point — a rational quadratic walks a circular arc by a projective function of the angle rather than by the angle itself, so the parameters do not line up. [code]Line[text] and [code]PolyLine[text] are the exception: at degree 1 the parameterisation survives as well.
+block[101].rule	---
+block[102].heading	level=2 [text]10. Is this curve flat, and which way does it face?
+block[103].paragraph	[text]Two questions, and Spark makes you notice they are different:
+block[104].code	lang=csharp lines=7
+block[105].paragraph	[strong]`IsPlanar` asks whether *some* plane contains the curve. `PlaneOf` asks *which* plane.[text] Most of the time they agree and you only need the second. The case that separates them is a [strong]straight line[text]:
+block[106].code	lang=csharp lines=6
+block[107].paragraph	[text]That is an answer, not a gap. Every plane through the line contains it, so returning one would mean inventing a rotation you did not ask for and could not predict. [code]PlaneOf[text] returns [code]null[text] in two situations — [emphasis]no[text] plane (a helix) and [emphasis]too many[text] planes (a line, or a polyline whose vertices are collinear) — and [code]IsPlanar[text] is what tells them apart.
+block[108].paragraph	[strong]Flat is a question about tolerance, and the answer changes with it.[text] A curve a millimetre out of plane is flat for a floor slab and is not flat for a bearing surface, so [code]IsPlanar[text] takes the tolerance rather than assuming one:
+block[109].code	lang=csharp lines=15
+block[110].paragraph	[strong]Two things worth knowing about the plane you get back.
+block[111].listitem	[strong]On a closed curve the normal follows the winding.[text] A loop and its reverse face opposite ways,
+block[112].paragraph	[text]which is what you want when you are extruding along it and is worth remembering when you are not.
+block[113].listitem	[strong]The plane's rotation is not pinned.[text] [code]PlaneOf[text] promises the [emphasis]normal[text] and the plane it defines;
+block[114].paragraph	[text]which direction ends up as the plane's x axis is not something to depend on. Use [code]Plane.FromOriginNormalXAxis[text] on the result if you need it fixed.
+block[115].paragraph	[text]If you are looking for [code]Curve.Normal[text] from another package — this is it. Spark spells it [code]PlaneOf()?.Normal[text], because [code]NormalAt(parameter)[text] already means something quite different: the direction the curve is [emphasis]bending[text] at a point, which has nothing to do with what plane it lies in.
+block[116].rule	---
+block[117].heading	level=2 [text]11. Fitting a curve through measured points
+block[118].paragraph	[text]Survey points, scan points, points a user clicked — none of them lie exactly on anything. [code]FromBestFit[text] finds the curve that comes closest:
+block[119].code	lang=csharp lines=12
+block[120].paragraph	[text]There are three, one per shape: [code]Line.FromBestFit[text], [code]Circle.FromBestFit[text] and [code]Arc.FromBestFit[text] (and [code]Plane.FromBestFit[text], which the other two use). Each is also a constructor, so [code]new Circle(points)[text] works in a code block.
+block[121].paragraph	[strong]They refuse rather than guess, and the refusals are the useful part.
+block[122].table	rows=4 | [text]Ask for ; [text]Given ; [text]What happens | [text]a line ; [text]points spread evenly in a ring or a ball ; [strong]refused[text] — every line through the middle fits equally well | [text]a circle ; [text]collinear points ; [strong]refused[text] — no circle passes near them | [text]an arc ; [text]points that double back ; [strong]refused[text] — they have a circle but not an arc
+block[123].paragraph	[text]That last one is worth dwelling on. Shuffled points still have a perfectly good [emphasis]circle[text] through them, so a naive arc fit succeeds and returns a sweep that is nonsense. [code]Arc.FromBestFit[text] checks that the points advance around the circle in one direction, and says so when they do not — so the order you pass them in is data, not a hint.
+block[124].code	lang=csharp lines=13
+block[125].paragraph	[strong]One thing to know before you trust a fitted circle.[text] A radius is recovered from how much the arc [emphasis]bulges[text] away from its own chord, not from how long it is — so a short arc carries very little information about its radius, and noise comparable to that bulge makes the radius genuinely uncertain rather than merely imprecise. Spark fits it as well as it can be fitted (the naive algebraic answer is refined until it minimises the real distance to the points, which stops the radius coming out short on short arcs), but no method can recover what the measurements do not contain. If your points cover twenty degrees, treat the radius as an estimate.
+block[126].rule	---
+block[127].heading	level=2 [text]12. Rounding a corner
+block[128].paragraph	[code]Curve.Fillet[text] replaces the sharp corner where two curves cross with an arc of a given radius, and hands back the three curves that join:
+block[129].code	lang=csharp lines=9
+block[130].paragraph	[strong]It works between any two curves[text], not just two straight ones — an arc against a line, two arcs, a spline against anything. [strong]The arc is genuinely tangent to both[text], not merely touching them at plausible points, which is the difference between a corner that machines correctly and one that only looks right.
+block[131].paragraph	[text]Three things to know:
+block[132].listitem	[strong]You pass the plane's normal.[text] Two straight lines have no plane of their own to read — which is
+block[133].paragraph	[text]why [code]Line.PlaneOf()[text] returns [code]null[text] — so the fillet asks instead of guessing. For curves that do have a plane, [code]curve.PlaneOf()!.Value.Normal[text] is the answer.
+block[134].listitem	[strong]A radius too big for the corner is an error.[text] There is no fillet of radius 10 in a corner 2
+block[135].paragraph	[text]across, and you get a message rather than an arc that overshoots both curves.
+block[136].listitem	[strong]It rounds the corner nearest where the curves cross.[text] Two curves crossing have four corners,
+block[137].paragraph	[text]and all four have a valid tangent arc; the one you can see is the one you get.
+block[138].rule	---
+block[139].heading	level=2 [text]13. Making a curve longer
+block[140].paragraph	[code]Trimmed[text] only ever makes a curve shorter. [code]Extended[text] is the other direction — and it is what you reach for when two curves nearly meet and you need them to actually meet:
+block[141].code	lang=csharp lines=6
+block[142].paragraph	[text]Both numbers are [strong]distances along the curve[text], and both must be zero or more. Extending by a negative amount would be trimming, and a member that quietly did the opposite of its name is worse than one that refuses.
+block[143].paragraph	[strong]What you get back depends on what the curve could do.
+block[144].table	rows=5 | [text]Curve ; [text]Extended ; [text]Result | [code]Line ; [text]along itself ; [text]a longer [code]Line | [code]Arc ; [text]a wider sweep ; [text]a wider [code]Arc[text], stopping at a full turn | [code]Helix ; [text]more turns ; [text]a longer [code]Helix | [text]anything else ; [text]along the end tangent ; [text]a [code]PolyCurve[text] with straight tails
+block[145].paragraph	[strong]A straight tail is not a poor relation.[text] It meets the original smoothly — the join is tangent-continuous, so nothing kinks — and it is the honest answer for a curve whose own continuation is not cheap to compute. [code]EllipseCurve[text] is the case worth knowing: an ellipse carries on perfectly well past its ends mathematically, but it does not travel at a constant speed, so turning [emphasis]two units of extension[text] into [emphasis]how much more sweep[text] is an integral rather than a division. Spark gives you the straight tail and tells you so by handing back a [code]PolyCurve[text].
+block[146].paragraph	[strong]A closed curve has no ends[text], so extending a [code]Circle[text] is an error rather than a bigger circle.
+block[147].code	lang=csharp lines=12
+block[148].rule	---
+block[149].heading	level=2 [text]14. A smooth curve through points, and which way it sets off
+block[150].paragraph	[code]PolyLine.FromPoints[text] joins points with straight segments. [code]NurbsCurve.InterpolatePoints[text] passes a smooth curve [emphasis]through[text] them. Its control points are solved for and are not the points you gave, which is the difference between a curve through your data and a curve merely shaped by it:
+block[151].code	lang=csharp lines=13
+block[152].paragraph	[text]That leaves the curve to choose how it leaves the first point and arrives at the last. When those directions matter — a road that has to meet an existing one square-on, a path that must leave a wall at right angles — say so:
+block[153].code	lang=csharp lines=18
+block[154].paragraph	[strong]Only the direction of each tangent counts.[text] Its length is ignored, so [code]Vector3d.YAxis * 5.0[text] steers the same curve as [code]Vector3d.YAxis[text]. How [emphasis]hard[text] the curve holds the direction is chosen for you: the derivative is scaled to the total chord length of the points, which is the speed the middle of the curve already travels at, and it is the choice that makes points sampled from an arc, given the arc's own end tangents, come back on the arc between the samples. Choose it larger and the ends bulge; smaller and they flatten — and both stay perfectly tangent, which is why it is not a knob.
+block[155].paragraph	[text]The end tangent points [strong]along[text] the curve, the way you are travelling as you arrive, not back towards it. The degree is 3 unless you say otherwise and must be at least 2: a degree-1 curve is a polyline and has no tangent to pin. A zero vector is refused, because it is no direction at all.
+block[156].rule	---
+block[157].heading	level=2 [text]Related
+block[158].listitem	[link->geometry-basics.md]Points, vectors, planes and tolerance[text] — the value layer underneath
+block[159].listitem	[link->solids.md]Solids[text] — surfaces, solids, and what the kernel does rather than this layer
+block[160].listitem	[link->lacing.md]Lacing[text] — what happens when you feed a list of centers to one circle node

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E2-T67` Blocked, and measuring its premise changed its argument)
+**Last updated:** 2026-09-15 (`E11-T7` Done: the corpus caught what eighteen fixtures could not)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Eleven steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twelve steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T67` `Blocked` on the OpenCascade reinstall — evidenced by running `build-native.ps1`, not by re-reading the note.** MSVC 14.51.36231 is found by the script itself, so the toolchain is intact; it then refuses, having searched all three vcpkg roots, and the shim's forty exports include nothing touching `GProp`. **The unblocked half was done and it moved the row's argument.** `Solid.Volume`'s remarks claimed the mesh volume *approaches the true one from below*; measured against πr²h and π(R²−r²)h through the real shim it **holds** — and the error is an order of magnitude the *other* way from what the wording implies, **1.3e-5** relative on a cylinder at the node default, because OCCT's one-degree angular deflection binds long before the 0.01 linear one. **The test written to assert the opposite died on its first run and was deleted rather than adjusted.** What survives is a narrower and better case: the answer **moves** — 1.14% low coarse, 1.3e-7 low fine, a spread of **0.715 in a volume of 62.83** — on a node that takes no tolerance parameter, so a user reads a property of a meshing setting they cannot see ([N178](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3987** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E11-T7` — *link and asset integrity, plus Markdown renderer parity against a golden corpus*, and it is two halves with different states.** The link-and-asset half looks live: the docs harness is 67 checks and several are link checks, so **establish which half is actually outstanding before writing anything** — `E1-T19`, `E1-T22`, `E8-T15` and `E2-T38` were all found waiting on work already done, four in one week. **The parity half is the one the row's title puts second and the register calls open**: the in-product Markdown renderer (`E10-T13`, in `Spark.Api` and free of UI dependencies) should agree with a reference rendering over a committed corpus, so that a help topic looks the same in the app as it does on GitHub. `GeometryGolden`'s file format is the house pattern for the corpus — `#` provenance block, header row asserted literally — and `E2-T38` just proved out its diff table. **Then `E10-T14`** (the website, waiting on [PRD Q8](PRD.md#14-open-questions)) is the last `Open` row in the register. |
-| **Verify with** | **A corpus that goes red on a real divergence**, not one generated from the renderer it checks — a golden written by the thing under test asserts nothing ([N19], [N20]). Mutate the renderer and watch it fail. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E11-T7` `Done` — Markdown renderer parity, thirteen goldens over the shipped help topics, and the row was wrong about what it waited on.** It said the parity half needed `E8-T14`; the renderer is `E10-T13`, `Done` since 2026-09-02, so it had been buildable for thirteen days — **the fifth row this week waiting on something already delivered**. **Parity against a Markdown library would be the wrong reference**: `HelpMarkdown` is a deliberate subset under `ADR-0019`, so it must agree with *itself over the documents that exist*. The goldens record every block and **every inline run with its link target**, which is the half a plain-text golden loses. **Proved on a mutation the existing suite cannot see** ([N179](NOTES.md)): join a wrapped paragraph's lines without a space and **all eighteen `HelpTests` stay green** while every paragraph in the help runs its words together — the corpus reported **78 of 170 parts differing** and named them. The two see disjoint classes of defect. `EveryCorpusFileIsIndexed` caught the thirteen new files before the commit did. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4020** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E10-T14` — the website — is the only `Open` row left in the register, and it cannot be started.** It waits on [PRD Q8](PRD.md#14-open-questions), *where does the website live and who maintains it*, which is a client decision and not work: a hosting choice, a domain, and somebody who keeps it current after 1.0. **So the honest next step is not to build a website.** It is to **re-read the `Blocked` and `In progress` rows against the tree**, because this week found five rows waiting on something already delivered — `E8-T15`, `E1-T22`, `E1-T19`, `E2-T38`, `E11-T7` — and a sweep that assumes the register is right is the one thing that keeps missing them. Start with the `In progress` rows: `E8-T14`, whose text this step just proved stale in one clause, is the obvious first. **Then put `Q8` to the client with a recommendation rather than a question**, since every other row is done or needs a person. |
+| **Verify with** | **The tree, not the row.** For each row swept: the named type, test or file, read; and where the row claims a gate runs, the run id or the runner exit code. A row closed on *it looks present* is what produced the five. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16701,3 +16701,53 @@ test that mattered is the one that went red first and was deleted rather than ad
 
 **Cost.** One session. The row could have been marked `Blocked` in one line, and the line would have
 carried a magnitude nobody had measured and an argument that does not survive measurement.
+
+### 2026-09-15 — `E11-T7`: the corpus caught what eighteen fixtures could not
+
+**What.** `E11-T7`'s remaining half — *Markdown renderer parity against a golden corpus* — is done.
+Thirteen goldens under `tests/corpus/help/`, one per shipped help topic, and the check is proved on
+a mutation the existing parser tests cannot see.
+
+**The row was wrong about what it waited on.** It says the parity half *needs `E8-T14`*. The
+renderer is `E10-T13`, `Done` since 2026-09-02. The half had been buildable for thirteen days.
+**Fifth row this week found waiting on something already delivered**, after `E8-T15`, `E1-T22`,
+`E1-T19` and `E2-T38`.
+
+**Parity against what, because the obvious reading is wrong.** `HelpMarkdown` is a deliberate
+subset of Markdown — `ADR-0019` is why `Spark.Api` takes no parser dependency, and the subset is
+defined by what the topics already use. Checking it against a general library would check it
+against a specification it never claimed to meet and would go red on the first run for reasons that
+are all correct. **The reference it must agree with is itself, over the documents that exist.**
+
+**What the goldens record.** Every block in order with its kind, a heading's level and a fence's
+language, and — the part per-construct tests cannot reach — **every inline run with its kind and a
+link's target**. The targets matter: a topic whose cross-references all resolved somewhere else
+renders with identical visible text, and a golden over the text alone would hold. House format
+throughout: `#` provenance, header row asserted literally, `SPARK_UPDATE_GOLDEN=1` rewrites and
+fails anyway, and the sidecar is deleted by the run that goes green ([N177](NOTES.md), written
+yesterday and applied today). The diff aligns **by part name rather than row number**, so one
+inserted paragraph does not report the whole rest of the document as changed.
+
+**The mutation, which is the justification and not a formality.** `HelpMarkdown` joins a wrapped
+paragraph's lines with a space. Change it to no space and every paragraph in the shipped help runs
+its words together at each line break — *…in the running application.\*\*Owner:\*\**. **All eighteen
+`HelpTests` stayed green.** Every paragraph in every one of their fixtures is written on a single
+line, because that is what a fixture author writes. The corpus reported **78 of 170 parts differing
+in one topic** and named them. `EveryCommittedHelpTopicParses` reads the same thirteen files and
+asserts only that they parse with an id and a title.
+
+**So the two checks see disjoint classes of defect, which is [N179](NOTES.md).** The eighteen catch
+a rule stated wrongly. The corpus catches a rule that is right and an interaction that is not — and
+the interactions only exist because real documents are wrapped, nested and cross-linked in
+arrangements nobody sat down and thought of.
+
+**A guard I did not know about earned its keep.** `Spark.Docs.Verify.EveryCorpusFileIsIndexed` went
+red on the thirteen new files, naming each one: `tests/corpus/README.md` indexes every fixture and
+says what reads it. The index is written and the harness is green at 67 again.
+
+**Verified.** Build clean with zero warnings, format clean, **4020** tests over ten executables,
+zero failures and zero skips. The mutation run above, with the eighteen green beside it. The
+goldens were read before being committed, not only generated.
+
+**Cost.** One session. **The register now has one `Open` row**: `E10-T14`, the website, waiting on
+`PRD Q8` and therefore on a person.

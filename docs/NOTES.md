@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N178: the error was an order of magnitude the other way)
+**Last updated:** 2026-09-15 (N179: eighteen tests green while every paragraph lost its spaces)
 
 ---
 
@@ -5216,6 +5216,38 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N179 — Eighteen tests of the parser stayed green while every paragraph in the help lost its spaces
+
+**2026-09-15, `E11-T7`.** `HelpMarkdown` had eighteen tests: a heading, a paragraph, a list item, a
+quote, a rule, a fence with its language, a table with its alignment row dropped, a run of inlines
+with bold, italic, code and a link. Each is a good test of a rule. Together they did not notice a
+one-character change that would have wrecked every shipped help topic.
+
+**The mutation.** `HelpMarkdown` joins the lines of a wrapped paragraph with a space —
+`string.Join(" ", paragraph)`. Change that to `string.Join("", paragraph)` and every paragraph in
+the documentation loses the space at each line break: *…in the running application.\*\*Owner:\*\**.
+All eighteen tests stayed green. The new golden corpus reported **78 of 170 parts differing in one
+topic**, and named them.
+
+**Why the eighteen could not see it.** Every paragraph in every one of them is written on a single
+line, because a test author writing a fixture writes the shortest thing that exercises the rule
+they have in mind. **The rule they did not have in mind is the one that only exists because real
+documents are wrapped**, and no amount of care in writing fixtures produces the case, because the
+case is not a construct — it is what happens *between* two lines of a construct that the fixture
+only ever has one of.
+
+**The general shape, which is not "write more tests".** A fixture is written by someone who already
+knows what they are testing, so it contains the constructs they thought of, in the arrangement they
+thought of. A corpus of real documents contains the arrangements nobody thought of: a link inside a
+bold run inside a table cell, a quote split over four lines, a paragraph that wraps. **The two are
+not the same check at different scales; they see disjoint classes of defect.** The eighteen catch a
+rule stated wrongly. The corpus catches a rule that is right and an interaction that is not.
+
+**And it must be a corpus of the real thing.** These goldens are over `docs/help/concepts/`, the
+thirteen topics that ship, not a fixture directory beside the tests — a fixture corpus drifts away
+from the product and takes its arrangements with it. The cost is that editing a topic changes a
+golden, which is the point: the change becomes visible in a diff instead of invisible in a render.
 
 ## N178 — The error was an order of magnitude the other way, and the row's argument changed with it
 

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T67` Blocked on the reinstall; two `Open` rows left)
+**Last updated:** 2026-09-15 (`E11-T7` Done; one `Open` row left, and it needs a person)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -589,6 +589,17 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     real case is that the answer moves: **1.14% low coarse, 1.3e-7 low fine, a spread of
 >     0.715 in a volume of 62.83**, on a node that takes no tolerance parameter. **Two
 >     `Open` rows left**: `E11-T7` and `E10-T14`.
+> 13. ~~**`E11-T7`** — link and asset integrity, plus Markdown renderer parity against a
+>     golden corpus.~~ **Done 2026-09-15.** The row said the parity half needed `E8-T14`;
+>     the renderer is `E10-T13`, `Done` since 2026-09-02, so it had been buildable for
+>     thirteen days — the **fifth** row this week waiting on something already delivered.
+>     Thirteen goldens under `tests/corpus/help/`, one per shipped topic, recording every
+>     block and **every inline run with its link target**. **Proved on a mutation the
+>     eighteen existing parser tests cannot see** ([N179](NOTES.md)): join a wrapped
+>     paragraph's lines without a space and all eighteen stay green while every paragraph in
+>     the help runs its words together — the corpus reported 78 of 170 parts differing. **One
+>     `Open` row left in the whole register**: `E10-T14`, the website, which waits on
+>     [PRD Q8](PRD.md#14-open-questions) and therefore on a person.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

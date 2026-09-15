@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T38`: the golden diff table, verified by a real failure)
+**Last updated:** 2026-09-15 (`E11-T7`: renderer parity over the thirteen shipped topics)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1518,9 +1518,17 @@ nothing.
       check that was planned instead — a row whose note argues with its own status column — fires
       zero times in 120 commits and was abandoned on the measurement rather than on an opinion
       ([N176](NOTES.md)).*
-- [ ] Link and asset integrity, plus Markdown renderer parity against a golden corpus
-      (**E11-T7**). *Relative-link integrity is done and passing; asset integrity and
-      renderer parity wait on there being assets and a renderer.*
+- [x] Link and asset integrity, plus Markdown renderer parity against a golden corpus
+      (**E11-T7**). *All three, 2026-09-15. Relative links and heading anchors are
+      `EveryRelativeLinkResolves` and `LinkAnchorChecks`; asset integrity is covered by
+      construction, since the link expression matches `![alt](path)` too and the documentation
+      contains no images. **Renderer parity is thirteen goldens under `tests/corpus/help/`**, one
+      per shipped topic, recording every block with its kind and every inline run with its target —
+      compared against `HelpMarkdown` itself over the documents that exist, because it is a
+      deliberate subset (`ADR-0019`) and a general parser is the wrong reference. **Proved on a
+      mutation the eighteen existing parser tests cannot see**: joining a wrapped paragraph's lines
+      without a space leaves all eighteen green and makes every paragraph in the help run its words
+      together; the corpus reported 78 of 170 parts differing ([N179](NOTES.md)).*
 - [x] `Spark.Architecture.Tests` scans source and enforces all five reference-graph rules:
       `Spark.Api` sees only the BCL and `Spark.Geometry`; `Spark.Nodes.Core` never
       references `Spark.Engine`; `Spark.Viewport` is Avalonia-free; nothing under `src/`

@@ -1,0 +1,166 @@
+# Help-renderer golden for 'geometry-basics' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/geometry-basics.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.geometry-basics
+title	Points, vectors, planes and tolerance
+since	0.1
+nodes	(none)
+related	concepts.lacing, concepts.curves
+blocks	147
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes [code]Spark.Geometry[text]'s value layer, which exists and is tested. [strong]Owner:[text] [code]geometry-kernel[text] [strong]Last updated:[text] 2026-09-10
+block[1].quote	[strong]Scope.[text] This page covers [code]Spark.Geometry[text]'s [strong]value layer[text] — points, vectors, planes,
+block[2].quote	[text]transforms, intervals, boxes, angles and tolerances. Curves now exist too and have a page of
+block[3].quote	[text]their own: [link->curves.md]Curves, parameters and arc length[text]. There are still no surfaces, no
+block[4].quote	[text]meshes and no solids; those arrive at M5 and M6. Everything on this page is real today, and
+block[5].quote	[text]every example below was run against the assembly rather than written from memory.
+block[6].rule	---
+block[7].heading	level=2 [text]Why this page exists
+block[8].paragraph	[text]You do not need a maths degree to model in Spark, but you do need four ideas, because Spark is opinionated about all four and will refuse to guess on your behalf:
+block[9].paragraph	[text]1. A [strong]point[text] and a [strong]vector[text] are different things, and Spark makes you say which you mean. 2. Coordinates are [strong]right-handed[text] and [strong]unitless[text]. 3. An [strong]angle[text] is its own type, not a bare number. 4. [strong]Tolerance[text] is a value you pass in, not a setting somewhere.
+block[10].paragraph	[text]Each of these costs you a few extra keystrokes and buys you a class of bug you will never have. This page explains what each one is and why Spark takes the position it does.
+block[11].rule	---
+block[12].heading	level=2 [text]1. Points and vectors are not the same thing
+block[13].paragraph	[text]A [strong]point[text] is a position. [code](3, 4, 0)[text] as a point means [emphasis]the place three units east and four units north of the origin[text]. Move the origin and the point means somewhere else.
+block[14].paragraph	[text]A [strong]vector[text] is a displacement — a direction with a magnitude and no position at all. [code](3, 4, 0)[text] as a vector means [emphasis]five units in that direction[text], and it means exactly that wherever you happen to be standing. Translating a point moves it; translating a vector does nothing to it.
+block[15].paragraph	[text]Confusing the two is one of the classic hard-to-see geometry bugs, so Spark separates them into [code]Point3d[text] and [code]Vector3d[text] and only lets you cross between them with an explicit cast. The arithmetic that [emphasis]is[text] meaningful is available and reads exactly as it should:
+block[16].code	lang=csharp lines=12
+block[17].paragraph	[text]Notice what is missing. There is no [code]point + point[text], because the sum of two positions is not a position — that question almost always means "give me the average", so use [code]Midpoint[text] or [code]Lerp[text] and say so. [code]Lerp[text] does [strong]not[text] clamp its parameter: [code]t = 1.5[text] extrapolates past the end point, which is usually what a caller wanted.
+block[18].heading	level=3 [text]Missing positions
+block[19].paragraph	[code]Point3d.Origin[text] is [code](0, 0, 0)[text] and is also what a default-constructed [code]Point3d[text] holds. That is deliberate: a default point is a real position at the origin, not a missing one. When you need to say "there is no position here", use [code]Point3d.Unset[text], whose coordinates are all [code]NaN[text] — and test for it with [code]IsValid[text], never with [code]==[text]:
+block[20].code	lang=csharp lines=5
+block[21].paragraph	[text]That [code]==[text] returning [code]false[text] for a value compared with itself looks like a bug and is not. [code]operator ==[text] on every value type in the kernel is [strong]exact[text] and follows IEEE 754, which says a [code]NaN[text] is equal to nothing at all, itself included. [code]Equals[text] follows [code]double.Equals[text] instead and treats [code]NaN[text] as equal to [code]NaN[text], so hashing and dictionary lookup behave sensibly. If you want a geometric comparison, that is neither of them — it is [code]EqualsWithin[text], covered in [link->#5-tolerance-and-why-you-have-to-pass-it]section 5[text].
+block[22].heading	level=3 [text]Building one from angles
+block[23].paragraph	[text]Not every position arrives as three coordinates. A bolt on a flange, a mullion around a drum, a point on a dome — those are naturally described by [emphasis]an angle and a distance[text], and writing the sine and cosine out by hand is where the sign errors live. [code]Point3d[text] and [code]Vector3d[text] both build themselves from [strong]cylindrical[text] and [strong]spherical[text] coordinates:
+block[24].code	lang=csharp lines=18
+block[25].paragraph	[strong]The second angle of `FromSpherical` is measured from `+Z`, not up from the XY plane.[text] That is the [emphasis]polar[text] convention rather than the [emphasis]elevation[text] convention, and the two differ by a quarter turn. Nothing in a result reveals which one a library meant — both give plausible-looking points — so read it off the names: [code]Angle.Zero[text] is the north pole and [code]Angle.QuarterTurn[text] is the equator, exactly as the two lines above say.
+block[26].paragraph	[text]Two things are deliberately [strong]not[text] errors. A [strong]negative radius[text] reflects through the axis, so [code]FromCylindrical(-3, θ, h)[text] is the same point as [code]FromCylindrical(3, θ + 180°, h)[text] — refusing it would make two spellings of one point disagree. And a [strong]non-finite argument[text] gives you a point that answers [code]false[text] to [code]IsValid[text] rather than throwing, because that is how every [code]Point3d[text] behaves ([code]Unset[text] is three [code]NaN[text]s); the check belongs at [code]IsValid[text], where you are already making it. This is the opposite of [code]Plane[text]'s rule, and [link->#3-planes]section 3[text] explains why the two differ.
+block[27].paragraph	[text]Each of the four is also a constructor — [code]new Point3d(2.0, Angle.FromDegrees(45.0), 0.5)[text] — because a code block is C# and every factory in the kernel has one. The constructor forwards to the factory rather than repeating it.
+block[28].paragraph	[text]All four are nodes as well, so none of this needs a code block: [strong]Point.FromCylindrical[text], [strong]Point.FromSpherical[text], [strong]Vector.FromCylindrical[text] and [strong]Vector.FromSpherical[text], in the [emphasis]Point[text] category. Their angle ports are in [strong]degrees[text], like every angle port. If you know them by their Dynamo names, type [code]Point.ByCylindricalCoordinates[text] or [code]Point.BySphericalCoordinates[text] into the library search and the same nodes come back.
+block[29].rule	---
+block[30].heading	level=2 [text]2. Right-handed, and what that actually means for you
+block[31].paragraph	[text]Spark is [strong]right-handed[text] everywhere, with no exceptions anywhere in the kernel. The practical statements are these:
+block[32].listitem	[text]X crossed with Y gives [strong]+Z[text]. Point the fingers of your right hand along X, curl them
+block[33].paragraph	[text]towards Y, and your thumb points along Z.
+block[34].listitem	[text]A **positive rotation about an axis is counter-clockwise when you look down that axis from
+block[35].paragraph	[text]its positive end back towards the origin.** So a positive rotation about +Z carries +X towards +Y.
+block[36].listitem	[text]A plane's normal defines its positive side, and that is the side a signed distance reports
+block[37].paragraph	[text]as positive.
+block[38].code	lang=csharp lines=7
+block[39].paragraph	[text]One consequence catches people out, so it is stated plainly: [code]Plane.WorldXZ[text] has a normal of [strong]−Y[text], not +Y. Its X axis is the world X axis and its Y axis is the world [emphasis]Z[text] axis, and the only normal that keeps that frame right-handed points along −Y. This is not an oversight and must not be "corrected".
+block[40].paragraph	[code]Vector3d.AngleTo[text] is the unsigned partner: it always returns something in [code][0, 180][text] degrees and needs no axis, because it is not telling you which way round.
+block[41].rule	---
+block[42].heading	level=2 [text]3. Planes
+block[43].paragraph	[text]A [strong]plane[text] in Spark is an infinite flat surface carried as an origin plus a right-handed orthonormal frame: an [code]XAxis[text], a [code]YAxis[text] and a [code]Normal[text], where [code]XAxis × YAxis == Normal[text]. It is more than the geometric plane, because it also carries a [emphasis]coordinate system on[text] that plane, which is what lets you flatten 3D work into 2D and back.
+block[44].paragraph	[text]Every factory orthonormalises whatever you hand it, so you can pass convenient, non-perpendicular directions and still get a usable frame back.
+block[45].code	lang=csharp lines=10
+block[46].paragraph	[text]Build a plane from three points when that is how you have the geometry. The normal follows the right-hand rule for the points [strong]in the order you gave them[text], so swapping any two of them flips it:
+block[47].code	lang=csharp lines=8
+block[48].paragraph	[text]Three collinear or coincident points define no unique plane, and [code]FromThreePoints[text] throws [code]ArgumentException[text] rather than inventing one.
+block[49].heading	level=3 [text]Choosing a factory: which two facts do you have?
+block[50].paragraph	[text]The four factories differ only in what you already know. [code]FromOriginNormal[text] takes a point and a normal and picks the in-plane rotation for you; [code]FromOriginNormalXAxis[text] takes the same and lets you [strong]pin that rotation[text], which matters the moment you use [code]To2d[text] and care which way [emphasis]along[text] the plane is X. Like every factory, it orthonormalises: the X axis you pass need not lie in the plane, and only the part of it that does is kept.
+block[51].code	lang=csharp lines=10
+block[52].paragraph	[code]Offset[text] keeps the frame and moves only the origin, so [code]To2d[text] gives the same answer on both planes and only [code]DistanceTo[text] shifts. It refuses a non-finite distance: a plane whose origin is [code]NaN[text] is not a plane, and no factory will hand you one.
+block[53].heading	level=3 [text]Fitting one through points you already have
+block[54].paragraph	[text]Two more factories exist for the case where the plane is not something you choose but something your data already implies:
+block[55].code	lang=csharp lines=22
+block[56].paragraph	[code]FromBestFit[text] minimises the sum of squared distances, so the points need not lie on the result — that is the point of it. Its origin is the centroid, and [strong]its normal follows the winding of the points[text]: hand it a ring going one way and the normal obeys the right-hand rule for that ring, which is the same promise [code]FromThreePoints[text] makes. Reverse the list and you get the other side.
+block[57].paragraph	[strong]Both refuse the degenerate case rather than answering it[text], and this is where [code]Plane[text] behaves the opposite way to [code]Point3d[text]. Points that are on a line — or [emphasis]nearly[text] on a line — do not determine a plane, so [code]FromBestFit[text] throws instead of returning one whose normal was decided by rounding error. A point that lies [emphasis]on[text] the line throws out of [code]FromLineAndPoint[text] for the same reason. A [code]Plane[text] has no representable invalid state, so refusing is the only honest answer available to it; a [code]Point3d[text] does have one, which is why its factories hand back something that answers [code]false[text] to [code]IsValid[text] instead of throwing.
+block[58].paragraph	[text]Both are nodes too — [strong]Plane.FromBestFit[text] and [strong]Plane.FromLineAndPoint[text], aliased to [code]Plane.ByBestFitThroughPoints[text] and [code]Plane.ByLineAndPoint[text] — and the fit's points port takes the whole list rather than running once per point.
+block[59].heading	level=3 [code]default(Plane)[text] is not a plane
+block[60].paragraph	[code]Plane[text] is a struct, which is the right choice for something that appears once per element when a node replicates over a list of a hundred thousand — a class would put an allocation and a pointer chase on that path for nothing. The price of that choice is that [code]default(Plane)[text] exists, and it has a zero normal, and a zero normal is not a plane.
+block[61].paragraph	[text]Spark makes that loud rather than quiet. Every geometric question asked of a default plane throws:
+block[62].code	lang=csharp lines=8
+block[63].paragraph	[text]That behaviour is worth knowing about for a reason beyond the API. In the first version of this kernel, [code]default(Plane).Contains(anyPoint)[text] returned [strong]`true`[text] — every point in space silently lay on the null plane, and both tests written to guard the type were structurally incapable of noticing. The build was green throughout. It was an independent review, not a gate, that caught it. Where you see a member of this kernel being noisy about a degenerate input, that is why.
+block[64].paragraph	[code]Vector3d[text] takes the same line: [code]Normalised()[text] on a zero-length vector throws rather than returning zero and letting a meaningless direction propagate. Use [code]TryNormalise[text] where failure is an expected outcome rather than a mistake.
+block[65].code	lang=csharp lines=4
+block[66].rule	---
+block[67].heading	level=2 [text]4. Coordinates are unitless, and angles are typed
+block[68].heading	level=3 [text]Unitless coordinates
+block[69].paragraph	[text]A coordinate of [code]1.0[text] in Spark is one [strong]unit[text]. It is not one metre, one foot or one millimetre, and the kernel neither knows nor can know which you meant. There is no [code]UnitSystem[text], no unit-carrying numeric type and no conversion anywhere — this is PRD decision [strong]D12[text], and it is a decision rather than an omission.
+block[70].paragraph	[text]The reason is that a unit system that is only [emphasis]nearly[text] right is worse than none. Import and export therefore work in the file's own units and say so, and the meaning of "one unit" is established by your model and your consistency rather than by the software.
+block[71].paragraph	[text]What this asks of you in practice:
+block[72].listitem	[strong]Pick a unit before you start, and stay in it.[text] If a room is 8000 long, everything else
+block[73].paragraph	[text]in that model is in millimetres too.
+block[74].listitem	[strong]Convert at the edges, not in the middle.[text] If a supplier's data is in inches and your
+block[75].paragraph	[text]model is in millimetres, scale it once on the way in.
+block[76].listitem	[strong]Tell the kernel your scale where robustness depends on it.[text] That is what
+block[77].paragraph	[code]Tolerance.ForScale[text] is for, and it is the subject of the next section.
+block[78].paragraph	[text]Unitless does [emphasis]not[text] mean scale-blind. It means the scale is information you supply rather than information the type system carries.
+block[79].heading	level=3 [text]Angles
+block[80].paragraph	[code]Angle[text] is a distinct type, and there is deliberately [strong]no implicit conversion from `double`[text]. This is ADR-0011, and the argument is one line long: [code]Rotate(plane, 0.5)[text] must not compile, because no reader can tell whether the author meant half a degree or half a radian.
+block[81].code	lang=csharp lines=8
+block[82].paragraph	[text]An [code]Angle[text] is an unbounded [emphasis]quantity[text], not a direction: holding ten full turns or minus three radians is perfectly legal, and [code]Angle.Zero[text] is what a default-constructed one holds. When you want a canonical representative, ask for one:
+block[83].code	lang=csharp lines=5
+block[84].paragraph	[text]That [code]9.99999999999999[text] is not a defect and is not hidden from you. Degrees are converted to radians on the way in and back on the way out, and two conversions of an irrational factor do not round-trip exactly. It is the first practical reason you will meet for the next section.
+block[85].rule	---
+block[86].heading	level=2 [text]5. Tolerance, and why you have to pass it
+block[87].heading	level=3 [text]What tolerance is
+block[88].paragraph	[text]Computers store coordinates as [code]double[text]s, which have about fifteen or sixteen significant figures. Almost every geometric operation — rotating, intersecting, projecting, normalising — ends in a number that is very slightly wrong in the last few of those figures. Rotate the X axis a quarter turn about Z and you do not get [code](0, 1, 0)[text]:
+block[89].code	lang=csharp lines=2
+block[90].paragraph	[text]That [code]6.1e-17[text] is not a bug in the rotation. It is [code]cos(π/2)[text] as a [code]double[text], and no amount of care makes it zero. So "is this point on that plane?" and "are these two lines parallel?" cannot be answered by exact comparison — asked exactly, the answer is almost always [emphasis]no[text], and uselessly so.
+block[91].paragraph	[text]A [strong]tolerance[text] is how close counts as touching. [code]Tolerance[text] in Spark carries three numbers:
+block[92].table	rows=4 | [text]Component ; [text]What it answers ; [text]Default | [code]Linear ; [text]How far apart two positions can be and still count as coincident ; [code]1e-6 | [code]Angular ; [text]How far two directions can diverge and still count as parallel ; [code]0.001° | [code]RelativeEpsilon ; [text]How many significant figures must agree at large magnitudes ; [code]1e-12
+block[93].paragraph	[text]The third exists because the first is not enough on its own. At coordinates around [code]1e12[text], an absolute [code]1e-6[text] has fallen below what a [code]double[text] can even represent, so a purely absolute test silently degenerates into bit-equality. Every [code]EqualsWithin[text] in the kernel uses the hybrid rule — the larger of the absolute and the relative threshold — so it keeps meaning something at both ends of the range.
+block[94].code	lang=csharp lines=11
+block[95].paragraph	[code]AreEqual[text], [code]IsLessThan[text] and [code]IsGreaterThan[text] are a genuine three-way partition: for any pair of non-[code]NaN[text] operands, exactly one of them is true. That sounds obvious and was not. An earlier version computed each of the three against a slightly different subtraction, and the roundings disagreed by one unit in the last place exactly on the boundary — so [code]2.0[text] against [code]2.000001[text] fell into [strong]none[text] of the three buckets while the documentation invited callers to rely on the partition. All three now compare the same single subtraction against the same single threshold, which makes the property hold by construction rather than by luck.
+block[96].heading	level=3 [text]Why you pass it rather than set it
+block[97].paragraph	[text]Most CAD software has a document tolerance you set once in a preferences dialogue. Spark does not, and there is no ambient, static or thread-local default anywhere in the kernel. This is ADR-0010.
+block[98].paragraph	[text]The reason is Spark's evaluation cache. Every node's result is cached against a key derived from its inputs, and tolerance is part of that key. An ambient tolerance would be invisible to the key — so changing it would invalidate nothing, and your graph would go on serving you geometry computed at the old tolerance, silently, with no way of telling from the screen. A setting that quietly fails to take effect is worse than no setting.
+block[99].paragraph	[text]So every predicate takes tolerance as an argument. In return, the ergonomics are kept cheap: the parameter is optional, and omitting it means the default.
+block[100].code	lang=csharp lines=6
+block[101].paragraph	[text]One trap is worth naming. A default-constructed [code]Tolerance[text] means [strong]"use the default"[text], not "compare exactly". [code]Tolerance.Default == default[text] is [code]true[text], and reading [code]Linear[text] on a default-constructed value gives you [code]1e-6[text] rather than zero. If you want exact comparison, that is what [code]operator ==[text] is for.
+block[102].heading	level=3 [text]Scale awareness
+block[103].paragraph	[text]Because coordinates are unitless, no single tolerance can be right for every model. A linear tolerance of [code]1e-6[text] is sensible for a model measured in metres, absurdly tight for one measured in kilometres and uselessly loose for one measured in microns. [code]ForScale[text] derives a tolerance from a characteristic length — typically the diagonal of the bounding box of what you are working on:
+block[104].code	lang=csharp lines=4
+block[105].paragraph	[text]Only the linear component scales. The angular tolerance and the relative epsilon are both dimensionless and are therefore already scale-free, so [code]ForScale[text] leaves them alone.
+block[106].paragraph	[text]Scale-aware tolerance is built into this kernel from its first commit rather than retrofitted, because retrofitting it means revisiting every predicate that was written assuming a fixed epsilon. [code]Tolerance.ForScale[text] and the hybrid absolute/relative rule are the whole of that mitigation.
+block[107].rule	---
+block[108].heading	level=2 [text]6. Intervals: direction is not validity
+block[109].paragraph	[text]One small type is worth calling out, because its rule is the opposite of what a careful programmer guesses. An [code]Interval[text] is a pair of bounds, and a [strong]decreasing[text] interval — one whose [code]Min[text] exceeds its [code]Max[text] — is a perfectly good value, not a broken one. It is what a reversed curve's domain looks like.
+block[110].code	lang=csharp lines=5
+block[111].paragraph	[code]IsValid[text] asks only whether both bounds are finite. It deliberately does not require [code]Min <= Max[text], because the guard everybody writes without thinking — [code]if (!domain.IsValid) throw[text] — would then reject every reversed curve in the model.
+block[112].heading	level=2 [text]7. Bounding boxes, and the empty answer
+block[113].paragraph	[text]A [code]BoundingBox[text] is world-axis-aligned: two corners, no frame. [code]Union[text] grows one, [code]Intersection[text] narrows one, and the pair is where the interesting rule lives.
+block[114].code	lang=csharp lines=10
+block[115].paragraph	[strong]`Intersection` returns `BoundingBox?`, and the `null` is the point.[text] No value of [code]BoundingBox[text] unambiguously means [emphasis]no overlap[text]: a zero-size box is a real answer — it is what two boxes that touch along a face produce — so an empty result and a degenerate one must not be the same value. [code]Interval.Intersection[text] answers the same way for the same reason, and a box delegates each of its three axes to it, which is why a box and its intervals can never disagree about a boundary.
+block[116].paragraph	[code]BoundingBox.Empty[text] is the inverted infinite box. It contains nothing, intersects nothing, and is the identity for [code]Union[text] — which makes it the seed you want when accumulating a box over a sequence, and never a result you should test for.
+block[117].heading	level=2 [text]8. Rotations: [code]Quaternion[text] beside [code]Transform
+block[118].paragraph	[text]A [code]Transform[text] can already rotate. [code]Quaternion[text] exists for the three things a 4×4 matrix is bad at: [strong]composing[text] many rotations without accumulating shear, [strong]interpolating[text] between two orientations, and [strong]storing[text] an orientation in four numbers rather than sixteen.
+block[119].code	lang=csharp lines=11
+block[120].paragraph	[strong]Two quaternions describe every rotation[text], [code]q[text] and [code]-q[text], so component equality is not the same question as [emphasis]is this the same rotation[text]:
+block[121].code	lang=csharp lines=8
+block[122].paragraph	[text]Ask [code]IsSameRotation[text] when the question is about the rotation, and [code]EqualsWithin[text] when it is about the value. [code]Slerp[text] handles the same fact internally: it flips one input when needed so it always takes the short way round, which is the difference between a smooth 45° and an unexplained 315° spin.
+block[123].paragraph	[text]Like [code]default(Plane)[text], [strong]`default(Quaternion)` is not a rotation[text] — its components are all zero — and every geometric member throws on it. The rotation that does nothing is [code]Quaternion.Identity[text], and you have to ask for it by name.
+block[124].heading	level=2 [text]9. Rays, and finding things without looking at all of them
+block[125].paragraph	[text]A [code]Ray[text] is a point and a direction, and it [strong]stops at its origin[text] — what is behind it is not on it. Its direction is stored normalised, so every parameter is a distance in coordinate units.
+block[126].code	lang=csharp lines=10
+block[127].paragraph	[text]Asking [emphasis]which of these ten thousand things does the ray meet[text] by testing all ten thousand is fine once and ruinous every frame. [code]BoundingVolumeHierarchy[text] is the index that removes the loop. It is built over [strong]boxes[text] and answers with [strong]indices[text], so it works for anything you can bound — triangles, curves, whole objects — and never needs to know what an item is:
+block[128].code	lang=csharp lines=18
+block[129].paragraph	[text]Three things are worth knowing. [strong]A box query is a filter, never an answer[text] — the caller tests the real geometry of the few candidates that come back. [strong]`FirstHit` is the member that pays for the tree[text], because only it can skip a whole branch once something nearer has been found. And the index is [strong]immutable[text]: it is safe to query from many threads at once, and a changed set is a new index rather than an update.
+block[130].heading	level=2 [text]10. Saving geometry
+block[131].paragraph	[code]GeometryJson[text] writes any geometry value as JSON and reads it back:
+block[132].code	lang=csharp lines=2
+block[133].code	lang=json lines=6
+block[134].paragraph	[strong]Every value says what it is and which version it is[text], nested values included. That is what lets one type change its stored shape without disturbing the others, and it means a file can be read without a schema beside it. A version this build does not recognise is [strong]refused by name[text] rather than read approximately — a file from a newer Spark is not silently reinterpreted as slightly different geometry.
+block[135].paragraph	[text]Two consequences worth knowing. Non-finite numbers are written as [code]"NaN"[text], [code]"Infinity"[text] and [code]"-Infinity"[text] strings, because JSON has no numeric form for them and [code]BoundingBox.Empty[text] is built from infinities. And a type with no JSON form — [code]BoundingVolumeHierarchy[text], which is an index you rebuild rather than store — is refused loudly rather than written as an empty object.
+block[136].rule	---
+block[137].heading	level=2 [text]What is not here yet
+block[138].paragraph	[text]Honest scope, so you do not go looking:
+block[139].table	rows=8 | [text]Concept ; [text]State | [code]Point3d[text], [code]Vector3d[text], [code]Point2d[text], [code]Vector2d[text], [code]UV ; [text]Implemented and tested | [code]Angle[text], [code]Tolerance[text], [code]Interval[text], [code]BoundingBox ; [text]Implemented and tested | [code]Plane[text], [code]CoordinateSystem[text], [code]Transform[text], [code]Quaternion ; [text]Implemented and tested | [text]Lines, arcs, circles, ellipses, polylines, polycurves ; [text]Implemented and tested | [text]NURBS curves ; [text]M3 — not written | [text]Surfaces, meshes, tessellation ; [text]M5 — not written | [text]BRep solids, booleans ; [text]M6 — not written
+block[140].rule	---
+block[141].heading	level=2 [text]See also
+block[142].listitem	[link->lacing.md]Lists, ranks and lacing[text] — what happens when you feed a node a list of points
+block[143].paragraph	[text]instead of one.
+block[144].listitem	[text]ADR-0010 — why tolerance is explicit and scale-aware rather than ambient.
+block[145].listitem	[text]ADR-0011 — why [code]Angle[text] is a type with no implicit conversion from [code]double[text].
+block[146].listitem	[text]ADR-0002 — why Spark owns a managed geometry kernel at all.

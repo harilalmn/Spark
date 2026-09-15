@@ -1,0 +1,57 @@
+# Help-renderer golden for 'lists' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/lists.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.lists
+title	Building and reshaping lists
+since	0.1
+nodes	List.Count, List.GetItemAtIndex, List.FirstItem, List.LastItem, List.Reverse, List.Join, List.TakeItems, List.UniqueItems, List.OfRepeatedItem, List.Flatten, Number.Range
+related	concepts.lacing, concepts.evaluation
+blocks	38
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the list nodes in the running application. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-07
+block[1].quote	[strong]Scope.[text] Making lists, and changing their shape. What happens when a list arrives at a node
+block[2].quote	[text]that expected a single value is a different subject and has its own topic:
+block[3].quote	[link->lacing.md]Lists, ranks and lacing[text]. Read that one second; it is the one that explains why a
+block[4].quote	[text]graph produced 30 things instead of 3.
+block[5].rule	---
+block[6].heading	level=2 [text]A list is a value
+block[7].paragraph	[text]There is no separate list mode and no list wire. A node that produces many things produces a list, and a list travels down an ordinary wire like anything else. [code]Number.Range[text] is the usual way one starts:
+block[8].table	rows=5 | [code]start ; [code]end ; [code]step ; [text]Result | [text]0 ; [text]4 ; [text]1 ; [code]0, 1, 2, 3, 4 | [text]0 ; [text]1 ; [text]0.25 ; [code]0, 0.25, 0.5, 0.75, 1 | [text]5 ; [text]1 ; [text]-2 ; [code]5, 3, 1 | [text]0 ; [text]10 ; [text]0 ; [emphasis]error[text] — a step of zero never reaches the end
+block[9].paragraph	[text]The end is included when the step lands on it exactly. [code]0 to 1 step 0.3[text] gives [code]0, 0.3, 0.6, 0.9[text] and stops, because 1.2 is past the end.
+block[10].heading	level=3 [text]Coming from Dynamo: the [code]#[text] form
+block[11].paragraph	[text]Dynamo writes a range three ways, and [strong]all three have a node here now[text]:
+block[12].table	rows=4 | [text]Dynamo writes ; [text]The node ; [text]What you get | [code]3..5..0.25 ; [code]Number.Range[text] (start, end, step) ; [text]from 3 towards 5, stepping 0.25 | [code]3..5..#8 ; [code]Number.RangeByCount[text] (start, end, count) ; [strong]8 numbers evenly spaced from 3 to 5 | [code]3..#8..0.25 ; [code]Number.RangeByCountAndStep[text] (start, count, step) ; [text]8 numbers from 3, stepping 0.25
+block[13].paragraph	[text]The [code]#[text] forms count; the plain form steps. That is the only difference between them, and it is why the second and third take a [code]count[text] where the first takes a [code]step[text].
+block[14].paragraph	[strong]In a [code block](code-blocks.md) you can write Dynamo's syntax itself[text] — [code]var numbers = 3..5..#8;[text] — and it is lowered to a call on [code]NumberRange[text], the same code these three nodes run, so the canvas and the block cannot disagree. That syntax is a code-block feature rather than C#; the call underneath is ordinary C# and works anywhere:
+block[15].code	lang=csharp lines=2
+block[16].code	lang=csharp lines=2
+block[17].paragraph	[strong]`count - 1` is the trick, and getting it wrong is the usual mistake.[text] [code]#8[text] asks for eight values [emphasis]including both ends[text], so there are seven gaps between them, not eight. Divide by 8 and you get eight values that stop short of 5, which looks right until you read the last one. [code]ByCount[text] divides by seven, and it assigns the last value the bound you asked for rather than computing it — so a range from 3 to 5 ends at exactly [code]5[text], not at the double next door.
+block[18].paragraph	[code]Spark.Api[text] is already imported into every code block, so nothing here needs a [code]using[text] — which matters, because a code block cannot contain one.
+block[19].heading	level=2 [text]Lists can hold lists
+block[20].paragraph	[text]A list of lists is ordinary and is what Cross Product lacing produces. Its [strong]rank[text] is how deeply nested it is: a number has rank 0, a list of numbers rank 1, a list of lists of numbers rank 2. Rank is the single idea the whole of [link->lacing.md]lacing[text] is built on, which is why it is named here rather than left implicit.
+block[21].heading	level=2 [text]The nodes, and what each is for
+block[22].table	rows=11 | [text]Node ; [text]Takes ; [text]Gives | [code]List.Count ; [text]any list ; [text]how many items are in it | [code]List.GetItemAtIndex ; [text]a list, an index ; [text]the item at that index, counting from zero | [code]List.FirstItem ; [text]a list ; [text]its first item | [code]List.LastItem ; [text]a list ; [text]its last item | [code]List.Reverse ; [text]a list ; [text]the same items, opposite order | [code]List.Join ; [text]two lists ; [text]the two end to end | [code]List.TakeItems ; [text]a list, a count ; [text]the first [emphasis]n[text] items, or the [strong]last[text] [emphasis]n[text] when the count is negative | [code]List.UniqueItems ; [text]a list ; [text]duplicates removed, keeping the first of each | [code]List.OfRepeatedItem ; [text]a value, a count ; [text]that value, [emphasis]n[text] times | [code]List.Flatten ; [text]a nested list ; [text]one flat list of everything in it
+block[23].heading	level=2 [text]A worked example
+block[24].paragraph	[text]Ten points along a line, keeping every third one:
+block[25].paragraph	[text]1. [strong]Place `Number.Range`.[text] Set [code]start[text] to [code]0[text], [code]end[text] to [code]9[text], [code]step[text] to [code]1[text]. Its output is ten numbers. Put a Watch node on it and you will see them.
+block[26].paragraph	[text]2. [strong]Place `Point.FromCoordinates`[text] and wire the range into [code]x[text]. Leave [code]y[text] and [code]z[text] at zero. Ten points appear in the viewport, in a row along the world x axis. [emphasis]That is lacing doing its work — one node, ten results — and it is [lacing.md](lacing.md)'s subject, not this topic's.
+block[27].paragraph	[text]3. [strong]Place `List.TakeItems`[text] and wire the points into it. Set [code]count[text] to [code]4[text]. The viewport drops to the first four points.
+block[28].paragraph	[text]4. [strong]Change `count` to `-4`.[text] The viewport shows the [strong]last[text] four instead. A negative count takes from the end, which is the one thing about this node worth remembering.
+block[29].paragraph	[text]5. [strong]Place `List.Reverse`[text] after it and watch nothing move. The points are the same points in the opposite order; order matters to what comes next, not to where they are.
+block[30].heading	level=2 [text]Flatten is the one to be careful with
+block[31].paragraph	[code]List.Flatten[text] collapses [strong]every[text] level of nesting, not one. Given a list of three lists of four points it gives twelve points, and the grouping that told you which four belonged together is gone for good — there is no node that puts it back.
+block[32].paragraph	[text]That is usually what you want after a Cross Product, and it is almost never what you want before one. If you are reaching for Flatten to make an error go away, the error is more likely telling you about a rank mismatch that [link->lacing.md]lacing[text] explains.
+block[33].heading	level=2 [text]Indexing counts from zero, and from the end
+block[34].paragraph	[code]List.GetItemAtIndex[text] with index [code]0[text] gives the first item. [strong]A negative index counts back from the end[text], so [code]-1[text] is the last item and [code]-2[text] the one before it — which exists because the alternative is [code]List.GetItemAtIndex(list, List.Count(list) - 1)[text] every time somebody wants the last item, three nodes for something that should be one.
+block[35].table	rows=6 | [text]Index into [code]10, 20, 30 ; [text]Result | [code]0 ; [code]10 | [code]2 ; [code]30 | [code]-1 ; [code]30 | [code]-3 ; [code]10 | [code]3 ; [emphasis]error[text] — the list has 3 items
+block[36].paragraph	[text]An index past either end is an [strong]error[text], not a silently empty result. An empty result downstream looks exactly like a list that was always empty, and you would go looking in the wrong place. Use [code]List.Count[text] when you need to know how far you can go.
+block[37].paragraph	[code]List.FirstItem[text] and [code]List.LastItem[text] are the same idea without the arithmetic, and both error on an empty list for the same reason.

@@ -1,0 +1,106 @@
+# Help-renderer golden for 'files' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/files.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.files
+title	Saving and opening graphs
+since	0.1
+nodes	(none)
+related	concepts.lacing, concepts.curves, concepts.undo
+blocks	87
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the [code].spark[text] reader and writer, which exist and are tested. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-11 ([code]E3-T20[text]: a bundle opens from --open as well)
+block[1].quote	[strong]Scope.[text] A [code].spark[text] file holds nodes, wires, lacing, canvas positions and the values typed
+block[2].quote	[text]into unwired ports. It holds [strong]no geometry[text] — geometry exists only after evaluation. Assets and
+block[3].quote	[text]custom node definitions are later milestones and are not in the file yet. **Libraries a graph
+block[4].quote	[text]needs live beside it**, in a folder named after the file, rather than inside it — and the two
+block[5].quote	[text]travel together as one [code].sparkz[text] bundle.
+block[6].rule	---
+block[7].heading	level=2 [text]What a [code].spark[text] file is
+block[8].paragraph	[text]Plain JSON, formatted the same way every time. That is a deliberate choice with a cost and a reason ([link->../../adr/0017-spark-file-is-plain-json.md]ADR-0017[text]): a zip container would bundle assets more neatly and write more atomically, but it would make every change an opaque binary blob — no review, no [code]git blame[text], no three-way merge, and no way to see in a pull request that somebody changed a number from 5 to 50.
+block[9].paragraph	[text]Because Spark is meant to be shared — example repositories, issue reproductions, pull requests against a shared library — a graph that produces a [strong]readable diff[text] is worth more than one that is tidy on disk.
+block[10].paragraph	[text]Here is a whole graph, in full:
+block[11].code	lang=json lines=32
+block[12].paragraph	[text]Read it top to bottom and it says what it does: a range of ten numbers into a point node laced Cross Product. That legibility is the whole point of the format.
+block[13].rule	---
+block[14].heading	level=2 [text]The five things that keep a diff quiet
+block[15].paragraph	[text]A file that re-formats itself on every save produces a diff nobody reads, so five rules are fixed rather than left to the writer:
+block[16].paragraph	[text]1. [strong]Keys appear in a fixed order[text] — [code]id[text], [code]key[text], [code]lacing[text], [code]x[text], [code]y[text], [code]literals[text] — written out by hand rather than by a serialiser, so that reordering two properties in Spark's own source cannot silently change every file it writes. 2. [strong]Nodes are sorted by identity and wires by their endpoints[text], so the file never inherits the order things happen to sit in memory. Delete a node and re-add it and the file does not reshuffle. 3. [strong]Numbers are written in the shortest form that reads back exactly.[text] One third is not rounded to fifteen places, because that is not one third any more. 4. [strong]Two-space indentation, and a trailing newline.[text] 5. [strong]Text is written as you typed it.[text] A code block, a node's title and a note keep their [code]+[text], their [code]<[text] and [code]&[text], and their accented letters, so a code block reads in a diff the way it reads in the editor:
+block[17].code	lang=json lines=1
+block[18].paragraph	[text]The quotation marks are escaped because JSON requires it, and nothing else is. Graphs saved by builds before 2026-09-11 spelled these characters as escape codes; they open exactly the same, and the first time you save one it is rewritten the new way — a diff of spelling only, once ([link->../../adr/0026-spark-file-text-is-written-as-typed.md]ADR-0026[text]). An emoji is the one exception: it is still written as an escape code, and still comes back exactly.
+block[19].paragraph	[text]Together these make [strong]opening a graph and saving it produce no diff at all[text], which is asserted by a test rather than hoped for.
+block[20].rule	---
+block[21].heading	level=2 [text]Why each literal carries its kind
+block[22].paragraph	[text]A port that expects a whole number and a port that expects a number are different bindings, and JSON cannot tell [code]1[text] from [code]1.0[text]. So the kind travels with the value:
+block[23].code	lang=json lines=5
+block[24].paragraph	[text]Angles are written [strong]in degrees[text], which is the unit the port is edited in — a more faithful record of what you typed than the radians the kernel holds.
+block[25].paragraph	[text]Those five are the only kinds a port can hold. If a graph somehow has something else in a port, saving is refused [strong]while you still have the value[text], rather than succeeding and losing it quietly ([code]SPK1063[text]).
+block[26].rule	---
+block[27].heading	level=2 [text]What can go wrong when you open a file
+block[28].paragraph	[text]Spark refuses rather than guesses, and every refusal names what it found:
+block[29].table	rows=5 | [text]Code ; [text]What happened ; [text]What to do | [code]SPK1060 ; [text]The file is not valid JSON, or is not a graph ; [text]Check you opened a [code].spark[text] file; the message says what was missing | [code]SPK1061 ; [text]The file was saved by a [strong]newer[text] build of Spark ; [text]Update Spark. Nothing can be recovered safely by guessing at a format this build has never seen | [code]SPK1062 ; [text]The file names a node that is not loaded ; [text]A package is missing, or the node was renamed. The message names the node | [code]SPK1063 ; [text]A port holds a value the format cannot write ; [text]Only numbers, whole numbers, true/false, text and angles can be typed into a port
+block[30].paragraph	[strong]A graph containing a cycle still opens.[text] A file is not a gesture: the canvas refuses to [emphasis]draw[text] a wire that closes a loop, but a file that already contains one — through a hand edit, a bad merge, or an older build — has to load so you can see it and fix it. Every node on the cycle reports an error and the rest of the graph evaluates normally.
+block[31].rule	---
+block[32].heading	level=2 [text]The version number
+block[33].paragraph	[code]formatVersion[text] is a single whole number that counts up, and it is [strong]not[text] the version of Spark. A format change is a format change; a release is a release. Tying the two together would make every release a format question.
+block[34].paragraph	[text]A file from an older format version is migrated forward when it is opened. A file from a [emphasis]newer[text] one is refused, because the alternative is a build guessing at a shape it has never seen and silently dropping whatever it did not recognise.
+block[35].paragraph	[strong]A file carries the lowest version that can read it[text], not the version of the build that wrote it — so a graph you have never added notes, code blocks or packages to is still version 1, and still opens in the oldest Spark there is. A graph that names the packages it needs is version 5.
+block[36].rule	---
+block[37].heading	level=2 [text]Saving
+block[38].paragraph	[strong]`Ctrl+S` saves.[text] If the graph came from a file, it writes straight back to that file — no dialog, and the status bar names what it wrote. If the graph has never been saved, [code]Ctrl+S[text] asks where to put it, because that is a question with no answer yet.
+block[39].paragraph	[strong]`Ctrl+Shift+S` is Save as…[text], which always asks and then makes the file you chose the one the graph belongs to.
+block[40].paragraph	[strong]New and the demo graphs are different documents[text], so they forget the file you had open. A [code]Ctrl+S[text] straight after [strong]File ▸ New[text] asks where to save rather than writing an empty canvas over the graph you were just editing. Undo and redo are not new documents and keep the file, so a save after undoing goes where it always did.
+block[41].paragraph	[strong]An asterisk in the title bar means unsaved changes.[text] [code]tower.spark* — Spark[text] has edits that are not on disk; [code]tower.spark — Spark[text] does not.
+block[42].paragraph	[strong]Anything that would discard those changes asks first[text] — closing Spark, [strong]File ▸ New[text], [strong]Open[text], and the four example graphs. You get three answers, and [emphasis]Cancel[text] is the safe one: it is what you get from Escape, from the window's close button, and from dismissing the prompt any other way.
+block[43].paragraph	[strong]Choosing Save inside that prompt saves properly[text], which for a graph with no file yet means the file picker. If you close that picker without choosing, nothing is discarded and Spark stays open.
+block[44].paragraph	[strong]Undoing back to where you last saved clears the mark.[text] The document is compared with what was written, not counted in edits, so a change you made and undid is not a change.
+block[45].paragraph	[strong]Spark keeps a working copy of unsaved changes, so a crash takes nothing with it.[text] After every change that leaves the graph different from its file, the whole graph is written to a recovery folder in your user profile; saving, undoing back to what you saved, or closing Spark normally deletes it again. If Spark stops without closing — a code block that recurses for ever is the usual cause, and nothing can stop that from ending the program — the next start says so, under the menu:
+block[46].quote	[text]⚠ Spark did not close properly last time, and 'tower.spark' had changes that were never saved
+block[47].quote	[text](kept 11 Sep, 14:02). Restore them, or discard them.
+block[48].paragraph	[strong]Restore[text] opens the graph as it was, marked unsaved and still belonging to [code]tower.spark[text], so [code]Ctrl+S[text] writes it back there. [strong]Discard[text] deletes the copy. Nothing is restored without asking, a copy identical to the file on disk is not offered at all, and a graph with code blocks comes back [emphasis]not run[text], exactly as if you had opened it from someone else — what you agreed to run was the saved file, and this is not that file. A second Spark you start while the first is still open does not offer the first one's work: it is not lost, only somewhere else.
+block[49].rule	---
+block[50].heading	level=2 [text]The folder beside the file
+block[51].paragraph	[text]A graph that needs a library carries it in a folder named after the file, beside the file:
+block[52].code	lines=6
+block[53].paragraph	[strong]File ▸ Share as bundle…[text] zips the pair into one [code].sparkz[text] for you ([link->#sending-a-graph-to-somebody-the-sparkz-bundle]below[text]), and it opens with its libraries. Under a machine-wide install folder alone a [code].spark[text] is a graph plus verbal instructions about what to install first, and the instructions are not in the file.
+block[54].paragraph	[strong]This is why the Packages window asks you to save first.[text] A graph you have never saved has no file name, so there is no folder to name after it — Spark would have to invent a location and then move it the moment you saved. The window opens, but its [strong]Packages[text] tab says so and offers a [strong]Save graph…[text] button rather than guessing:
+block[55].quote	[text]Save the graph first. A package added here is installed into the graph's own [code].packages[text] folder,
+block[56].quote	[text]which sits beside the file and is named after it — and this graph has no file yet, so there is
+block[57].quote	[text]nowhere to put it.
+block[58].paragraph	[text]Save the graph and the tab comes back to life without your reopening anything.
+block[59].paragraph	[strong]The Local assemblies tab is not affected[text], because it does not need a folder: it adds a [code].dll[text] by its full path wherever that path is, which is exactly what a scratch graph you have not saved still has.
+block[60].paragraph	[text]Nothing in [code]tower.packages[text] is loaded because it is there. When you open the graph, Spark lets code blocks use only the assemblies you have already agreed to, and names the rest in a banner in the Properties pane — each file with the first eight characters of its hash:
+block[61].quote	[text]This graph's packages folder holds 1 assembly you have not agreed to load: Helpers.dll
+block[62].quote	[text](3F9A21C0). Code blocks cannot use it until you do.
+block[63].paragraph	[strong]Trust and load[text] agrees to them and rebuilds the code blocks against them. Spark remembers your answer against the assembly's [strong]contents[text] rather than its name — rebuild the DLL and it asks again, because it is not the file it was when you agreed to it. A library you added through the Packages window was agreed to when you added it, and does not ask.
+block[64].paragraph	[strong]Opening another graph lets go of this one's libraries[text], so two graphs can use different versions of the same one in a single session.
+block[65].heading	level=3 [text]The file names what it needs
+block[66].paragraph	[text]Saving writes the list of packages at the top of the file, before any node, so that a person opening it in a text editor reads what the graph needs before what it does:
+block[67].code	lang=json lines=11
+block[68].paragraph	[text]The list is [strong]what the file already named, plus whatever is in the folder[text] when you save — so a DLL you dropped in by hand is written down for the next person. It records names and places, not contents: whether a file's bytes may run is still asked when it loads.
+block[69].paragraph	[strong]When one is missing, the graph still opens and says which.[text] A banner names every package the file expects and the folder does not hold:
+block[70].quote	[text]This graph expects 'Helpers.dll' in 'tower.packages' beside it, and it is not there. Code blocks
+block[71].quote	[text]that use it will not compile until it is put back. The file still names it, so it will save
+block[72].quote	[text]unchanged.
+block[73].paragraph	[text]Nothing is dropped from the list because it was missing, so saving the graph on a machine without the package does not quietly edit it for the machine that has one.
+block[74].paragraph	[strong]Renamed the file in Explorer?[text] Spark looks in the folder named after the file as it is now. If you renamed [code]tower.spark[text] to [code]tower-v2.spark[text] and left the folder alone, the banner names both — the file names them under [code]'tower.packages'[text], Spark looked in [code]'tower-v2.packages'[text] — and renaming the folder to match brings them back.
+block[75].paragraph	[strong]Save as… takes the folder with it.[text] Saving [code]tower.spark[text] as [code]tower-v2.spark[text] copies [code]tower.packages[text] to [code]tower-v2.packages[text] and records the new name — a [strong]copy[text], so [code]tower.spark[text] still opens with everything it had. If a folder by the new name is already there, nothing in it is overwritten: it belongs to whatever graph was saved under that name before. The status bar says what was copied and what was left alone, and a graph with large packages takes as long to Save as… as it takes to copy them.
+block[76].rule	---
+block[77].heading	level=2 [text]Sending a graph to somebody: the [code].sparkz[text] bundle
+block[78].paragraph	[strong]File ▸ Share as bundle…[text] writes [code]tower.sparkz[text] beside [code]tower.spark[text]: the graph and its [code]tower.packages[text] folder in one file that cannot be half-sent. A graph with changes is saved first, because the bundle is made from the file.
+block[79].paragraph	[strong]File ▸ Open accepts a `.sparkz`[text] as well as a [code].spark[text]. Spark opens it into a folder of its own in your user profile — one per bundle, so opening the same one twice does not make a second copy — and the status bar says where, because [strong]Save writes there[text], not back into the bundle. To send your changes on, share a new bundle.
+block[80].paragraph	[strong]A bundle is a file from somebody else, and it is treated like one.[text] Its code blocks do not run until you agree, and its packages ask before they load, exactly as they would if you had unzipped it yourself. A bundle Spark cannot open safely is refused with the reason, and nothing is written: one that is not a Spark bundle, one from a newer Spark, one missing the graph it names, or one containing a file that would land outside its own folder.
+block[81].paragraph	[strong]Starting Spark with one[text] — [code]Spark.Desktop --open tower.sparkz[text] — opens it the same way as File ▸ Open does. [strong]From the command line[text], [code]spark pack tower.spark[text] makes the same bundle, and [code]spark run[text], [code]spark check[text] and [code]spark export[text] take a [code].sparkz[text] wherever they take a [code].spark[text].
+block[82].paragraph	[text]A bundle does not carry custom node definitions or assets yet — neither has a file of its own for a bundle to carry — nor a thumbnail.
+block[83].rule	---
+block[84].heading	level=2 [text]Related
+block[85].listitem	[link->lacing.md]Lacing[text] — the setting each node saves alongside its position
+block[86].listitem	[link->curves.md]Curves, parameters and arc length[text] — what the geometry in a graph is made of

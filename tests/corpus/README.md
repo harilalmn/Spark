@@ -2,7 +2,7 @@
 
 **Status:** Current.
 **Owner:** `test-engineer`
-**Last updated:** 2026-09-15 (the acceptance-criterion exemptions)
+**Last updated:** 2026-09-15 (the thirteen help-renderer goldens, `E11-T7`)
 
 This directory holds inputs the suites read: files that are checked in, compared against, and
 read by tests that live elsewhere. It is **deliberately not an MSBuild project**, which
@@ -40,6 +40,19 @@ exist.** It holds four kinds of thing:
 | `geometry/rational-nurbs.tsv` | Golden | `Spark.Geometry.Tests.GoldenGeometryTests` | Weights of 1 and ½ — exactly representable, so the hash is stable |
 | `geometry/polyline.tsv` | Golden | `Spark.Geometry.Tests.GoldenGeometryTests` | A closed polyline; the sampled branch of the hash |
 | `geometry/ruled-surface.tsv` | Golden | `Spark.Geometry.Tests.GoldenGeometryTests` | A ruled surface between two polylines |
+| `help/code-blocks.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/code-blocks.md` (The longest topic in the corpus at 170 parts, and the one with the most fenced code). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/command-line.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/command-line.md` (The CLI topic; tables of verbs and flags). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/curves.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/curves.md` (Curve concepts; the geometry topic with the most inline code). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/design-language.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/design-language.md` (The naming and convention topic). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/evaluation.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/evaluation.md` (How a graph runs; heavily cross-linked). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/files.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/files.md` (Saving, loading and the format). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/finding-nodes.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/finding-nodes.md` (The library panel and search). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/geometry-basics.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/geometry-basics.md` (Points, vectors and frames). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/lacing.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/lacing.md` (286 blocks — the largest topic, and the executable specification the case table lives in). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/lists.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/lists.md` (Lists and ranks). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/solids.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/solids.md` (Solids and the kernel seam). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/undo.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/undo.md` (Undo and redo). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
+| `help/workspace.tsv` | Golden | `Spark.Engine.Tests.HelpCorpusGoldenTests` | What `HelpMarkdown` makes of `docs/help/concepts/workspace.md` (The shell, docking and the canvas). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
 | `graphs/curves-2026-08-28.spark` | Real old-version artefact | `Spark.Engine.Tests.CorpusGraphTests` | `docs/examples/curves.spark` **exactly as it stood at `a30e98c`**, 2026-08-28 |
 
 ## The August graph, and why it is not a fixture somebody typed

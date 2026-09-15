@@ -1,0 +1,49 @@
+# Help-renderer golden for 'finding-nodes' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/finding-nodes.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.finding-nodes
+title	Finding and placing nodes
+since	0.1
+nodes	(none)
+related	concepts.undo, concepts.files
+blocks	30
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the library panel and the canvas creation box, both of which exist. [strong]Owner:[text] [code]spark-ui[text] [strong]Last updated:[text] 2026-09-07
+block[1].quote	[strong]Scope.[text] How to get a node onto the canvas: the library panel, how it is grouped, how its search
+block[2].quote	[text]ranks, and the two canvas gestures — [strong]right-click[text] for the search box, [strong]double-click[text] for a
+block[3].quote	[text]code block.
+block[4].rule	---
+block[5].heading	level=2 [text]Three ways to place a node
+block[6].paragraph	[text]1. [strong]Right-click empty canvas.[text] A search box opens where you clicked. Type, press Enter, and the node lands at that point. This is the fast one. 2. [strong]The library panel[text], on the left. Select a node and press [emphasis]Place node[text], or double-click the entry. It lands near the middle of the view. 3. [strong]Double-click empty canvas[text] for a [link->code-blocks.md]code block[text], which is the other fast one: a number, a formula or a list is quicker written than hunted for. This is Dynamo's gesture and it does the same thing here.
+block[7].paragraph	[text]And [strong]undo[text], if you placed the wrong one. Every placement is one step ([link->undo.md]undo[text]).
+block[8].heading	level=2 [text]The library panel is grouped twice
+block[9].paragraph	[text]The panel files every node under its [strong]category[text] — [code]Curve[text], [code]Solid[text], [code]Point[text], the same ten the canvas colours node headers by — and then splits each category three ways:
+block[10].table	rows=4 |  ;  ;  | [strong]Create ; [text]green [code]+ ; [text]Makes a new thing out of values that are not one. [code]Circle.FromCenterRadius[text], [code]Vector.ZAxis[text], [code]Number.Value[text]. | [strong]Action ; [text]amber bolt ; [text]Takes one of these and produces another. [code]Curve.Reverse[text], [code]Solid.Union[text], [code]Math.Divide[text]. | [strong]Query ; [text]blue [code]? ; [text]Reports something about one without producing another. [code]Curve.Length[text], [code]Solid.IsClosed[text], [code]List.Count[text].
+block[11].paragraph	[text]Each block has a coloured rail down its left edge, so which of the three you are reading is legible without going back to the heading. The order is always Create, then Action, then Query — the order a graph is built in, not alphabetical — and a block with nothing in it is not shown at all.
+block[12].paragraph	[strong]Why it is worth the two levels.[text] [code]Solid[text] alone holds thirty-eight nodes. Split three ways, a user who wants to [emphasis]make[text] a solid reads sixteen names instead of thirty-eight, and never reads the five that measure one.
+block[13].heading	level=2 [text]The search ranks; it does not filter
+block[14].paragraph	[text]Typing in either box ranks the whole library rather than narrowing it, in this order:
+block[15].table	rows=7 | [text]Rank ; [text]Matches when ; [code]circle[text] finds | [text]Exact ; [text]The name, or the part after the dot, [emphasis]is[text] what you typed ; [code]Math.Sin[text] for [code]sin | [text]Prefix ; [text]The name starts with it — or the part after the dot does, one step behind ; [code]Circle.FromCenterRadius | [text]Camel-hump ; [text]You typed the [strong]capitals ; [code]cfcr[text] → [code]Circle.FromCenterRadius | [text]Substring ; [text]It appears anywhere in the name ; [code]Arc.ByCircleAndPoint | [text]Category ; [text]It appears in the node's category ; [text]every geometry node, for [code]geometry | [text]Description ; [text]It appears in the node's description ; [text]nodes that merely mention a circle
+block[16].paragraph	[text]Ties are broken by how close the match was, then by [strong]Create, then Action, then Query[text] — the same order the panel files them in — and then alphabetically. That last part is not fussiness: it makes the order [strong]total[text], so the list does not reshuffle under your cursor between one keystroke and the next.
+block[17].paragraph	[strong]Kind breaks a tie; it does not win one.[text] Two nodes that answer your query equally well are sorted Create before Action before Query, so if you typed three letters in order to [emphasis]make[text] something, the nodes that make it are the ones you read first. But a node whose name [emphasis]is[text] what you typed always beats a node that merely mentions it in its description, whatever either of them does — otherwise searching would bury the node you named.
+block[18].paragraph	[strong]Camel-hump is the one worth learning.[text] With fifty-seven nodes you can skim; with a few thousand, which is what installing packages does, you cannot. [code]pfc[text] gets you [code]Point.FromCoordinates[text], [code]cfcr[text] gets you [code]Circle.FromCenterRadius[text], [code]bbc[text] gets you [code]BoundingBox.FromCorners[text].
+block[19].heading	level=2 [text]A worked example
+block[20].paragraph	[text]Open Spark on the demo graph.
+block[21].paragraph	[text]1. [strong]Right-click an empty part of the canvas[text], somewhere below the existing nodes. A box appears under the pointer with a text field and the hint [emphasis]Enter places it here · Esc cancels[text].
+block[22].paragraph	[text]2. [strong]Type `cfcr`.[text] One result: [code]Circle.FromCenterRadius[text], showing its signature [code](center, radius) → circle[text]. It is already highlighted, so there is nothing to click.
+block[23].paragraph	[text]3. [strong]Press Enter.[text] The node lands exactly where you double-clicked — not in the middle of the view, not offset from the pointer — and is selected, with the keyboard back on the canvas ready for the next gesture.
+block[24].paragraph	[text]4. [strong]Look at its ports.[text] [code]center  Point3d[text] and [code]radius  number[text]: the node tells you what to plug in, which is the other half of not having to search for anything.
+block[25].paragraph	[text]5. [strong]Press `Ctrl+Z`.[text] The node goes away, and the Undo tooltip had read [emphasis]Undo Add Circle.FromCenterRadius[text] before you pressed it.
+block[26].paragraph	[text]Try [code]circle[text] instead of [code]cfcr[text] and the list is longer: [code]Circle.FromCenterNormalRadius[text], [code]Circle.FromCenterRadius[text], [code]Circle.FromPlaneRadius[text], [code]Circle.FromThreePoints[text], and then [code]PolyLine.FromRegularPolygon[text]. The four [code]Circle[text] nodes match equally well and are all [strong]Create[text], so they come out alphabetically; [code]PolyLine.FromRegularPolygon[text] is a Create too and still sorts last, because it matches the word less well. Use the arrow keys to move the highlight without leaving the text field.
+block[27].heading	level=2 [text]Why the search box moved to right-click
+block[28].paragraph	[text]It used to be on the double-click, and the double-click belongs to code blocks. [strong]In Dynamo, double-clicking blank canvas creates a code block[text] — double-click, then type — and a user arriving with that habit got a search dialog instead. Now the double-click drops a code block at the point you clicked, and the search box has right-click, which had no other job on the canvas.
+block[29].paragraph	[text]Right-clicking a node, a port or a wire does nothing. That is a context menu, which is a feature with a menu behind it rather than half of one taught now and untaught later.

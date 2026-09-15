@@ -1,0 +1,67 @@
+# Help-renderer golden for 'evaluation' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/evaluation.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.evaluation
+title	How a graph evaluates
+since	0.1
+nodes	(none)
+related	concepts.lacing, concepts.files, concepts.undo
+blocks	48
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the evaluator in the running application. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-11 ([code]E3-T12[text]: a long mesh stops when the run is cancelled; solid operations still cannot)
+block[1].quote	[strong]Scope.[text] What happens between pressing run and seeing geometry: the order nodes run in, what
+block[2].quote	[text]gets skipped, what gets reused, and what the five wiring diagnostics mean. How a node handles a
+block[3].quote	[emphasis]list[text] is a separate subject — see [link->lacing.md]Lists, ranks and lacing[text].
+block[4].rule	---
+block[5].heading	level=2 [text]The short version
+block[6].paragraph	[text]Spark works out which nodes depend on which, runs them in dependency order, and reuses any answer it has already computed. Nothing runs before its inputs are ready, and nothing runs twice for the same reason.
+block[7].heading	level=2 [text]Order comes from the wires, not the canvas
+block[8].paragraph	[text]Where a node sits on the canvas has no effect on when it runs. The wires are the only thing that decides. Spark sorts the graph into [strong]levels[text]: level 0 is every node that depends on nothing, level 1 is everything that depends only on level 0, and so on.
+block[9].paragraph	[strong]Everything in one level is independent of everything else in that level.[text] That is what makes a level the unit of parallelism — Spark may run a level's nodes in any order, on any threads, and you cannot tell which it chose from the result.
+block[10].paragraph	[text]A worked example. Take this graph:
+block[11].code	lines=3
+block[12].table	rows=5 | [text]Level ; [text]Nodes ; [text]Why | [text]0 ; [code]Number.Range[text], [code]Number ; [text]Nothing feeds them | [text]1 ; [code]Point.FromCoordinates ; [text]Both its inputs are level 0 | [text]2 ; [code]Circle.FromCenterRadius ; [text]Its input is level 1 | [text]3 ; [code]Watch ; [text]Its input is level 2
+block[13].paragraph	[text]Move any node anywhere on the canvas and the table is unchanged.
+block[14].heading	level=2 [text]An answer already computed is not computed again
+block[15].paragraph	[text]Spark caches results [strong]by provenance[text]. A node's answer is filed under what produced it — its definition, the keys of its inputs, and the document tolerance — and never under which document it was in or when it ran.
+block[16].paragraph	[text]Two consequences you will notice:
+block[17].listitem	[strong]Editing one node re-runs that node and what is downstream of it, and nothing else.[text] Change a
+block[18].paragraph	[text]radius and the points feeding it are not recomputed, because nothing about them changed.
+block[19].listitem	[strong]Going back to a state you were in before costs nothing.[text] Undo, or retyping a value you had a
+block[20].paragraph	[text]minute ago, asks for results that are still filed under exactly the keys they had then. See [link->undo.md]Undo and redo[text]; the measured claim there is that a run after an undo recomputes [strong]zero[text] nodes.
+block[21].heading	level=2 [text]Cycles
+block[22].paragraph	[text]A wire that would make a node depend on itself, directly or through others, is [strong]refused as you draw it[text] — that is [code]SPK1012[text]. You cannot build a cycle by hand.
+block[23].paragraph	[strong]Some ports take no wire at all, and that is `SPK1015`.[text] A slider's [emphasis]value[text] is the one that exists today. The thumb on the node is that port's editor, so wiring a second source into it would leave two things setting one number and no answer to which of them the thumb should show. The port is otherwise ordinary — it holds a value, it is saved with the graph, and the node reads it when it runs. The canvas draws no connector for such a port, so in practice you meet the diagnostic only by opening a file that has one in it.
+block[24].paragraph	[text]You can still [emphasis]open[text] one, because a [code].spark[text] file is a file and a file can be edited or produced by something else. When that happens the graph opens rather than being refused, every node on the cycle reports [code]SPK1014[text], and everything downstream of the cycle is left un-evaluated. [strong]The rest of the graph still runs.[text] Break the loop by deleting one of its wires and the affected nodes recover on the next run.
+block[25].paragraph	[text]Spark never hangs on a cycle. The sort terminates on any graph, cyclic or not, and reports what it could not order instead of following it round.
+block[26].heading	level=2 [text]The five wiring diagnostics
+block[27].paragraph	[text]These are the codes about [emphasis]structure[text] — whether a wire can exist at all. They are raised when you draw a wire, not when you run.
+block[28].table	rows=6 | [text]Code ; [text]What it means ; [text]What to do | [link->diagnostics.SPK1010]`SPK1010` ; [text]The two ports' types have no rule that connects them ; [text]Insert a node that converts, or wire something else | [link->diagnostics.SPK1011]`SPK1011` ; [text]Both types have the same full name but come from [strong]different assemblies ; [text]Two packages ship the same type. Remove one, or use nodes from a single one | [link->diagnostics.SPK1012]`SPK1012` ; [text]The wire would close a cycle ; [text]Nothing to fix — the wire is simply not possible | [link->diagnostics.SPK1013]`SPK1013` ; [text]Accepted, but the conversion may lose information ; [text]A warning, not an error. Check the result is still what you want | [link->diagnostics.SPK1014]`SPK1014` ; [text]This node is on a cycle found when the file was opened ; [text]Delete one wire in the loop
+block[29].paragraph	[code]SPK1011[text] is worth a sentence of its own. It is refused at design time so that it can never become a runtime [emphasis]cannot cast `Foo` to `Foo`[text], which is the single most confusing error a plugin system can produce.
+block[30].heading	level=2 [text]Cancelling a run
+block[31].paragraph	[text]A run can be interrupted, and the check happens [strong]between nodes and between the elements of a replicated node[text] — so a graph of a thousand cheap nodes stops almost immediately.
+block[32].paragraph	[strong]A single long operation stops too, where it can be interrupted.[text] Meshing a surface checks between rows of the mesh, so a [strong]Surface.ToMesh[text] asked for at a tolerance far finer than the surface needs — [code]0.000001[text] on a surface ten units across, say, which is a quarter of a million facets — stops within a row of you pressing stop, rather than after the last facet. [strong]Solid operations cannot be interrupted[text]: a boolean, a fillet or a shell runs inside OpenCascade, which offers no way to stop a call from outside once it has started, so those stop when they finish.
+block[33].paragraph	[text]Everything already computed stays in the cache, so resuming after a cancel is cheap: the work already done is not repeated.
+block[34].heading	level=2 [text]Freezing a branch
+block[35].paragraph	[text]Select some nodes and press [strong]Freeze[text]. Frozen nodes are skipped when the graph runs, and so is everything downstream of them.
+block[36].paragraph	[text]This is for the case where one branch of a graph is slow and you are working on another. Rather than deleting the slow part and putting it back, you switch it off and leave it exactly where it is: the nodes keep their wires, their values and their positions, and the file saves with the freeze recorded, so it is still frozen when you open it tomorrow.
+block[37].paragraph	[strong]Frozen nodes are greyed and carry a `""" + chr(0x2016) + """` mark.[text] Nodes downstream of them are greyed as well and carry a [code]""" + chr(0x25CB) + """[text], the same mark any node gets when it did not run. Spark reports the freeze [strong]once[text], on the node you froze, as information rather than as a problem:
+block[38].code	lang=text lines=3
+block[39].paragraph	[text]Nothing downstream reports anything of its own. One frozen node at the head of a long branch would otherwise fill the diagnostics pane with fifty copies of a situation you created on purpose.
+block[40].paragraph	[strong]Freezing a node in a group freezes the whole group.[text] A group is your own statement that those nodes are one thing, and leaving half of it running would give you a branch that is neither on nor off.
+block[41].paragraph	[text]Press [strong]Unfreeze[text] to bring it back. The button says which of the two it will do before you press it, and it offers to unfreeze only when everything selected is already frozen.
+block[42].table	rows=5 | [text]Question ; [text]Answer | [text]Does a frozen node keep its last value? ; [text]No. It produces nothing, and downstream produces nothing. | [text]Does freezing change the file? ; [text]Yes """ + D + """ the flag is saved, so the freeze survives reopening. A graph with nothing frozen saves exactly as it did before. | [text]Does a frozen node still show errors? ; [text]No. It did not run, so it has nothing to report. | [text]Can I freeze part of a group? ; [text]No. Selecting one member freezes all of them.
+block[43].heading	level=2 [text]What this does not cover
+block[44].listitem	[strong]How a node handles a list[text] — that is replication, and it has its own topic:
+block[45].paragraph	[link->lacing.md]Lists, ranks and lacing[text].
+block[46].listitem	[strong]Why a node produced the wrong number.[text] Evaluation decides [emphasis]when[text] a node runs; what it computes
+block[47].paragraph	[text]is the node's own business. Put a Watch node on its output and look.

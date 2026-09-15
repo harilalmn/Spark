@@ -49,6 +49,10 @@ tests/corpus/viewport/*.diff.png
 # (E11-T11). The golden itself is committed; what a red run produced is not.
 tests/corpus/geometry/*.actual.tsv
 
+# The same, for the help-renderer goldens (E11-T7). Both are deleted by the run that goes
+# green again, so one being present always means that fixture is red now - N177.
+tests/corpus/help/*.actual.tsv
+
 # Python's bytecode cache. scripts/ holds build-progress.py and assemble-changelog.py; importing
 # either of them - which is how the register's summary counts are re-derived rather than adjusted -
 # leaves a __pycache__ behind that has no business in the tree.

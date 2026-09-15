@@ -1,0 +1,51 @@
+# Help-renderer golden for 'workspace' - E11-T7. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# This is what HelpMarkdown makes of docs/help/concepts/workspace.md: every
+# block in order, and every inline run inside it with its kind and a link's target.
+# HelpMarkdown is a deliberate SUBSET of Markdown (ADR-0019), so the reference it has
+# to agree with is itself over the documents that exist - not a specification.
+#
+# A change here is a change to what a reader sees in the help panel. If it is
+# intended, the topic or the parser changed and this file follows; if it is not, the
+# parser regressed on real input.
+Part	Detail
+id	concepts.workspace
+title	Panes and the workspace
+since	0.2
+nodes	(none)
+related	concepts.finding-nodes, concepts.evaluation, concepts.undo
+blocks	32
+example	yes
+block[0].paragraph	[strong]Status:[text] Current. Describes the shell in the running application. [strong]Owner:[text] [code]shell[text] [strong]Last updated:[text] 2026-09-07 (E8-T48: the Library and Properties toggles)
+block[1].quote	[strong]Scope.[text] The four panes — [strong]Library[text], [strong]Canvas[text], [strong]Viewport[text] and [strong]Properties[text] — how to
+block[2].quote	[text]show, hide, resize, float and re-dock them, the named workspaces, and the one command that puts
+block[3].quote	[text]everything back. Pane sizes are not part of the document, so none of this is undoable
+block[4].quote	[text]([link->concepts.undo]Undo and redo[text]) and none of it is saved into a graph.
+block[5].rule	---
+block[6].heading	level=2 [text]The four panes
+block[7].table	rows=5 | [text]Pane ; [text]What it is for | [strong]Library ; [text]Every node, by category, with a search box. Double-click an entry to place it | [strong]Canvas ; [text]The graph. Nodes, wires, notes and groups | [strong]Viewport ; [text]What the graph produced, in 3D | [strong]Properties ; [text]The selected node's values, the diagnostics from the last run, and the watch panel
+block[8].paragraph	[text]Drag the bar between two panes to resize them. [strong]A docked pane's title bar carries its title and nothing else[text] — no buttons; showing and hiding is done from the [strong]View[text] menu, and sizing with the bar between panes.
+block[9].heading	level=2 [text]Showing and hiding one pane
+block[10].paragraph	[strong]View → Library[text] and [strong]View → Properties[text] each show and hide that pane on its own. A tick beside the entry means the pane is showing.
+block[11].table	rows=3 |  ;  | [strong]View → Library ; [text]The node library, on the left | [strong]View → Properties ; [text]The properties pane, on the right — [strong]`F4`
+block[12].paragraph	[strong]`F4` is the quick one[text], because the properties pane is the one you hide and show most: it earns its width while you are setting a node up and wastes it while you are arranging the graph.
+block[13].paragraph	[text]These change [strong]one[text] pane and leave the other three exactly as they are, sizes included — which is what the named workspaces below cannot do, since each of them sets all four at once. The two work together: apply [strong]Modelling[text], then press [code]F4[text] when you do want the properties back, and only that pane moves.
+block[14].heading	level=2 [text]Floating a pane, and putting it back
+block[15].paragraph	[strong]Drag a pane's title bar out of the main window[text], or right-click it and choose [strong]Float[text]. The pane becomes an ordinary window of its own, which is what a second monitor is for: the viewport on one screen and the graph on the other.
+block[16].paragraph	[text]Its title bar carries three buttons: [strong]minimise[text], [strong]maximise/restore[text], and one that [strong]docks it back[text] into the main window.
+block[17].paragraph	[strong]Dragging that title bar is how you put it back by hand.[text] Drag it over the main window and Spark shows you where the pane will land — an edge of the window, or into another pane. [strong]View → Reset layout[text] puts everything back if you would rather not aim.
+block[18].quote	[strong]The last button docks the pane; it does not close it.[text] These four panes [emphasis]are[text] the shell, so
+block[19].quote	[text]there is nothing sensible for closing one to mean — it would leave you with a window missing a
+block[20].quote	[text]third of itself and no obvious way back. To stop showing a pane, use [strong]View → Workspace[text].
+block[21].quote	[text]Closing a floating pane any other way — the keyboard, the taskbar — docks it back too, and
+block[22].quote	[text]closing the main window closes it along with everything else.
+block[23].paragraph	[text]A returning pane arrives beside its neighbour in the column it belongs to: the viewport comes back next to the canvas. That is not always the exact slot it left from, and [strong]View → Reset layout[text] is the way to the original arrangement.
+block[24].heading	level=2 [text]Named workspaces
+block[25].paragraph	[strong]View → Workspace[text] has four arrangements:
+block[26].table	rows=5 | [text]Workspace ; [text]What it shows | [strong]Default ; [text]All four panes, canvas over viewport | [strong]Modelling ; [text]The viewport takes most of the height; the properties pane is hidden | [strong]Authoring ; [text]The graph takes most of the height; all four panes | [strong]Presenting ; [text]Canvas and viewport only
+block[27].heading	level=2 [text]Reset layout
+block[28].paragraph	[strong]View → Reset layout[text] rebuilds the shell from nothing and returns to [strong]Default[text]. It is the way back from any arrangement at all — panes dragged into each other, floated out, or both. Nothing in the document changes: the same graph, the same selection, the same undo history.
+block[29].rule	---
+block[30].heading	level=2 [text]Worked example: put the viewport on the other screen
+block[31].paragraph	[text]1. Open a graph with geometry in it — [strong]File → Open surfaces example[text] will do. 2. The viewport is the lower half of the middle column. [strong]Drag its title bar[text] out of the main window and let go. 3. It is now a window. Maximise it on your second screen and orbit with the right mouse button, pan with the middle, zoom with the wheel. 4. Minimise it, and find it again in the taskbar. 5. Restore it, then drag its title bar back over the bottom of the main window's middle column. Spark shows you where it will land. 6. Or skip the aiming: press the [strong]✕[text] on its title bar and it docks itself back beside the canvas. 7. [strong]View → Reset layout[text] puts all four panes back exactly where they started, and [strong]View → Workspace → Modelling[text] is the viewport-heavy shell without any of this.
