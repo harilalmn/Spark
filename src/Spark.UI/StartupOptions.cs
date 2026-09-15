@@ -156,6 +156,14 @@ namespace Spark.UI;
 /// arrangement is a thing you look at, headless drawing produces no pixels, and pressing
 /// <c>Ctrl+L</c> is a keystroke a headless run cannot make.
 /// </param>
+/// <param name="ShowPane">
+/// A pane to open at startup (<c>--pane NAME</c>), named as <c>WorkspacePane</c> names it, or
+/// null. Aimed at the screenshot path for the reason <c>--library</c> is: a pane the default
+/// layout leaves closed cannot appear in a capture of the running application, and
+/// <c>View → Script</c> is a click a headless run cannot make. <c>E6-T14</c>'s script pane is the
+/// only pane this applies to today, and the option is written by pane name rather than as
+/// <c>--script-pane</c> so that the next pane which ships closed needs no second flag.
+/// </param>
 /// <param name="RenameNode">
 /// Which node to open the in-place title editor over at startup (<c>--rename-node</c>), or -1 for
 /// none. Aimed at the screenshot path for the reason <c>--code-block-in-node</c> is: an editor
@@ -216,6 +224,7 @@ public readonly record struct StartupOptions(
     bool FrameNode = false,
     string? CodeBlockTyped = null,
     bool CleanUpLayout = false,
+    string? ShowPane = null,
     int RenameNode = -1,
     int PinPreview = -1,
     string? ExportGraph = null,
@@ -356,6 +365,7 @@ public readonly record struct StartupOptions(
         bool frameNode = false;
         string? codeBlockTyped = null;
         bool cleanUpLayout = false;
+        string? showPane = null;
         int renameNode = -1;
         int pinPreview = -1;
         string? exportGraph = null;
@@ -473,6 +483,10 @@ public readonly record struct StartupOptions(
                     cleanUpLayout = true;
                     break;
 
+                case "--pane" when i + 1 < args.Length:
+                    showPane = args[++i];
+                    break;
+
                 case "--code-block-type" when i + 1 < args.Length:
                     codeBlockTyped = args[++i];
                     break;
@@ -554,7 +568,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageEverything, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, pinPreview, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageEverything, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, showPane, renameNode, pinPreview, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
         {
             ListCodeFonts = listCodeFonts,
         };

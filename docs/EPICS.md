@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T16`'s last measurement landed: replication over 100 000 items)
+**Last updated:** 2026-09-15 (`E6-T14` Done: the docked script pane, and `E6` is complete)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -919,12 +919,22 @@ diverge most; rework is budgeted there specifically.
       assembly and no test would notice. The check is one line against the loaded-assembly list
       after opening a script-free graph, and until it exists this box is an opinion.*
 
-**Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of
-2026-08-31.** The inline Code Block covers every behaviour in this epic; the docked variant is a
-second presentation of the same pipeline rather than new machinery. M1.5 spike (c) — AvaloniaEdit
-plus a Roslyn completion popup that is acceptable to use — was the go/no-go gate on this epic's
-approach
-([E11-T21](#e11--quality-and-verification)).
+**Status.** **Complete as of 2026-09-15**, when the docked C# Script Node landed and `E6-T14`
+closed — this paragraph had said *complete except* it since 2026-08-31. `WorkspacePane.Script` is
+a pane in the centre column hosting the same `CodeBlockEditor` the Properties pane hosts, asking
+the same four Roslyn services on the same view model: the second presentation of one pipeline the
+row always described, with nothing added to `Spark.Scripting`. It is **the only pane hidden by
+default**, because it edits a code block and a new document has none.
+
+Two editors over one document are safe because neither holds it — both push from `ScriptText` and
+write back to it, so the view model is the single copy. The trap was arithmetic rather than layout
+([N186](NOTES.md)): a third pane in a proportional column added as a third *term* would have
+silently redefined `CanvasFraction` in every preset and every saved layout, so it is applied as a
+**scaling** and the guard is the ratio between the two graph views rather than either value.
+
+The one unticked box above is a different claim from the row and is exempted as such. M1.5 spike
+(c) — AvaloniaEdit plus a Roslyn completion popup that is acceptable to use — was the go/no-go gate
+on this epic's approach ([E11-T21](#e11--quality-and-verification)).
 
 ---
 

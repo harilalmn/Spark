@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N185: two benchmark numbers that agree are not two measurements)
+**Last updated:** 2026-09-15 (N186: a new term in a normalised set redefines every saved value)
 
 ---
 
@@ -5216,6 +5216,40 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N186 — A new term in a normalised set silently redefines every value already saved
+
+`E6-T14` added a sixth pane to the shell, third in a column that held two. The column's split is
+stored as one number, `WorkspaceLayout.CanvasFraction`, and the obvious way to place the newcomer
+is to give it a share and let the three divide the column between them.
+
+**That changes what `CanvasFraction` means, in every file that already contains one.** It was
+written down — in four presets, in every layout a user has saved, and in the field's own
+documentation — as *the canvas's share of the graph views*. As a third term it becomes *the
+canvas's share of the column*, which is a different quantity with the same name, the same type and
+the same range. Every saved layout keeps loading. Nothing throws, nothing fails a schema, and every
+shell comes back slightly wrong in a way that looks like a rounding difference.
+
+**The fix is to apply the newcomer as a scaling rather than as a term.** The script pane takes
+`ScriptFraction` of the column; the other two divide *what is left* in exactly the ratio they had
+without it. `CanvasFraction` goes on meaning what it always meant, and with the new pane hidden the
+arithmetic reduces to the two lines that were there before — which is the property worth testing,
+because a hidden pane that costs a rounding error is the same defect arriving quietly.
+
+**The test that catches it is a ratio, not a value.** Asserting the canvas comes out at some
+specific number just re-states whichever arithmetic was written; asserting that
+`canvasAfter / viewportAfter` equals `canvasBefore / viewportBefore` is the invariant itself, and it
+fails the moment somebody reaches for the third term. It was proved by reverting to that third term
+and watching `OpeningTheScriptPaneScalesTheGraphViewsAndKeepsTheirRatio` go red.
+
+**The general shape**, and it is not about docking. Any persisted set of weights that is normalised
+across *n* things has this property: adding the *n+1*th redefines all *n*, and no amount of schema
+versioning notices, because the schema did not change. Ask what the stored number is a fraction
+**of**, and keep that denominator fixed — or migrate the values, loudly, and accept that you cannot
+tell an old file from a new one unless you wrote a version down first. Scaling is cheaper, and it
+is available whenever the newcomer can be said to take its share off the top.
+
+---
 
 ## N185 — Two numbers that agree are not two measurements, and the allocation ratio said where the time went
 

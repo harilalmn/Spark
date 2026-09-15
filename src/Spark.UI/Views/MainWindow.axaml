@@ -243,6 +243,12 @@
           <MenuItem Header="_Console" ToggleType="CheckBox"
                     IsChecked="{Binding IsConsoleVisible, Mode=OneWay}"
                     Command="{Binding TogglePaneCommand}" CommandParameter="Console" />
+          <!-- E6-T14: the docked code editor, in the centre column and hidden until asked for.
+               It is the only pane that starts closed, because it edits a code block and a new
+               document has none. -->
+          <MenuItem Header="_Script" ToggleType="CheckBox"
+                    IsChecked="{Binding IsScriptVisible, Mode=OneWay}"
+                    Command="{Binding TogglePaneCommand}" CommandParameter="Script" />
           <Separator />
           <MenuItem Header="_Workspace">
             <MenuItem Header="Default" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />

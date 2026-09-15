@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-15
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
 > identifiers your code uses but does not declare; it gets one output port per line that makes
@@ -33,7 +33,13 @@ the same, at the next free spot.
 **Click the block to type in it.** One click opens the editor on the node, over the source it was
 already showing, with the caret after the last character — dragging the block still drags it,
 because a drag is a click that moved. The same source is also in the **Properties** pane, which is
-the better place for a long script and the only place the input-port type dropdowns are.
+the only place the input-port type dropdowns are.
+
+**For a long script, open View → Script.** It is a pane of its own in the centre column, showing
+the selected block's source with the whole height of the pane to do it in — where in Properties
+the editor shares its row with the port list, the watch panel and the settings. It is the same
+editor and the same source: type in either, and the other shows what you typed. **It starts
+closed**, because it edits a code block and a new document has none.
 
 **A new block starts with no input ports.** You do not add one with a button; you add one by
 using a name the code has not declared. That is the whole rule, and everything below is it

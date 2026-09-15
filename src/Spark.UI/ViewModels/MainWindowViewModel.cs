@@ -3220,6 +3220,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsConsoleVisible => Layout.IsVisible(WorkspacePane.Console);
 
     /// <summary>
+    /// Whether the docked script editor is showing. Drives the tick beside <i>View → Script</i>
+    /// (<c>E6-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the only one of the five that starts false</b>, because
+    /// <see cref="WorkspacePane.Script"/> is the only pane not in the default layout — it sits in
+    /// the centre column, where it costs the canvas height, and it has nothing to edit until
+    /// somebody places a code block.
+    /// </remarks>
+    public bool IsScriptVisible => Layout.IsVisible(WorkspacePane.Script);
+
+    /// <summary>
     /// Shows a pane if it is hidden and hides it if it is showing.
     /// </summary>
     /// <param name="name">The pane, by <see cref="WorkspacePane"/> name. Anything else is ignored.</param>
@@ -3263,6 +3275,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Layout));
         OnPropertyChanged(nameof(IsLibraryVisible));
         OnPropertyChanged(nameof(IsInspectorVisible));
+        OnPropertyChanged(nameof(IsScriptVisible));
         OnPropertyChanged(nameof(IsConsoleVisible));
         WorkspaceChanged?.Invoke(this, EventArgs.Empty);
     }

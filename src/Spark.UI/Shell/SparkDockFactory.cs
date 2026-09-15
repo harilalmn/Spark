@@ -82,9 +82,23 @@ public sealed class SparkDockFactory : Factory
         _tools.Clear();
         _docks.Clear();
 
+        // `E6-T14`: THE SCRIPT PANE IS IN THE CENTRE COLUMN AND HIDDEN BY DEFAULT.
+        //
+        // The centre column is the views you EDIT in - the graph, the geometry it makes, and now
+        // the source of a block inside it - where the right column is what the graph is telling
+        // you. A code editor is not a readout, so `Column` here rather than beside Properties.
+        //
+        // It costs the canvas height, which is why it is the one pane missing from
+        // `WorkspaceLayout.VisiblePanes`: a document with no code block in it has nothing to show
+        // here, and a new user should not pay a third of the centre column for a feature they
+        // have not reached. The dock is always BUILT - `Apply` is what hides it, exactly as it
+        // does for the other five - so a hidden Script pane is a collapsed dock at proportion
+        // zero and not a missing one, which is what lets View > Script bring it back without a
+        // rebuild.
         _center = Column(
             Pane(WorkspacePane.Canvas, "Canvas", content),
-            Pane(WorkspacePane.Viewport, "Viewport", content));
+            Pane(WorkspacePane.Viewport, "Viewport", content),
+            Pane(WorkspacePane.Script, "Script", content));
 
         // `E8-T82`: THE CONSOLE SITS UNDER PROPERTIES, WHICH IS WHERE THE CLIENT PUT IT.
         //
@@ -195,6 +209,18 @@ public sealed class SparkDockFactory : Factory
     public const double ConsoleFraction = 0.5;
 
     /// <summary>
+    /// How much of the centre column the script pane takes when it is showing (<c>E6-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A constant for the same reason <see cref="ConsoleFraction"/> is one</b>: a fourth
+    /// serialised fraction would make every layout written before this pane existed read back a
+    /// zero-height editor and look broken. A third of the column is enough for a screenful of a
+    /// small script without taking the canvas below the height at which a graph is navigable, and
+    /// the splitter is there for anybody who disagrees.
+    /// </remarks>
+    public const double ScriptFraction = 1.0 / 3.0;
+
+    /// <summary>
     /// Brings the built layout into line with a workspace: the pane proportions, and which panes
     /// are showing at all.
     /// </summary>
@@ -238,11 +264,32 @@ public sealed class SparkDockFactory : Factory
 
         // Same again down the middle: with the viewport hidden, a canvas still asking for 0.55
         // would leave the bottom half of the column empty rather than give the canvas the room.
+        //
+        // `E6-T14` ADDS A THIRD PANE HERE, AND IT IS APPLIED AS A SCALING RATHER THAN A THIRD
+        // TERM. The script pane takes `ScriptFraction` of the column and the other two divide
+        // WHAT IS LEFT in the same ratio they had without it - so `CanvasFraction` keeps meaning
+        // "the canvas's share of the graph views", which is what every saved layout and all four
+        // presets already wrote it down as. Making it a three-way split instead would silently
+        // reinterpret every number a user has saved.
+        //
+        // With the script pane hidden the scale is 1 and these two lines compute exactly what
+        // they computed before it existed, which is the property the default layout is tested on.
         bool canvas = layout.IsVisible(WorkspacePane.Canvas);
         bool viewport = layout.IsVisible(WorkspacePane.Viewport);
+        bool script = layout.IsVisible(WorkspacePane.Script);
 
-        SetProportion(WorkspacePane.Canvas, canvas ? (viewport ? layout.CanvasFraction : 1) : 0);
-        SetProportion(WorkspacePane.Viewport, viewport ? (canvas ? 1 - layout.CanvasFraction : 1) : 0);
+        // Alone in the column, the script pane takes all of it - the same rule the other two
+        // follow, and the reason this is not simply `script ? ScriptFraction : 0`.
+        double scriptShare = script ? (canvas || viewport ? ScriptFraction : 1) : 0;
+        double graphShare = 1 - scriptShare;
+
+        SetProportion(
+            WorkspacePane.Canvas,
+            canvas ? (viewport ? layout.CanvasFraction * graphShare : graphShare) : 0);
+        SetProportion(
+            WorkspacePane.Viewport,
+            viewport ? (canvas ? (1 - layout.CanvasFraction) * graphShare : graphShare) : 0);
+        SetProportion(WorkspacePane.Script, scriptShare);
 
         // And down the right column, the same shape a third time: whichever of the two is alone
         // takes all of it (`E8-T82`).

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T16` Done: replication over 100 000 items, measured at last)
+**Last updated:** 2026-09-15 (`E6-T14` Done: the docked script pane, and `E6` is complete)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are

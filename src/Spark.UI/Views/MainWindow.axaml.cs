@@ -43,6 +43,7 @@ public sealed partial class MainWindow : Window
     private readonly ViewportPane _viewportPane = new();
     private readonly InspectorPane _inspectorPane = new();
     private readonly ConsolePane _consolePane = new();
+    private readonly ScriptPane _scriptPane = new();
     private readonly Stopwatch _wallClock = new();
     private int _benchmarkFrames;
     private int _framesRun;
@@ -91,12 +92,20 @@ public sealed partial class MainWindow : Window
         // A code block's ports change when its script does, so the canvas has to rebuild its
         // structure rather than merely repaint - which is the one way editing a script differs
         // from editing a note.
-        _inspectorPane.ScriptEdited += (_, _) =>
+        //
+        // `E6-T14`: BOTH EDITORS RAISE THIS AND BOTH LAND HERE. The docked Script pane and the
+        // inline editor in Properties are two views of one document on one view model, so an edit
+        // committed in either has to have the same consequence - and giving them one handler is
+        // what makes that true by construction rather than by two copies staying in step.
+        void ScriptWasEdited(object? sender, EventArgs e)
         {
             Canvas.RefreshStructure();
             Canvas.InvalidateVisual();
             Model?.RequestRun();
-        };
+        }
+
+        _inspectorPane.ScriptEdited += ScriptWasEdited;
+        _scriptPane.ScriptEdited += ScriptWasEdited;
 
         // The toggle shows what the preference actually is rather than a hard-coded default, or
         // the menu would say "on" for a user who turned it off last week.
@@ -155,6 +164,7 @@ public sealed partial class MainWindow : Window
         [WorkspacePane.Viewport] = _viewportPane,
         [WorkspacePane.Inspector] = _inspectorPane,
         [WorkspacePane.Console] = _consolePane,
+        [WorkspacePane.Script] = _scriptPane,
     };
 
     /// <summary>
@@ -1634,6 +1644,17 @@ public sealed partial class MainWindow : Window
         if (Options.LibrarySearch is { } query && Model is { } libraryModel)
         {
             libraryModel.LibrarySearch = query;
+        }
+
+        // `E6-T14`: open a pane the default layout leaves closed, so it can be photographed. It
+        // goes through `TogglePane` rather than writing to the layout, so the menu tick, the
+        // proportions and the dock all move the way they do for a click - which is the only way
+        // a capture is evidence about the shell rather than about this branch. `TogglePane`
+        // raises `WorkspaceChanged`, and the handler set up in `OnDataContextChanged` is what
+        // re-applies the layout to the dock; there is nothing to call here.
+        if (Options.ShowPane is { Length: > 0 } paneName && Model is { } paneModel)
+        {
+            paneModel.TogglePane(paneName);
         }
 
         // After the collapse, so `--collapse` and `--select` together select the custom node the

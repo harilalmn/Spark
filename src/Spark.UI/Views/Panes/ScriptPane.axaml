@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+             xmlns:controls="clr-namespace:Spark.UI.Views.Controls"
+             x:Class="Spark.UI.Views.Panes.ScriptPane"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="True">
+
+  <!-- E6-T14. The selected code block's source, in a pane of its own.
+
+       A SECOND PRESENTATION OF ONE PIPELINE, NOT A SECOND PIPELINE. The editor is the same
+       `CodeBlockEditor` the Properties pane hosts, asking the same four Roslyn services on the
+       same view model, committing through the same `ScriptText` property. Nothing here reaches
+       into `Spark.Scripting`, and a graph with no code blocks still never loads Roslyn - opening
+       this pane is not placing a block, and `SparkSession.EnableScripting` is still first called
+       by `PlaceCodeBlock`.
+
+       WHAT IT BUYS OVER THE PROPERTIES ROW is height. In Properties the editor is the one `*` row
+       and shares it with the port list, the watch panel and the settings block; `E8-T84` is what
+       that cost when the row was squeezed to nothing. Here the editor IS the pane, so a long
+       script is read without the scrolling that made the inline block awkward past a dozen lines.
+
+       ROW 1 IS THE EDITOR AND ROW 2 IS THE EMPTY STATE, and they are separate rows for exactly
+       the reason the Properties pane learned: two controls on one row, one of which has no
+       visibility condition, is a control drawn over the top of another. Both of these have a
+       condition and they are each other's complement, so only one is ever laid out - but written
+       as one row, the next person to add a third thing inherits `E8-T84` again. -->
+  <Border Classes="pane">
+    <Grid RowDefinitions="Auto,*">
+      <TextBlock Grid.Row="0" Classes="paneTitle" Text="SCRIPT" />
+
+      <Grid Grid.Row="1" Margin="10,0,10,10"
+            IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <controls:CodeBlockEditor Name="ScriptEditor" VerticalAlignment="Stretch" />
+      </Grid>
+
+      <!-- Not a warning, so no warning glyph: nothing has gone wrong and there is nothing to put
+           right. It is an empty state, and it says the one thing a person in it needs to know -
+           what to do to leave it. -->
+      <TextBlock Grid.Row="1" Margin="14,10,14,10"
+                 Classes="caption"
+                 TextWrapping="Wrap"
+                 VerticalAlignment="Top"
+                 IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNull}}"
+                 Text="No code block selected. Place one from the toolbar, or select a code block on the canvas, and its source appears here." />
+    </Grid>
+  </Border>
+
+</UserControl>

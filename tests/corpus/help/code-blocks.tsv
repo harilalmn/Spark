@@ -15,9 +15,9 @@ title	Code blocks
 since	0.1
 nodes	(none)
 related	concepts.finding-nodes, concepts.lacing, concepts.files
-blocks	163
+blocks	164
 example	yes
-block[0].paragraph	[strong]Status:[text] Current. Describes the code block in the running application. [strong]Owner:[text] [code]scripting[text] [strong]Last updated:[text] 2026-09-11
+block[0].paragraph	[strong]Status:[text] Current. Describes the code block in the running application. [strong]Owner:[text] [code]scripting[text] [strong]Last updated:[text] 2026-09-15
 block[1].quote	[strong]Scope.[text] A code block is a node whose body is C# you type. Its input ports come from the
 block[2].quote	[text]identifiers your code uses but does not declare; it gets one output port per line that makes
 block[3].quote	[text]something — Dynamo's Code Block rule — or exactly what it says when it writes a [code]return[text].
@@ -30,153 +30,154 @@ block[9].quote	[text]This page is the reference.
 block[10].rule	---
 block[11].heading	level=2 [text]Writing one
 block[12].paragraph	[strong]Double-click empty canvas.[text] A code block lands where you clicked, empty and ready to type into — the editor is already open with the caret in it, so you can start typing without a second click. That is Dynamo's gesture and it does the same thing here. [strong]Insert → Code block[text] does the same, at the next free spot.
-block[13].paragraph	[strong]Click the block to type in it.[text] One click opens the editor on the node, over the source it was already showing, with the caret after the last character — dragging the block still drags it, because a drag is a click that moved. The same source is also in the [strong]Properties[text] pane, which is the better place for a long script and the only place the input-port type dropdowns are.
-block[14].paragraph	[strong]A new block starts with no input ports.[text] You do not add one with a button; you add one by using a name the code has not declared. That is the whole rule, and everything below is it applied.
-block[15].paragraph	[text]The simplest useful block is one line:
-block[16].code	lang=csharp lines=1
-block[17].paragraph	[text]That gives a node with one input port called [code]radius[text] and one output port called [code]result[text]. Nothing declared [code]radius[text], so Spark treats it as something the graph supplies — wire a number into it and the block runs.
-block[18].paragraph	[strong]Several free identifiers give several ports, in the order they first appear:
-block[19].code	lang=csharp lines=1
-block[20].paragraph	[code]width[text], then [code]height[text]. A local variable is [emphasis]not[text] a port, because it is declared:
-block[21].code	lang=csharp lines=2
-block[22].paragraph	[text]That block still has exactly one input, [code]radius[text].
-block[23].heading	level=2 [text]Several outputs
-block[24].paragraph	[strong]A block that returns nothing has one output port per variable it declares[text], named after the variable, in the order the lines appear:
-block[25].code	lang=csharp lines=2
-block[26].paragraph	[text]Two output ports, [code]area[text] and [code]circumference[text]. This is how Dynamo's code block behaves, and it is the quickest way to get a value out of every line: write the lines, wire the ports.
-block[27].paragraph	[text]Only variables declared at the [strong]top level[text] of the block count. One declared inside a [code]for[text], an [code]if[text] or a lambda does not, because it no longer exists when the block finishes:
-block[28].code	lang=csharp lines=7
-block[29].paragraph	[text]One port, [code]total[text].
-block[30].paragraph	[strong]Write a `return` and you decide the ports instead.[text] A named tuple gives one port per element:
-block[31].code	lang=csharp lines=4
-block[32].paragraph	[text]Two ports again — but now they are the two you named. Any other return shape gives one port called [code]result[text].
-block[33].paragraph	[strong]A line that is just an expression is a result too[text], and gets a port of its own:
-block[34].code	lang=csharp lines=4
-block[35].paragraph	[text]Three ports — [code]n[text], [code]p[text], and one carrying [code]4[text]. Every line that makes something gets a port, in the order the lines appear. This is Dynamo's Code Block rule, and Spark follows it.
-block[36].heading	level=2 [text]What the ports are called
-block[37].paragraph	[strong]A line that declares a variable gives a port named after it.[text] A line that does not gives a port named after the [emphasis]kind[text] of thing the expression is:
-block[38].code	lang=csharp lines=6
-block[39].paragraph	[text]Six lines, six ports: [code]integer[text], [code]function[text], [code]string[text], [code]n[text], [code]t[text], [code]list[text].
-block[40].paragraph	[code]function[text] is what an operator gives you, because an operator is a function — that is Dynamo's name for it and Spark uses the same one. [strong]If you would rather the port said something, name the line:[text] [code]var sum = 5.0 + 6;[text] gives a port called [code]sum[text].
-block[41].paragraph	[strong]Two lines of the same kind are numbered[text] — [code]integer[text], [code]integer2[text], [code]integer3[text] — and the first keeps the bare name, so adding a second integer line does not disturb the wire on the first.
-block[42].paragraph	[strong]The port name is read from what you typed, never from what it computed.[text] A port called [code]14[text] would be impossible: ports exist before the graph runs, and editing a script re-makes the wires by port [emphasis]name[text], so a name that changed with the value would drop every wire every time a number moved.
-block[43].paragraph	[strong]The rule for which lines count is narrower than it looks, and deliberately so.[text] Only an expression C# would refuse to accept as a statement gets a port — [code]n + p;[text], [code]$"..."[text], [code]total;[text]. A [strong]call[text] is still a statement, because discarding its value is usually the point:
-block[44].code	lang=csharp lines=3
-block[45].paragraph	[text]One port, [code]points[text]. [code]new List<int>();[text] on a line of its own is a statement for the same reason. If you want such a value on a port, put it in a variable — [code]var made = points.Count;[text] — or write [code]return[text]. Nothing that compiled before this rule existed changed meaning, because every line it claims was an error until it did.
-block[46].paragraph	[strong]A `return` overrules all of it.[text] That is Spark's own escape hatch and Dynamo has no equivalent: write one and the ports are exactly what it says, so a block with eleven working variables can put three of them on the canvas.
-block[47].paragraph	[text]Names matter more than positions here. [strong]Editing a script re-makes the wires by port name[text], so adding an identifier in the middle of your code does not silently rewire the graph — a port called [code]height[text] stays connected to whatever [code]height[text] was connected to.
-block[48].heading	level=2 [text]Geometry is already imported
-block[49].paragraph	[code]Spark.Geometry[text] and [code]Spark.Api[text] are in scope, along with [code]System[text], [code]System.Collections.Generic[text] and [code]System.Linq[text]. You do not need [code]using[text] lines for them:
-block[50].code	lang=csharp lines=8
-block[51].heading	level=2 [text]Dynamo's range syntax works as typed
-block[52].paragraph	[text]All three of Dynamo's range forms can be written straight into a code block:
-block[53].code	lang=csharp lines=2
+block[13].paragraph	[strong]Click the block to type in it.[text] One click opens the editor on the node, over the source it was already showing, with the caret after the last character — dragging the block still drags it, because a drag is a click that moved. The same source is also in the [strong]Properties[text] pane, which is the only place the input-port type dropdowns are.
+block[14].paragraph	[strong]For a long script, open View → Script.[text] It is a pane of its own in the centre column, showing the selected block's source with the whole height of the pane to do it in — where in Properties the editor shares its row with the port list, the watch panel and the settings. It is the same editor and the same source: type in either, and the other shows what you typed. [strong]It starts closed[text], because it edits a code block and a new document has none.
+block[15].paragraph	[strong]A new block starts with no input ports.[text] You do not add one with a button; you add one by using a name the code has not declared. That is the whole rule, and everything below is it applied.
+block[16].paragraph	[text]The simplest useful block is one line:
+block[17].code	lang=csharp lines=1
+block[18].paragraph	[text]That gives a node with one input port called [code]radius[text] and one output port called [code]result[text]. Nothing declared [code]radius[text], so Spark treats it as something the graph supplies — wire a number into it and the block runs.
+block[19].paragraph	[strong]Several free identifiers give several ports, in the order they first appear:
+block[20].code	lang=csharp lines=1
+block[21].paragraph	[code]width[text], then [code]height[text]. A local variable is [emphasis]not[text] a port, because it is declared:
+block[22].code	lang=csharp lines=2
+block[23].paragraph	[text]That block still has exactly one input, [code]radius[text].
+block[24].heading	level=2 [text]Several outputs
+block[25].paragraph	[strong]A block that returns nothing has one output port per variable it declares[text], named after the variable, in the order the lines appear:
+block[26].code	lang=csharp lines=2
+block[27].paragraph	[text]Two output ports, [code]area[text] and [code]circumference[text]. This is how Dynamo's code block behaves, and it is the quickest way to get a value out of every line: write the lines, wire the ports.
+block[28].paragraph	[text]Only variables declared at the [strong]top level[text] of the block count. One declared inside a [code]for[text], an [code]if[text] or a lambda does not, because it no longer exists when the block finishes:
+block[29].code	lang=csharp lines=7
+block[30].paragraph	[text]One port, [code]total[text].
+block[31].paragraph	[strong]Write a `return` and you decide the ports instead.[text] A named tuple gives one port per element:
+block[32].code	lang=csharp lines=4
+block[33].paragraph	[text]Two ports again — but now they are the two you named. Any other return shape gives one port called [code]result[text].
+block[34].paragraph	[strong]A line that is just an expression is a result too[text], and gets a port of its own:
+block[35].code	lang=csharp lines=4
+block[36].paragraph	[text]Three ports — [code]n[text], [code]p[text], and one carrying [code]4[text]. Every line that makes something gets a port, in the order the lines appear. This is Dynamo's Code Block rule, and Spark follows it.
+block[37].heading	level=2 [text]What the ports are called
+block[38].paragraph	[strong]A line that declares a variable gives a port named after it.[text] A line that does not gives a port named after the [emphasis]kind[text] of thing the expression is:
+block[39].code	lang=csharp lines=6
+block[40].paragraph	[text]Six lines, six ports: [code]integer[text], [code]function[text], [code]string[text], [code]n[text], [code]t[text], [code]list[text].
+block[41].paragraph	[code]function[text] is what an operator gives you, because an operator is a function — that is Dynamo's name for it and Spark uses the same one. [strong]If you would rather the port said something, name the line:[text] [code]var sum = 5.0 + 6;[text] gives a port called [code]sum[text].
+block[42].paragraph	[strong]Two lines of the same kind are numbered[text] — [code]integer[text], [code]integer2[text], [code]integer3[text] — and the first keeps the bare name, so adding a second integer line does not disturb the wire on the first.
+block[43].paragraph	[strong]The port name is read from what you typed, never from what it computed.[text] A port called [code]14[text] would be impossible: ports exist before the graph runs, and editing a script re-makes the wires by port [emphasis]name[text], so a name that changed with the value would drop every wire every time a number moved.
+block[44].paragraph	[strong]The rule for which lines count is narrower than it looks, and deliberately so.[text] Only an expression C# would refuse to accept as a statement gets a port — [code]n + p;[text], [code]$"..."[text], [code]total;[text]. A [strong]call[text] is still a statement, because discarding its value is usually the point:
+block[45].code	lang=csharp lines=3
+block[46].paragraph	[text]One port, [code]points[text]. [code]new List<int>();[text] on a line of its own is a statement for the same reason. If you want such a value on a port, put it in a variable — [code]var made = points.Count;[text] — or write [code]return[text]. Nothing that compiled before this rule existed changed meaning, because every line it claims was an error until it did.
+block[47].paragraph	[strong]A `return` overrules all of it.[text] That is Spark's own escape hatch and Dynamo has no equivalent: write one and the ports are exactly what it says, so a block with eleven working variables can put three of them on the canvas.
+block[48].paragraph	[text]Names matter more than positions here. [strong]Editing a script re-makes the wires by port name[text], so adding an identifier in the middle of your code does not silently rewire the graph — a port called [code]height[text] stays connected to whatever [code]height[text] was connected to.
+block[49].heading	level=2 [text]Geometry is already imported
+block[50].paragraph	[code]Spark.Geometry[text] and [code]Spark.Api[text] are in scope, along with [code]System[text], [code]System.Collections.Generic[text] and [code]System.Linq[text]. You do not need [code]using[text] lines for them:
+block[51].code	lang=csharp lines=8
+block[52].heading	level=2 [text]Dynamo's range syntax works as typed
+block[53].paragraph	[text]All three of Dynamo's range forms can be written straight into a code block:
 block[54].code	lang=csharp lines=2
 block[55].code	lang=csharp lines=2
-block[56].paragraph	[text]Each is one call on [link->lists.md]`NumberRange`[text] underneath — [code]ByCount[text], [code]ByCountAndStep[text] and [code]ByStep[text] respectively — which is the same code the [code]Number.Range*[text] nodes run, so a range cannot mean one thing on the canvas and another in a block. You can write the call yourself if you prefer it: [code]NumberRange.ByCount(3, 5, 8)[text].
-block[57].paragraph	[code]#[text] counts; no [code]#[text] steps. Eight values including both ends have [strong]seven[text] gaps between them, so [code]#8[text] divides the span by seven — and the last value is the bound you asked for rather than the double next door, which is not true of the arithmetic written by hand.
-block[58].paragraph	[strong]Two-part ranges are untouched.[text] [code]arr[1..^1][text] is ordinary C# and still slices; [code]var r = 0..1;[text] is still a [code]System.Range[text]. Only the three-part forms are rewritten, and they are safe to claim because a [code]System.Range[text] has no [code]..[text] operator — [code]a..b..c[text] cannot mean anything else in C#.
-block[59].paragraph	[text]A [code]#[text] inside a string or a comment is left alone, so [code]var label = "#3";[text] is a string and nothing else. Each block above declares one variable and so has one output port, [code]numbers[text] — the rule described under [link->#several-outputs]Several outputs[text]. Written without the variable, as [code]0..1..#8;[text], the port is called [code]list[text].
-block[60].heading	level=2 [text]The library is in scope too
-block[61].paragraph	[strong]Every node in the library can be called from a block.[text] [code]Solid[text], [code]Logic[text], [code]Colour[text], [code]Number[text], [code]Display[text] and the rest are in scope by name:
-block[62].code	lang=csharp lines=4
-block[63].paragraph	[strong]Where a library name would have collided, the name you already knew wins.[text] [code]Circle[text], [code]Curve[text], [code]Line[text], [code]Plane[text], [code]Arc[text], [code]Surface[text], [code]PolyCurve[text], [code]PolyLine[text] and [code]BoundingBox[text] are the geometry types, exactly as they always were, and [strong]`Math` is `System.Math`[text] — so [code]Math.PI[text] is what you expect. The library's own version is still there in full when you want it: [code]Spark.Nodes.Core.Circle.FromCenterRadius(...)[text].
-block[64].paragraph	[strong]Four have a different name in a block[text], because their node name is a type C# already uses:
-block[65].table	rows=5 | [text]On the canvas ; [text]In a code block | [code]List.Count ; [code]ListNodes.Count | [code]String.FromNumber ; [code]Text.FromNumber | [code]DateTime.Now ; [code]DateAndTime.Now | [code]TimeSpan.FromDateDifference ; [code]Duration.FromDateDifference
-block[66].paragraph	[strong]And a list node counts a graph list, not a C# one.[text] [code]ListNodes.Count(new List<object> {1, 2, 3})[text] is [code]1[text], because rank is something the graph adds around a node and a code block is inside the node. Use ordinary C# — [code]xs.Count[text] — for a list you made yourself.
-block[67].heading	level=2 [text]It tidies itself as you type
-block[68].paragraph	[strong]Press <kbd>Enter</kbd> and the lines above the caret are tidied[text]: each statement gets its own line, spacing is normalised, and that is all. [strong]The line you are typing is never touched[text] — it is not finished yet, and an editor that rearranges the words under your hands is fighting you.
-block[69].paragraph	[strong]Switch it off with the *Auto-format on line break* checkbox[text] under the editor in the Properties pane, beside the font. It is on to begin with, it applies to every block, and it is remembered between sessions. Like the font, it is a setting about you rather than about the document, so it changes nothing in the [code].spark[text] file.
-block[70].paragraph	[strong]<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> formats the whole block[text], including the line you are on. It is VS Code's gesture, and it works whether or not the checkbox is ticked — turning the automatic tidying off is a reason to want the manual command, not a reason to lose it.
-block[71].heading	level=2 [text]And when you click away
-block[72].paragraph	[strong]Click out of a block and it is formatted[text]: each statement gets its own line, spacing is normalised, and that is all. [code]3;20;[text] becomes
-block[73].code	lang=csharp lines=2
-block[74].paragraph	[strong]Your ports do not change.[text] A block's inputs come from the names it uses without declaring, and its outputs from its [code]var[text] lines — neither is a fact about where the line breaks are, so tidying moves text and nothing else. Nothing you have wired can come loose.
-block[75].paragraph	[strong]A block that does not compile is left exactly as you typed it.[text] Half-finished work is the normal state of a block you are clicking away from, and an editor that rearranges broken code is fighting you. Fix the error and the next tidy — on a line break, on a click away, or on <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> — will sort it out.
-block[76].paragraph	[text]This is what makes the tidying safe to run on every line break rather than only on a finished block: while an [code]if[text] is still missing its closing brace, the text does not parse, and text that does not parse is returned untouched.
-block[77].paragraph	[strong]Your `using` lines stay at the top and your comments stay where they are.
-block[78].heading	level=2 [text]Printing to the console
-block[79].paragraph	[strong]`Console.WriteLine` works in a code block, with no `using` to type[text], and the text appears in the Console pane, under [strong]Properties[text] on the right. It is there by default; [strong]View ▸ Console[text] hides and shows it, and [strong]View ▸ Reset layout[text] brings it back.
-block[80].code	lang=csharp lines=5
-block[81].paragraph	[strong]`Console` means Spark's console here, not `System.Console`.[text] Spark is a windowed application with no terminal behind it, so [code]System.Console.WriteLine[text] writes where nobody can see it — the name is pinned to the one that puts the line where you can read it, exactly as [code]Circle[text] and the other eight are pinned. [code]System.Console[text] is still there under its full name if you have a reason to want it.
-block[82].paragraph	[strong]The same three are nodes[text], under [strong]Display[text] in the library: [code]Console.Write[text], [code]Console.WriteLine[text] and [code]Console.Clear[text]. Each [strong]passes its text through[text] as its output, so a console node sits in the middle of a chain rather than ending it — wire a value in, read it on the way past, and carry on. [code]Console.Clear[text] outputs how many lines it removed.
-block[83].paragraph	[strong]They run every time the graph runs[text], unlike every other node. Spark normally serves a node whose inputs have not changed from its cache, which for these would mean printing once and never again; they are marked as having a side effect, so they re-evaluate on each run.
-block[84].paragraph	[strong]The console keeps the last 10,000 lines.[text] A loop that writes more drops the oldest, and the pane says how many it dropped rather than letting you read from the top of something incomplete.
-block[85].heading	level=2 [text]Using a library from nuget.org
-block[86].paragraph	[strong]File ▸ Packages…[text], untick [strong]Spark packages only[text], search, select the row, and press [strong]Add as a library…[text]. You will see what the package is — publisher, licence, whether it is signed, what else it will install, and whether it carries native code — before anything lands on your disk. Agreeing puts it in the folder beside your graph, and code blocks can use its types straight away.
-block[87].paragraph	[strong]Two buttons, two different things.[text] [strong]Install…[text] is for a [emphasis]Spark package[text]: it carries a manifest saying which of its assemblies hold nodes, and installing it puts new nodes in the library panel. [strong]Add as a library…[text] is for any ordinary .NET package — most of nuget.org — and it adds [strong]types[text] you can write code against, not nodes. A library needs no manifest, which is why the two buttons exist rather than one that sometimes refuses.
-block[88].paragraph	[strong]It goes beside your graph[text], in [code]<name>.packages[text], not into a machine-wide folder — so the graph and what it needs travel together. That is also why the window asks you to save an untitled graph first: there is no file to name the folder after. See [link->files.md#the-folder-beside-the-file]Saving and opening graphs[text].
-block[89].paragraph	[strong]You do not have to write the `using`.[text] The namespaces of a library you added are imported for you, so this compiles the moment the package is in:
-block[90].paragraph	[text]<!-- spark:skip -->
-block[91].code	lang=csharp lines=2
-block[92].paragraph	[strong]Unless a name in it already means something else.[text] One clash is enough to keep the whole namespace out, because [emphasis]why does `Sprocket` resolve and `Line` not[text] is a worse question than a namespace that plainly was not imported. When that happens the window says so and names the types that stopped it:
-block[93].quote	[code]Autodesk.Revit.DB[text] was not imported: it defines [code]Arc[text], [code]Curve[text], [code]Line[text], [code]Mesh[text], [code]Plane[text],
-block[94].quote	[code]Point[text] and [code]Transform[text], which already mean something in a code block. Write
-block[95].quote	[code]using Autodesk.Revit.DB;[text] in the block to use it there.
-block[96].paragraph	[strong]Write that `using` at the top of your block and it wins inside that block[text], which is the way out. C# stops at the innermost scope that has an answer, so your directive shadows what Spark imported rather than colliding with it:
-block[97].paragraph	[text]<!-- spark:skip -->
-block[98].code	lang=csharp lines=4
-block[99].paragraph	[text]And if you want both, alias the one you want to rename:
-block[100].paragraph	[text]<!-- spark:skip -->
-block[101].code	lang=csharp lines=4
-block[102].paragraph	[strong]Nothing is loaded because it is there.[text] A folder of DLLs beside a graph that arrived by email is somebody else's code, so Spark asks before compiling against it and remembers your answer against the assembly's [strong]contents[text] — rebuild it and it asks again, because it is not the file you agreed to.
-block[103].heading	level=2 [text]The editor
-block[104].paragraph	[strong]It is the same editor in both places[text] — on the node and in the [strong]Properties[text] pane — and it is a real one: C# syntax highlighting, line numbers, a completion list, signature help, squiggles under errors as you type, and VS Code's Selection commands on the context menu.
-block[105].paragraph	[strong]Code is set in Source Code Pro[text], which is the face Dynamo draws its Code Block in. Spark ships the font rather than asking your machine for one, so a block looks the same everywhere.
-block[106].paragraph	[strong]The Font dropdown under the editor in the Properties pane changes it[text] — for every code block rather than the selected one, and Spark remembers your choice between sessions. The list is Source Code Pro plus the monospaced fonts installed on your machine. Proportional fonts are left out because a block is sized by counting characters, and one whose characters are different widths would draw its code over its own ports.
-block[107].paragraph	[text]On the canvas it opens over the block's own source, and [strong]the block widens to hold it[text] — the editor is drawn at a readable size whatever the canvas is zoomed to, so the node makes room rather than the editor covering the ports. It goes back to its own size when you close it.
-block[108].paragraph	[strong]Panning, zooming and dragging the block leave it open[text] and carry it with the block, which stays big enough to hold it: the editor is drawn at a readable size whatever the canvas is at, so zooming out grows the block rather than shrinking the text. Drag the block by its title with the editor open and the editor goes with it.
-block[109].paragraph	[text]It closes when you click away. [strong]Escape closes it and keeps what you typed[text] — Ctrl+Z takes the edit back if you did not want it, which is not something that can bring typing back the other way. [strong]Enter is a newline[text], so it is clicking away, or Escape, that commits.
-block[110].paragraph	[strong]Type a dot, or press Ctrl+Space, and the list opens at the caret.[text] Keep typing to narrow it — [code]center.Di[text] selects [code]DistanceTo[text] — then [strong]Enter[text] or [strong]Tab[text] to accept, [strong]Escape[text] to dismiss, and the arrow keys to move through it. The editor keeps the keyboard the whole time, so the list never interrupts typing.
-block[111].paragraph	[text]Editing is committed when the editor loses focus. That is when the block is recompiled, its ports are worked out again, and the graph re-runs — never on every keystroke, which would recompile the graph while you were still half way through a word. The red squiggles do keep up with your typing, because underlining an error costs a compile that is thrown away rather than a rebuild of the node.
-block[112].heading	level=2 [text]What a wire teaches the block
-block[113].paragraph	[strong]Before anything is connected, an input port has no type[text], so Spark declares it [code]dynamic[text]: the script reads like C#, and what [code]radius[text] turns out to be is worked out while the graph runs.
-block[114].paragraph	[strong]Once you wire something in, the port has a type, and the block is recompiled with it.[text] Wire a [code]Point.FromCoordinates[text] into a port called [code]center[text] and the block is compiled as though you had written [code]Point3d center = …;[text] — so this works:
-block[115].code	lang=csharp lines=1
-block[116].paragraph	[text]and it works because the compiler knows what [code]center[text] is, not because it found out at run time. The port label on the canvas changes to match, and pulling the wire out puts the port back to [code]dynamic[text], because an unwired port has no type to claim.
-block[117].paragraph	[strong]This is what the completion list is built from.[text] With a point wired into [code]center[text], typing [code]center.[text] lists [code]X[text], [code]Y[text], [code]Z[text], [code]DistanceTo[text] and the rest of [code]Point3d[text]. With nothing wired in, it lists nothing — not because Spark is being unhelpful, but because the block really will be compiled with that input as [code]dynamic[text], and a list that promised members the compiler will not find would be worse than no list at all. [strong]Wire the port first, and the editor knows what you are working with — or tell it, which is the next section.
-block[118].heading	level=2 [text]Saying what a port is, before you wire it
-block[119].paragraph	[text]Wiring is not the only way to give a port a type, and it is the wrong way round when you are writing the code first. [strong]Every input port on a code block has a type dropdown in the properties pane, underneath its value box.[text] It starts on [emphasis]from the wire[text], which is the behaviour above. Choose anything else and the block is recompiled immediately as though that type had been wired in — the port label on the canvas changes, and completion starts working straight away.
-block[120].paragraph	[text]So to write this before there is anything to wire into it:
-block[121].code	lang=csharp lines=1
-block[122].paragraph	[text]put a code block down, type the line, and set [code]center[text] to [code]Point3d[text] in the dropdown. Typing [code]center.[text] now lists the members of a point.
-block[123].paragraph	[strong]A type you choose beats a type a wire brings.[text] The wire is the better source whenever there is one, which is why [emphasis]from the wire[text] is the default — but a setting that was quietly overruled would be worse than no setting, so once you have said what a port is, that is what it is. Put the dropdown back to [emphasis]from the wire[text] to hand it back.
-block[124].paragraph	[text]The choice is saved with the graph, and it survives editing the script: declarations are held by port [strong]name[text], so adding a line above does not move them onto the wrong port.
-block[125].paragraph	[strong]There is no button that adds an input.[text] A port appears because you used a name the code has not declared, and it disappears when you stop using it — the dropdown says what an existing port [emphasis]is[text], not whether it exists. That keeps one answer to "what are this block's inputs?", and the answer is the code.
-block[126].heading	level=2 [text]What arrives, and what it is called
-block[127].paragraph	[text]Numbers are widened where a graph would expect them to be: an integer arriving on a port the script uses as a [code]double[text] is converted rather than refused. When something genuinely wrong arrives, the message names the port rather than two CLR types:
-block[128].quote	[text]The port 'center' received a String, but the script uses it as a Point3d.
-block[129].heading	level=2 [text]Loops, and what stops them
-block[130].paragraph	[strong]A code block that never finishes would otherwise never be stoppable.[text] .NET has no safe way to interrupt a running thread, so Spark does not try: it rewrites your code before compiling it, and puts a check at the top of every loop.
-block[131].paragraph	[text]Three things follow from that, and they are worth knowing before you meet one:
-block[132].paragraph	[strong]Cancelling an evaluation actually stops the loop.[text] Press Escape while a graph is running and a block sitting in [code]while (true) { }[text] stops there, rather than running until you close the application.
-block[133].paragraph	[strong]A loop that runs away with nobody watching is stopped anyway.[text] There is a ceiling of a hundred million loop iterations per run of one block. Reaching it is reported on the node:
-block[134].quote	[text]The script ran more than 100,000,000 loop iterations and was stopped. If that is genuinely the
-block[135].quote	[text]work, do it in a custom node rather than a code block.
-block[136].paragraph	[text]That ceiling is a runaway detector, not a quota. A block doing real work per iteration will not come near it; a block that reaches it has almost always looped by mistake. If the work is genuine, it belongs in a compiled custom node, where it is not being recompiled and re-run every time you drag a slider.
-block[137].paragraph	[strong]Recursion is bounded at 512 levels deep[text], and this one is a hard limit rather than a conservative one:
-block[138].code	lang=csharp lines=3
-block[139].quote	[text]The script recursed more than 512 levels deep and was stopped before the stack overflowed.
-block[140].paragraph	[text]A stack overflow [strong]cannot be caught[text] in .NET. It ends the whole process, and it would take your unsaved graph with it — so the limit has to stop you before the stack does, and it cannot be raised by catching anything.
-block[141].heading	level=3 [text]What is not bounded
-block[142].paragraph	[text]Two cases are deliberately outside this, and it is better to know than to be surprised:
-block[143].listitem	[strong]Recursion through a lambda written as an expression[text] — [code]f = n => f(n - 1);[text] — is not
-block[144].paragraph	[text]counted. Write the helper as a local function ([code]int f(int n) => f(n - 1);[text]) and it is.
-block[145].listitem	[strong]Recursion inside a library you call[text] is not counted either. It is not Spark's code, and
-block[146].paragraph	[text]Spark cannot rewrite it.
-block[147].paragraph	[text]Both can still overflow the stack and end the application. Neither is a normal thing to write in a code block.
-block[148].heading	level=2 [text]A worked example
-block[149].paragraph	[text]Divide a circle into points, and report how many you made:
-block[150].code	lang=csharp lines=10
-block[151].paragraph	[text]Two inputs, [code]radius[text] and [code]count[text]; two outputs, [code]points[text] and [code]made[text]. Wire a number into each, and wire [code]points[text] into a watch node to see them.
-block[152].paragraph	[text]Delete that last line and the same block has [strong]three[text] outputs instead — [code]circle[text], [code]points[text] and [code]step[text], one for each line that made something. Which of the two you want is the whole of the choice: the [code]return[text] is there to say [emphasis]these[text] and not the rest.
-block[153].paragraph	[text]The [code]for[text] loop adds no port, and neither does [code]points.Add(...)[text] inside it: a loop is not an expression and a call is a statement. Only the three declarations make something.
-block[154].heading	level=2 [text]Trust
-block[155].paragraph	[strong]A Spark graph containing a code block is a program.[text] Opening one from a source you do not trust is the same as running an unknown application: .NET has no code-access security, and Spark does not pretend otherwise.
-block[156].paragraph	[strong]So Spark does not run a graph because you opened it.[text] Open a file containing code blocks and it appears on the canvas, drawn, with its values empty and a banner in the properties pane:
-block[157].quote	[text]This graph contains 2 code blocks, which is a program. It has been opened but not run.
-block[158].paragraph	[text]Two buttons sit under it. [strong]Run once[text] runs it now and asks again next time. [strong]Always trust this file[text] runs it and remembers — for [emphasis]this file saying exactly this[text]. Change a line and you are asked again; send the file to somebody else and they are asked too. A graph with no code blocks in it is never asked about, because there is nothing to decide.
-block[159].paragraph	[strong]However the graph is opened.[text] File ▸ Open, a file named when Spark starts ([code]--open[text]), and a picture taken with [code]--screenshot[text] all apply the same rule. A screenshot of a graph nobody has trusted shows it unrun, with this banner — taking a picture is not agreeing to run a program. Trust the file once and it runs on every one of them.
-block[160].paragraph	[strong]To refuse scripting entirely[text], start with [code]--no-script[text]:
-block[161].code	lines=1
-block[162].paragraph	[text]A graph containing a code block then [strong]fails to open[text], naming what it contains. It does not open with the code blocks quietly missing — that would produce a wrong answer silently, which is worse than an error. The desktop application takes the same switch, and once scripting has been refused in a session it cannot be turned back on.
+block[56].code	lang=csharp lines=2
+block[57].paragraph	[text]Each is one call on [link->lists.md]`NumberRange`[text] underneath — [code]ByCount[text], [code]ByCountAndStep[text] and [code]ByStep[text] respectively — which is the same code the [code]Number.Range*[text] nodes run, so a range cannot mean one thing on the canvas and another in a block. You can write the call yourself if you prefer it: [code]NumberRange.ByCount(3, 5, 8)[text].
+block[58].paragraph	[code]#[text] counts; no [code]#[text] steps. Eight values including both ends have [strong]seven[text] gaps between them, so [code]#8[text] divides the span by seven — and the last value is the bound you asked for rather than the double next door, which is not true of the arithmetic written by hand.
+block[59].paragraph	[strong]Two-part ranges are untouched.[text] [code]arr[1..^1][text] is ordinary C# and still slices; [code]var r = 0..1;[text] is still a [code]System.Range[text]. Only the three-part forms are rewritten, and they are safe to claim because a [code]System.Range[text] has no [code]..[text] operator — [code]a..b..c[text] cannot mean anything else in C#.
+block[60].paragraph	[text]A [code]#[text] inside a string or a comment is left alone, so [code]var label = "#3";[text] is a string and nothing else. Each block above declares one variable and so has one output port, [code]numbers[text] — the rule described under [link->#several-outputs]Several outputs[text]. Written without the variable, as [code]0..1..#8;[text], the port is called [code]list[text].
+block[61].heading	level=2 [text]The library is in scope too
+block[62].paragraph	[strong]Every node in the library can be called from a block.[text] [code]Solid[text], [code]Logic[text], [code]Colour[text], [code]Number[text], [code]Display[text] and the rest are in scope by name:
+block[63].code	lang=csharp lines=4
+block[64].paragraph	[strong]Where a library name would have collided, the name you already knew wins.[text] [code]Circle[text], [code]Curve[text], [code]Line[text], [code]Plane[text], [code]Arc[text], [code]Surface[text], [code]PolyCurve[text], [code]PolyLine[text] and [code]BoundingBox[text] are the geometry types, exactly as they always were, and [strong]`Math` is `System.Math`[text] — so [code]Math.PI[text] is what you expect. The library's own version is still there in full when you want it: [code]Spark.Nodes.Core.Circle.FromCenterRadius(...)[text].
+block[65].paragraph	[strong]Four have a different name in a block[text], because their node name is a type C# already uses:
+block[66].table	rows=5 | [text]On the canvas ; [text]In a code block | [code]List.Count ; [code]ListNodes.Count | [code]String.FromNumber ; [code]Text.FromNumber | [code]DateTime.Now ; [code]DateAndTime.Now | [code]TimeSpan.FromDateDifference ; [code]Duration.FromDateDifference
+block[67].paragraph	[strong]And a list node counts a graph list, not a C# one.[text] [code]ListNodes.Count(new List<object> {1, 2, 3})[text] is [code]1[text], because rank is something the graph adds around a node and a code block is inside the node. Use ordinary C# — [code]xs.Count[text] — for a list you made yourself.
+block[68].heading	level=2 [text]It tidies itself as you type
+block[69].paragraph	[strong]Press <kbd>Enter</kbd> and the lines above the caret are tidied[text]: each statement gets its own line, spacing is normalised, and that is all. [strong]The line you are typing is never touched[text] — it is not finished yet, and an editor that rearranges the words under your hands is fighting you.
+block[70].paragraph	[strong]Switch it off with the *Auto-format on line break* checkbox[text] under the editor in the Properties pane, beside the font. It is on to begin with, it applies to every block, and it is remembered between sessions. Like the font, it is a setting about you rather than about the document, so it changes nothing in the [code].spark[text] file.
+block[71].paragraph	[strong]<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> formats the whole block[text], including the line you are on. It is VS Code's gesture, and it works whether or not the checkbox is ticked — turning the automatic tidying off is a reason to want the manual command, not a reason to lose it.
+block[72].heading	level=2 [text]And when you click away
+block[73].paragraph	[strong]Click out of a block and it is formatted[text]: each statement gets its own line, spacing is normalised, and that is all. [code]3;20;[text] becomes
+block[74].code	lang=csharp lines=2
+block[75].paragraph	[strong]Your ports do not change.[text] A block's inputs come from the names it uses without declaring, and its outputs from its [code]var[text] lines — neither is a fact about where the line breaks are, so tidying moves text and nothing else. Nothing you have wired can come loose.
+block[76].paragraph	[strong]A block that does not compile is left exactly as you typed it.[text] Half-finished work is the normal state of a block you are clicking away from, and an editor that rearranges broken code is fighting you. Fix the error and the next tidy — on a line break, on a click away, or on <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> — will sort it out.
+block[77].paragraph	[text]This is what makes the tidying safe to run on every line break rather than only on a finished block: while an [code]if[text] is still missing its closing brace, the text does not parse, and text that does not parse is returned untouched.
+block[78].paragraph	[strong]Your `using` lines stay at the top and your comments stay where they are.
+block[79].heading	level=2 [text]Printing to the console
+block[80].paragraph	[strong]`Console.WriteLine` works in a code block, with no `using` to type[text], and the text appears in the Console pane, under [strong]Properties[text] on the right. It is there by default; [strong]View ▸ Console[text] hides and shows it, and [strong]View ▸ Reset layout[text] brings it back.
+block[81].code	lang=csharp lines=5
+block[82].paragraph	[strong]`Console` means Spark's console here, not `System.Console`.[text] Spark is a windowed application with no terminal behind it, so [code]System.Console.WriteLine[text] writes where nobody can see it — the name is pinned to the one that puts the line where you can read it, exactly as [code]Circle[text] and the other eight are pinned. [code]System.Console[text] is still there under its full name if you have a reason to want it.
+block[83].paragraph	[strong]The same three are nodes[text], under [strong]Display[text] in the library: [code]Console.Write[text], [code]Console.WriteLine[text] and [code]Console.Clear[text]. Each [strong]passes its text through[text] as its output, so a console node sits in the middle of a chain rather than ending it — wire a value in, read it on the way past, and carry on. [code]Console.Clear[text] outputs how many lines it removed.
+block[84].paragraph	[strong]They run every time the graph runs[text], unlike every other node. Spark normally serves a node whose inputs have not changed from its cache, which for these would mean printing once and never again; they are marked as having a side effect, so they re-evaluate on each run.
+block[85].paragraph	[strong]The console keeps the last 10,000 lines.[text] A loop that writes more drops the oldest, and the pane says how many it dropped rather than letting you read from the top of something incomplete.
+block[86].heading	level=2 [text]Using a library from nuget.org
+block[87].paragraph	[strong]File ▸ Packages…[text], untick [strong]Spark packages only[text], search, select the row, and press [strong]Add as a library…[text]. You will see what the package is — publisher, licence, whether it is signed, what else it will install, and whether it carries native code — before anything lands on your disk. Agreeing puts it in the folder beside your graph, and code blocks can use its types straight away.
+block[88].paragraph	[strong]Two buttons, two different things.[text] [strong]Install…[text] is for a [emphasis]Spark package[text]: it carries a manifest saying which of its assemblies hold nodes, and installing it puts new nodes in the library panel. [strong]Add as a library…[text] is for any ordinary .NET package — most of nuget.org — and it adds [strong]types[text] you can write code against, not nodes. A library needs no manifest, which is why the two buttons exist rather than one that sometimes refuses.
+block[89].paragraph	[strong]It goes beside your graph[text], in [code]<name>.packages[text], not into a machine-wide folder — so the graph and what it needs travel together. That is also why the window asks you to save an untitled graph first: there is no file to name the folder after. See [link->files.md#the-folder-beside-the-file]Saving and opening graphs[text].
+block[90].paragraph	[strong]You do not have to write the `using`.[text] The namespaces of a library you added are imported for you, so this compiles the moment the package is in:
+block[91].paragraph	[text]<!-- spark:skip -->
+block[92].code	lang=csharp lines=2
+block[93].paragraph	[strong]Unless a name in it already means something else.[text] One clash is enough to keep the whole namespace out, because [emphasis]why does `Sprocket` resolve and `Line` not[text] is a worse question than a namespace that plainly was not imported. When that happens the window says so and names the types that stopped it:
+block[94].quote	[code]Autodesk.Revit.DB[text] was not imported: it defines [code]Arc[text], [code]Curve[text], [code]Line[text], [code]Mesh[text], [code]Plane[text],
+block[95].quote	[code]Point[text] and [code]Transform[text], which already mean something in a code block. Write
+block[96].quote	[code]using Autodesk.Revit.DB;[text] in the block to use it there.
+block[97].paragraph	[strong]Write that `using` at the top of your block and it wins inside that block[text], which is the way out. C# stops at the innermost scope that has an answer, so your directive shadows what Spark imported rather than colliding with it:
+block[98].paragraph	[text]<!-- spark:skip -->
+block[99].code	lang=csharp lines=4
+block[100].paragraph	[text]And if you want both, alias the one you want to rename:
+block[101].paragraph	[text]<!-- spark:skip -->
+block[102].code	lang=csharp lines=4
+block[103].paragraph	[strong]Nothing is loaded because it is there.[text] A folder of DLLs beside a graph that arrived by email is somebody else's code, so Spark asks before compiling against it and remembers your answer against the assembly's [strong]contents[text] — rebuild it and it asks again, because it is not the file you agreed to.
+block[104].heading	level=2 [text]The editor
+block[105].paragraph	[strong]It is the same editor in both places[text] — on the node and in the [strong]Properties[text] pane — and it is a real one: C# syntax highlighting, line numbers, a completion list, signature help, squiggles under errors as you type, and VS Code's Selection commands on the context menu.
+block[106].paragraph	[strong]Code is set in Source Code Pro[text], which is the face Dynamo draws its Code Block in. Spark ships the font rather than asking your machine for one, so a block looks the same everywhere.
+block[107].paragraph	[strong]The Font dropdown under the editor in the Properties pane changes it[text] — for every code block rather than the selected one, and Spark remembers your choice between sessions. The list is Source Code Pro plus the monospaced fonts installed on your machine. Proportional fonts are left out because a block is sized by counting characters, and one whose characters are different widths would draw its code over its own ports.
+block[108].paragraph	[text]On the canvas it opens over the block's own source, and [strong]the block widens to hold it[text] — the editor is drawn at a readable size whatever the canvas is zoomed to, so the node makes room rather than the editor covering the ports. It goes back to its own size when you close it.
+block[109].paragraph	[strong]Panning, zooming and dragging the block leave it open[text] and carry it with the block, which stays big enough to hold it: the editor is drawn at a readable size whatever the canvas is at, so zooming out grows the block rather than shrinking the text. Drag the block by its title with the editor open and the editor goes with it.
+block[110].paragraph	[text]It closes when you click away. [strong]Escape closes it and keeps what you typed[text] — Ctrl+Z takes the edit back if you did not want it, which is not something that can bring typing back the other way. [strong]Enter is a newline[text], so it is clicking away, or Escape, that commits.
+block[111].paragraph	[strong]Type a dot, or press Ctrl+Space, and the list opens at the caret.[text] Keep typing to narrow it — [code]center.Di[text] selects [code]DistanceTo[text] — then [strong]Enter[text] or [strong]Tab[text] to accept, [strong]Escape[text] to dismiss, and the arrow keys to move through it. The editor keeps the keyboard the whole time, so the list never interrupts typing.
+block[112].paragraph	[text]Editing is committed when the editor loses focus. That is when the block is recompiled, its ports are worked out again, and the graph re-runs — never on every keystroke, which would recompile the graph while you were still half way through a word. The red squiggles do keep up with your typing, because underlining an error costs a compile that is thrown away rather than a rebuild of the node.
+block[113].heading	level=2 [text]What a wire teaches the block
+block[114].paragraph	[strong]Before anything is connected, an input port has no type[text], so Spark declares it [code]dynamic[text]: the script reads like C#, and what [code]radius[text] turns out to be is worked out while the graph runs.
+block[115].paragraph	[strong]Once you wire something in, the port has a type, and the block is recompiled with it.[text] Wire a [code]Point.FromCoordinates[text] into a port called [code]center[text] and the block is compiled as though you had written [code]Point3d center = …;[text] — so this works:
+block[116].code	lang=csharp lines=1
+block[117].paragraph	[text]and it works because the compiler knows what [code]center[text] is, not because it found out at run time. The port label on the canvas changes to match, and pulling the wire out puts the port back to [code]dynamic[text], because an unwired port has no type to claim.
+block[118].paragraph	[strong]This is what the completion list is built from.[text] With a point wired into [code]center[text], typing [code]center.[text] lists [code]X[text], [code]Y[text], [code]Z[text], [code]DistanceTo[text] and the rest of [code]Point3d[text]. With nothing wired in, it lists nothing — not because Spark is being unhelpful, but because the block really will be compiled with that input as [code]dynamic[text], and a list that promised members the compiler will not find would be worse than no list at all. [strong]Wire the port first, and the editor knows what you are working with — or tell it, which is the next section.
+block[119].heading	level=2 [text]Saying what a port is, before you wire it
+block[120].paragraph	[text]Wiring is not the only way to give a port a type, and it is the wrong way round when you are writing the code first. [strong]Every input port on a code block has a type dropdown in the properties pane, underneath its value box.[text] It starts on [emphasis]from the wire[text], which is the behaviour above. Choose anything else and the block is recompiled immediately as though that type had been wired in — the port label on the canvas changes, and completion starts working straight away.
+block[121].paragraph	[text]So to write this before there is anything to wire into it:
+block[122].code	lang=csharp lines=1
+block[123].paragraph	[text]put a code block down, type the line, and set [code]center[text] to [code]Point3d[text] in the dropdown. Typing [code]center.[text] now lists the members of a point.
+block[124].paragraph	[strong]A type you choose beats a type a wire brings.[text] The wire is the better source whenever there is one, which is why [emphasis]from the wire[text] is the default — but a setting that was quietly overruled would be worse than no setting, so once you have said what a port is, that is what it is. Put the dropdown back to [emphasis]from the wire[text] to hand it back.
+block[125].paragraph	[text]The choice is saved with the graph, and it survives editing the script: declarations are held by port [strong]name[text], so adding a line above does not move them onto the wrong port.
+block[126].paragraph	[strong]There is no button that adds an input.[text] A port appears because you used a name the code has not declared, and it disappears when you stop using it — the dropdown says what an existing port [emphasis]is[text], not whether it exists. That keeps one answer to "what are this block's inputs?", and the answer is the code.
+block[127].heading	level=2 [text]What arrives, and what it is called
+block[128].paragraph	[text]Numbers are widened where a graph would expect them to be: an integer arriving on a port the script uses as a [code]double[text] is converted rather than refused. When something genuinely wrong arrives, the message names the port rather than two CLR types:
+block[129].quote	[text]The port 'center' received a String, but the script uses it as a Point3d.
+block[130].heading	level=2 [text]Loops, and what stops them
+block[131].paragraph	[strong]A code block that never finishes would otherwise never be stoppable.[text] .NET has no safe way to interrupt a running thread, so Spark does not try: it rewrites your code before compiling it, and puts a check at the top of every loop.
+block[132].paragraph	[text]Three things follow from that, and they are worth knowing before you meet one:
+block[133].paragraph	[strong]Cancelling an evaluation actually stops the loop.[text] Press Escape while a graph is running and a block sitting in [code]while (true) { }[text] stops there, rather than running until you close the application.
+block[134].paragraph	[strong]A loop that runs away with nobody watching is stopped anyway.[text] There is a ceiling of a hundred million loop iterations per run of one block. Reaching it is reported on the node:
+block[135].quote	[text]The script ran more than 100,000,000 loop iterations and was stopped. If that is genuinely the
+block[136].quote	[text]work, do it in a custom node rather than a code block.
+block[137].paragraph	[text]That ceiling is a runaway detector, not a quota. A block doing real work per iteration will not come near it; a block that reaches it has almost always looped by mistake. If the work is genuine, it belongs in a compiled custom node, where it is not being recompiled and re-run every time you drag a slider.
+block[138].paragraph	[strong]Recursion is bounded at 512 levels deep[text], and this one is a hard limit rather than a conservative one:
+block[139].code	lang=csharp lines=3
+block[140].quote	[text]The script recursed more than 512 levels deep and was stopped before the stack overflowed.
+block[141].paragraph	[text]A stack overflow [strong]cannot be caught[text] in .NET. It ends the whole process, and it would take your unsaved graph with it — so the limit has to stop you before the stack does, and it cannot be raised by catching anything.
+block[142].heading	level=3 [text]What is not bounded
+block[143].paragraph	[text]Two cases are deliberately outside this, and it is better to know than to be surprised:
+block[144].listitem	[strong]Recursion through a lambda written as an expression[text] — [code]f = n => f(n - 1);[text] — is not
+block[145].paragraph	[text]counted. Write the helper as a local function ([code]int f(int n) => f(n - 1);[text]) and it is.
+block[146].listitem	[strong]Recursion inside a library you call[text] is not counted either. It is not Spark's code, and
+block[147].paragraph	[text]Spark cannot rewrite it.
+block[148].paragraph	[text]Both can still overflow the stack and end the application. Neither is a normal thing to write in a code block.
+block[149].heading	level=2 [text]A worked example
+block[150].paragraph	[text]Divide a circle into points, and report how many you made:
+block[151].code	lang=csharp lines=10
+block[152].paragraph	[text]Two inputs, [code]radius[text] and [code]count[text]; two outputs, [code]points[text] and [code]made[text]. Wire a number into each, and wire [code]points[text] into a watch node to see them.
+block[153].paragraph	[text]Delete that last line and the same block has [strong]three[text] outputs instead — [code]circle[text], [code]points[text] and [code]step[text], one for each line that made something. Which of the two you want is the whole of the choice: the [code]return[text] is there to say [emphasis]these[text] and not the rest.
+block[154].paragraph	[text]The [code]for[text] loop adds no port, and neither does [code]points.Add(...)[text] inside it: a loop is not an expression and a call is a statement. Only the three declarations make something.
+block[155].heading	level=2 [text]Trust
+block[156].paragraph	[strong]A Spark graph containing a code block is a program.[text] Opening one from a source you do not trust is the same as running an unknown application: .NET has no code-access security, and Spark does not pretend otherwise.
+block[157].paragraph	[strong]So Spark does not run a graph because you opened it.[text] Open a file containing code blocks and it appears on the canvas, drawn, with its values empty and a banner in the properties pane:
+block[158].quote	[text]This graph contains 2 code blocks, which is a program. It has been opened but not run.
+block[159].paragraph	[text]Two buttons sit under it. [strong]Run once[text] runs it now and asks again next time. [strong]Always trust this file[text] runs it and remembers — for [emphasis]this file saying exactly this[text]. Change a line and you are asked again; send the file to somebody else and they are asked too. A graph with no code blocks in it is never asked about, because there is nothing to decide.
+block[160].paragraph	[strong]However the graph is opened.[text] File ▸ Open, a file named when Spark starts ([code]--open[text]), and a picture taken with [code]--screenshot[text] all apply the same rule. A screenshot of a graph nobody has trusted shows it unrun, with this banner — taking a picture is not agreeing to run a program. Trust the file once and it runs on every one of them.
+block[161].paragraph	[strong]To refuse scripting entirely[text], start with [code]--no-script[text]:
+block[162].code	lines=1
+block[163].paragraph	[text]A graph containing a code block then [strong]fails to open[text], naming what it contains. It does not open with the code blocks quietly missing — that would produce a wrong answer silently, which is worse than an error. The desktop application takes the same switch, and once scripting has been refused in a session it cannot be turned back on.

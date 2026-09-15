@@ -34,6 +34,20 @@ public enum WorkspacePane
     /// the right column is what the graph is telling you.
     /// </remarks>
     Console,
+
+    /// <summary>
+    /// A code block's source in a pane of its own, rather than in the Properties row it shares
+    /// with everything else (<c>E6-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Hidden by default, and it is the only pane that is.</b> The other five are useful on an
+    /// empty document; this one shows an editor for a code block, and until somebody places one
+    /// there is nothing for it to edit. Costing every new user a column for a feature they have
+    /// not reached yet is the trade the console's default was reconsidered over (<c>E8-T82</c>) —
+    /// and the answer there turned on the console being in the <i>right</i> column, where it takes
+    /// nothing from the canvas. This pane is in the centre column, where it does.
+    /// </remarks>
+    Script,
 }
 
 /// <summary>
@@ -92,14 +106,22 @@ public sealed class WorkspaceLayout
     }
 
     /// <summary>
-    /// Which panes are visible — all five (`E8-T82`).
+    /// Which panes are visible — five of the six (`E8-T82`, `E6-T14`).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The console shipped hidden and the client asked for it shown</b>, having first dragged it
     /// from under the canvas to under Properties. Both halves of that are the default now, and
     /// <i>Reset layout</i> restores exactly it. The earlier reasoning — that an unasked-for pane
     /// takes room from the canvas — was about the <i>centre</i> column; in the right column it
     /// costs the canvas nothing.
+    /// </para>
+    /// <para>
+    /// <b><see cref="WorkspacePane.Script"/> is the one pane not listed here</b>, and for exactly
+    /// the reasoning the console's move retired: it lives in the centre column, so it does take
+    /// room from the canvas, and it has nothing to show until a code block exists. <i>View →
+    /// Script</i> opens it.
+    /// </para>
     /// </remarks>
     public HashSet<WorkspacePane> VisiblePanes { get; } =
     [
