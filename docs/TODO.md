@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E12-T5`: `spark pkg`, and the CLI is five verbs of seven)
+**Last updated:** 2026-09-15 (`E6-T14`: the Roslyn-residency claim asserted, and it failed)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -12,7 +12,7 @@ a second box and rounds every edge of a third. **F1 opens help for the selected 
 node outlines its geometry in the viewport. A graph naming a package you do not have still opens,
 keeps everything, and re-saves byte for byte. A user can define a node by drawing a graph.
 
-`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,964 tests over
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**4,089 tests over
 ten projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
 shim built and **nothing skipped** — the skip count is the part that matters, because
 `Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI runs again as of
@@ -709,6 +709,28 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.
+
+- [ ] **The shell loads Roslyn at startup, and the code that does it was written to prevent
+      exactly that.** `MainWindowViewModel.Packages()` — reached from the constructor, through
+      `LoadInstalledPackages()` — builds a `Func<Spark.Scripting.ReferenceCatalog?>` and hands it
+      to `PackageBrowserViewModel` as a delegate, with a comment saying the delegate exists *so
+      that opening the Packages window does not load Roslyn (`E6-T14`)*. Constructing the delegate
+      is itself a mention of the return type, so `Spark.Scripting` and 20 MB of Roslyn load before
+      the first document is opened. `LocalReferencesViewModel` holds the same shape.
+      **Found by probing the built shell**, not by reading: `Spark.Desktop --graph curves
+      --screenshot` under a `DOTNET_STARTUP_HOOKS` assembly names
+      `MainWindowViewModel.Packages()` in the stack at the moment of load. The command-line half
+      of this defect is fixed and guarded — see below — and this is the half that remains.
+      `E6-T14`'s acceptance box stays unticked until it is done. [N188](NOTES.md)
+
+- [x] ~~**Every `spark` command loaded Roslyn, whatever the graph contained.**~~ **Fixed
+      2026-09-15.** `SparkSession.Dispose` read a field *declared* as `ScriptCompletion?`; the JIT
+      resolves a field's declared type when it compiles the method, so the assembly loaded with the
+      value null and the branch never taken. The field is `IDisposable?` now. **Guarded by
+      `ScriptingResidencyTests`**, which runs `spark` in a child process under an assembly-load
+      probe and asserts both directions — reverting the field type turns the negative test red and
+      it was watched doing so. `run`, `check`, `render`, `export` and `pkg` are all clean, with and
+      without `--no-script`. [N188](NOTES.md)
 
 - [x] ~~**Selection goes wrong when a code block is present.**~~ **Fixed 2026-09-10**, `E8-T40`,
       on a client report with two screenshots. Opening a block's in-place editor reserves room on

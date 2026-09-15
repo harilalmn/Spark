@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N187: a dedupe key coarser than the decision drops the deciding input)
+**Last updated:** 2026-09-15 (N188: a field's declared type loads its assembly, null or not)
 
 ---
 
@@ -5216,6 +5216,58 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N188 — A field's *declared type* loads its assembly, so a null that is never read still costs 20 MB of Roslyn
+
+`E6-T14` promises that **a graph containing no script nodes never loads `Spark.Scripting`**, and
+the design honoured it exactly: `SparkSession.EnableScripting()` is the only door to the factory,
+its first caller is `PlaceCodeBlock`, and every method that reaches for Roslyn checks first.
+Reading the code, the promise is plainly true. It was false in every build that ever shipped, and
+the whole of it was one field declaration:
+
+```csharp
+private Spark.Scripting.ScriptCompletion? _completion;   // always null on a script-free run
+...
+public void Dispose()
+{
+    ...
+    _completion?.Dispose();   // the branch is never taken
+}
+```
+
+**The JIT resolves the types a method mentions when it compiles the method, not when it runs the
+line.** `Dispose()` reads a field whose declared type lives in `Spark.Scripting`, so compiling
+`Dispose()` loads `Spark.Scripting`, which loads Roslyn. The value was null, the null-conditional
+short-circuited, and nothing in the branch ever executed — none of which matters, because the type
+was resolved before the first instruction ran. Every `spark run`, `check`, `render`, `export` and
+`pkg` in the product paid for Roslyn on its way out of the process.
+
+Declaring the field as `IDisposable?` fixes it: `Dispose()` then mentions no type outside the base
+class library, and `Completion()` — which is only ever reached from a code block's editor, and so
+has loaded Roslyn by definition — casts it back.
+
+**The general rule, because this shape is everywhere in a layered application:** a lazily-loaded
+assembly is only lazy if *no method on a common path mentions one of its types anywhere in its
+body or its field accesses*. A guard, a null check, an untaken `else`, a `Func<T>` whose `T` comes
+from that assembly, a cast in a branch nobody enters — each is enough. Laziness is a property of
+the compiled method, not of the control flow through it.
+
+**And the reason this went eleven months unnoticed is the reason it needed a test rather than a
+reading**: the code that was wrong is the code that *says it is right*, in a comment, beside the
+lazy initialiser it was protecting. `ScriptingResidencyTests` asserts it from outside, in a child
+process, because the test assembly references `Spark.Cli` and therefore has `Spark.Scripting`
+loaded before its first assertion runs — an in-process check passes on a broken tree, which is
+worse than no check. The probe is a `DOTNET_STARTUP_HOOKS` assembly writing
+`AssemblyLoadContext.Default.Assemblies` at process exit; the product needs no flag, no hook and
+no diagnostic verb, because the runtime already has one.
+
+**The same probe found the same shape in the shell**, where it is not yet fixed:
+`MainWindowViewModel.Packages()` builds a `Func<Spark.Scripting.ReferenceCatalog?>` — a delegate
+written *specifically* so that opening the Packages window would not load Roslyn — and constructing
+it loads Roslyn at application startup, before any document is opened. The comment above it names
+`E6-T14`. Laziness expressed as a delegate is still a mention of the return type.
+
+---
 
 ## N187 — A dedupe key coarser than the decision drops the input that would have changed it
 

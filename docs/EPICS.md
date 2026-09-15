@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E12-T5`: `spark pkg`, and the CLI is five verbs of seven)
+**Last updated:** 2026-09-15 (`E6-T14`: the Roslyn-residency claim asserted, and it failed)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -922,14 +922,22 @@ diverge most; rework is budgeted there specifically.
       `class Foo` at namespace scope is *internal*, and the shared assembly is not the block's own —
       so the commonest spelling of a class worked inside one block and not across two. `internal`
       names a boundary a code block cannot see or choose, so it is not one this layer honours.
-- [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**). *Swept
-      2026-09-15 and left unticked **for a different reason than before**. It is true by
-      construction: `SparkSession.EnableScripting()` is the only door and its first caller is
-      `PlaceCodeBlock`, so a session that never places one never touches Roslyn. **But nothing
-      asserts it**, and this is precisely the claim that cannot be settled by reading — a stray
-      `using`, or an eager field initialiser in a type the shell already touches, would load the
-      assembly and no test would notice. The check is one line against the loaded-assembly list
-      after opening a script-free graph, and until it exists this box is an opinion.*
+- [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**). *Asserted
+      2026-09-15, **and the assertion failed on the first run**, which is the whole argument for
+      not settling this one by reading. The sweep the day before called it *true by construction* —
+      `EnableScripting()` is the only door, `PlaceCodeBlock` is its first caller — and the
+      construction was right and the claim was false. `SparkSession.Dispose` read a field
+      **declared** as `ScriptCompletion?`; the JIT resolves a field's declared type when it
+      compiles the method, so every `spark run` in the product loaded Roslyn on its way out, with
+      the value null and the branch never taken ([N188](NOTES.md)). **Fixed and guarded for the
+      command line**: the field is `IDisposable?`, and `ScriptingResidencyTests` runs `spark` in a
+      child process under a `DOTNET_STARTUP_HOOKS` probe and reads its loaded-assembly list — both
+      directions, so the guard has been seen to fail. `run`, `check`, `render`, `export` and
+      `pkg` are all clean, with and without `--no-script`. **Unticked because the shell is not
+      clean**: the same probe over `Spark.Desktop --graph curves` loads `Spark.Scripting` inside
+      `MainWindowViewModel.Packages()`, at application startup, before a document is opened —
+      constructing the `Func<ReferenceCatalog?>` written *specifically* to defer Roslyn is itself
+      a mention of the type. Two hosts, one promise; half of it is kept.*
 
 **Status.** **Complete as of 2026-09-15**, when the docked C# Script Node landed and `E6-T14`
 closed — this paragraph had said *complete except* it since 2026-08-31. `WorkspacePane.Script` is

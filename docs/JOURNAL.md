@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E12-T5`: `spark pkg`, and the CLI is five verbs of seven)
+**Last updated:** 2026-09-15 (`E6-T14`: the residency claim asserted, and it failed)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Twenty-six steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twenty-seven steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T5`: `spark pkg list` and `pkg restore`, so the CLI is five verbs of seven** and only `docs` and `graph` remain. **A face on a finished library**, which `E7` closing an hour earlier made true. `list` **reconciles** rather than lists — `present`, `missing`, and `unrecorded` for what the folder holds and the file does not — and **exits 1 when something is missing**, so a build gates there rather than meeting it later as a compile error inside a code block. **Consent is deliberately unchanged and the verb says so**: restoring downloads and does not agree, so `run` and `check` still refuse what nobody has trusted — a verb that fetched code *and* consented would be a hole in `E7-T16`'s gate. **The scan direction in `SplitIdentity` is load-bearing**: `Acme.Nodes.1.0.0` has three suffixes that parse as versions, so scanning from the short end gives `Acme.Nodes.1.0` at version `0`; **reversing the loop turns two tests red**. **`dotnet format` caught what the build did not** — a misplaced `using` failed gate 3 on a tree whose build and tests were green. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4087** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks. No stashes. |
-| **Next action** | **The register has two rows left and neither is ordinary work, so the twelve unticked acceptance criteria in `EPICS` are now the better measure of *all Epics are done*.** Sweep them: each says what it wants, and this week four of them turned out to be satisfied already. `E12-T5`'s `docs` and `graph` are the only coded work in the register, and each *arrives with the milestone that gives it something to do* — **`graph` is the nearer one**, since a graph-inspection verb needs only the document format, which is finished. `E10-T3` is a deliberate `D19` placeholder and is not work; `E10-T14` (the website) is the only `Open` row and waits on `PRD Q8`, a person. **A step of its own, still unclaimed**: assert that a graph with no script nodes never loads `Spark.Scripting` — separate process, separate `AssemblyLoadContext`, or an IL scan. **The five blockers are still people**: `PRD Q8`, branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once**. |
+| **Last completed step** | **`E6-T14`'s Roslyn-residency criterion asserted for the first time — and the assertion failed.** *A graph containing no script nodes never loads `Spark.Scripting`* was called *true by construction* by the sweep the day before, and it was false in every build that ever shipped. **`SparkSession.Dispose` read a field declared as `ScriptCompletion?`**; the JIT resolves a field's declared type when it compiles the method, so the assembly loaded with the value null and the branch never taken, on every `spark` command ([N188](NOTES.md)). The field is `IDisposable?` now. **`ScriptingResidencyTests` guards it from a child process** under a `DOTNET_STARTUP_HOOKS` probe — a child process because `Spark.Cli.Tests` references `Spark.Cli`, so an in-process check would pass on a broken tree. **Both directions asserted, and the negative one was watched going red** with the fix reverted. **The box is still unticked**, because the same probe found the shell loading Roslyn at startup and that is a second defect in a second host. **The CRLF trap bit again**: python writing files on Windows turned six files to CRLF against an `eol=lf` `.gitattributes`, invisible to `git diff` and caught by gate 3. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4089** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68**. No stashes. |
+| **Next action** | **Fix the shell half of `E6-T14`, then tick the box.** `MainWindowViewModel.Packages()` loads `Spark.Scripting` at application startup — reached from the constructor through `LoadInstalledPackages()`, which is real work and legitimately eager, so the fix is not to defer the call. What loads Roslyn is **constructing** `Func<Spark.Scripting.ReferenceCatalog?>` to pass as the `catalogue:` delegate; `LocalReferencesViewModel` holds the identical shape. **The stack is already captured** and is in [N188](NOTES.md). The likely fix is to type both delegates so their return type lives outside `Spark.Scripting` and cast at the use site — which is inside the browser, on a path where the user has asked for a library and Roslyn is loaded by definition — but weigh that against a small abstraction, because a `Func<object?>` is a cast waiting to be got wrong. **Verify by probing the built shell, not by reading**: `Spark.Desktop.exe --graph curves --screenshot PREFIX` under the same `DOTNET_STARTUP_HOOKS` assembly, which is `tests/Spark.Cli.Tests/StartupHook.cs`. **Then decide whether the shell probe becomes a test**; the CLI one is cheap and the desktop one opens a window, so it may belong in the screenshot run rather than the suite. **After that**: `spark graph`, the nearer of `E12-T5`'s two remaining verbs, since a graph-inspection verb needs only the document format. **The five blockers are still people**: `PRD Q8`, branch protection (`E1-T28`), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once. |
 | **Verify with** | **The artefact, never the row — and a re-check that cannot name what it read has not happened** ([N187](NOTES.md)). **Run the three gates, all three**: this step's build and tests were green on a tree `dotnet format` refused. **For anything that writes an image, open it; for a message a person must act on, print it.** When a guard could not fail, break it once and watch it speak. The residue budget **re-derived**, the dashboard regenerated by `scripts/build-progress.py`, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **A help-topic edit needs its renderer golden** (`SPARK_UPDATE_GOLDEN=1`, then read the diff — only the topic you touched should differ). **A benchmark change needs the full 23-case run and `check ... --no-canvas --no-tessellation`.** **And when a verb list changes, `PRD.md`'s FR row is the one nothing links to and everybody forgets.** **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -154,6 +154,14 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   *Blocked on* was established. **Read CI from here rather than asking for it.**
 - **The nightly benchmark workflow has never run on a hosted runner.** `E8-T15` closes on its
   first green run, and the canvas step is the part that might not survive a runner with no GPU.
+- **Editing a file with python on Windows turns it CRLF, and `.gitattributes` here is `eol=lf`.**
+  `io.open(path, 'w')` translates every `
+` to `
+`. **`git diff` will not tell you** — git
+  normalises on read, so the diff looks small and correct — and `dotnet build` does not care either.
+  Gate 3 is the only thing that catches it, as `ENDOFLINE: Fix end of line marker`, and it reports
+  the *whole file* rather than the lines you changed. Write bytes (`open(p,'wb')`), or pass
+  `newline=''`. It happened on 2026-09-15 to six files at once.
 - **Git identity is set per-repository** — `harilalmn <146122512+harilalmn@users.noreply.github.com>`,
   distinct from the global Zyeta identity. `git commit -s` picks it up; do not override it.
 - **`git config core.filemode` is false here**, so a `chmod +x` never reaches the index. Any new
@@ -17537,3 +17545,67 @@ updated when `render` landed and the PRD row was not, because nothing links them
 
 **Cost.** One session. The library underneath was finished; the verb was argument handling, one
 scan direction, and being careful about consent.
+
+### 2026-09-15 — `E6-T14`: the Roslyn-residency claim asserted for the first time, and it failed
+
+**What.** `E6-T14`'s last acceptance criterion says *a graph containing no script nodes never loads
+`Spark.Scripting`*. The sweep the day before left it unticked with a note saying it was *true by
+construction* but that nothing asserted it. It was not true. The first run of the first probe found
+`Spark.Scripting` loaded by `spark run` over `docs/examples/curves.spark`, a graph with no code
+block anywhere in it.
+
+**The defect was one field declaration.** `SparkSession.Dispose` called `_completion?.Dispose()` on
+a field declared as `Spark.Scripting.ScriptCompletion?`. The value was always null on a script-free
+run and the null-conditional short-circuited every time — and none of that matters, because **the
+JIT resolves the types a method mentions when it compiles the method**, not when it reaches the
+line. Compiling `Dispose()` loaded `Spark.Scripting`, and with it Roslyn. Every `spark run`,
+`check`, `render`, `export` and `pkg` in every build that ever shipped paid for it on the way out
+of the process. Declaring the field as `IDisposable?` fixes it; `Completion()` casts it back, and
+`Completion()` is only ever reached from a code block's editor, which has loaded Roslyn by
+definition. [N188](NOTES.md).
+
+**Why no amount of reading would have found it.** The code that was wrong is the code that *says it
+is right*. `EnableScripting()` carries a comment explaining that it is a method rather than a field
+initialiser precisely so Roslyn stays unloaded; `Completion()`, `TerminateScript()` and
+`ScriptReferenceVersion` each check before touching the factory; `E6-T33` and `E7-T25` both record
+in their rows that they kept the promise. Every one of those is true and the promise was still
+broken, four lines away, in a method nobody thought of as part of the scripting path because it
+does not script anything.
+
+**Verified, and this is the part that is the point.** `ScriptingResidencyTests` runs `spark` in a
+**child process** under a `DOTNET_STARTUP_HOOKS` assembly that writes
+`AssemblyLoadContext.Default.Assemblies` at exit. A child process because the subject is *a
+process's loaded-assembly list* and `Spark.Cli.Tests` references `Spark.Cli` — `Spark.Scripting` is
+in its own closure and sits loaded in the test host before the first assertion runs, so an
+in-process check would pass on a broken tree, which is worse than no check. The product gets no
+flag, no hook and no diagnostic verb: the runtime already has one.
+
+**Both directions are asserted**, so the guard has been seen to work rather than seen to pass. The
+negative test requires the assembly absent; a second test runs a graph that *does* hold a code block
+and requires it present. Then the fix was reverted — field back to `ScriptCompletion?` — and the
+negative test went red naming `Spark.Scripting` in the collection it printed. Restored, green.
+
+Beyond the two tests, the probe was run by hand over `run`, `run --no-script`, `check`, `render`,
+`export` and `pkg list`, on three example graphs. All clean.
+
+**The same probe then found the same shape in the shell, and it is left unfixed and written down.**
+`Spark.Desktop --graph curves --screenshot` loads `Spark.Scripting` inside
+`MainWindowViewModel.Packages()`, reached from the constructor through `LoadInstalledPackages()`,
+before any document is opened. What loads it is the construction of a
+`Func<Spark.Scripting.ReferenceCatalog?>` — a delegate written *specifically* so that opening the
+Packages window would not load Roslyn, with a comment above it naming `E6-T14`. Laziness expressed
+as a delegate is still a mention of the return type. That is a second defect in a second host, it
+wants a different fix, and it is the next step rather than this one: this step is committable on its
+own because the command line is fixed and permanently guarded. **`E6-T14`'s box stays unticked.**
+
+**Three gates**: build clean with zero warnings, **4089** tests over **ten** executables with zero
+failures and zero skips read from each runner's exit code, format clean, docs harness 68.
+`check-no-native-binaries.sh` clean.
+
+**A trap that cost ten minutes and will cost the next session more.** Editing files through
+`python -c "io.open(p,'w').write(...)"` on Windows translates every `\n` to `\r\n`, and
+`.gitattributes` here is `eol=lf`. `git diff` showed a small, correct diff — git normalises on
+read — while `dotnet format` failed with `ENDOFLINE` on a file whose *content* change was five
+lines. Gate 3 caught it for the second step running. Write bytes, or pass `newline=''`.
+
+**Cost.** One session. The fix is one word; finding it was a probe, and the probe is the deliverable.

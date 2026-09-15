@@ -31,7 +31,15 @@ public sealed class SparkSession : IDisposable
     private CancellationTokenSource? _inFlight;
     private EvaluationContext _context;
     private bool _disposed;
-    private Spark.Scripting.ScriptCompletion? _completion;
+    // `E6-T14`: DECLARED AS IDisposable, NOT AS ScriptCompletion, AND THAT IS THE WHOLE POINT.
+    // `Dispose` and `DisableScripting` read this field on every session, including every session
+    // that never opens a code block - and the JIT resolves a field's declared type when it
+    // compiles a method that touches the field, whether or not the value is null and whether or
+    // not the branch is taken. Typed as `ScriptCompletion?`, `SparkSession.Dispose()` loaded
+    // `Spark.Scripting` - and with it Roslyn - at the end of a `spark run` over a graph with no
+    // script nodes in it. `Completion()` casts it back, because `Completion()` is only ever
+    // reached from a code block's editor, which has loaded Roslyn by definition.
+    private IDisposable? _completion;
 
     /// <summary>Creates a session with the built-in node library imported.</summary>
     /// <param name="tolerance">The document tolerance, hashed into every cache key.</param>
@@ -113,8 +121,11 @@ public sealed class SparkSession : IDisposable
             return null;
         }
 
-        Spark.Scripting.ScriptCompletion completion =
-            _completion ??= new Spark.Scripting.ScriptCompletion(factory.References);
+        if (_completion is not Spark.Scripting.ScriptCompletion completion)
+        {
+            completion = new Spark.Scripting.ScriptCompletion(factory.References);
+            _completion = completion;
+        }
 
         // `E6-T37`: HERE BECAUSE IT IS THE ONE PLACE ALL THREE CONSUMERS PASS THROUGH - the
         // completion list, signature help and quick info each ask for this service and each would
