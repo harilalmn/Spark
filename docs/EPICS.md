@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-16 (`E5-T3`: an async member is awaited, and `E5` is complete)
+**Last updated:** 2026-09-16 (the final sweep: every 1.0 criterion is ticked, withdrawn or dated)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1517,6 +1517,16 @@ user needs. XML doc = what this member does.*
       files alike — resolves to a record that exists, checked on every `dotnet test`
       (**E11-T1**).
 - [ ] `docs/help/` has a skeleton and a front-matter schema (**E10-T3**, **E10-T6**).
+      *Annotated 2026-09-16, because a bare box cannot be told from an unread one. **The schema
+      half is done** (`E10-T6`, 2026-09-01): `id, title, nodes, related, since`, written down and
+      enforced by `HelpTopicSchemaTests`. **The skeleton half is deliberately unfinished**, and
+      `E10-T3` is `In progress` as a placeholder rather than through neglect — [D19](PRD.md#13-decision-log)
+      puts the end-user Help pass **after 1.0**, and that row exists so the deferral is not mistaken
+      for completion. Thirteen concept topics exist, all thirteen parse, all thirteen have a
+      renderer golden, and `HelpComposition` assembles them beside the generated node and
+      diagnostic references. What `D19` defers is an index of the concept topics and a topic per
+      node family. **This box is not to be ticked while `D19` stands**; ticking it would be
+      reporting the client's sequencing decision as finished work.*
 - [x] `docs/help/concepts/lacing.md` with the case table exists **before the replication
       engine does** ([E4-T1](#e4--replication-and-lacing)).
 - [x] `GenerateDocumentationFile` is on everywhere and CS1591 is an error on the contract
@@ -1961,10 +1971,20 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       needed was the writer the reader had never had — `HelpMarkdown.Write`, whose contract is the
       round trip over every topic that ships, and which failed first against a node page that was
       different bytes on Windows and on Linux (**N190**).*
-- [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
+- [x] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
       desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
       `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no
-      `Spark.Tool` package — **E12-T6** is withdrawn.*
+      `Spark.Tool` package — **E12-T6** is withdrawn.* **Ticked 2026-09-16, and it had been true
+      since the installer was built on 2026-09-02 — nobody had checked.** `publish.ps1` publishes
+      `Spark.Desktop` **and** `Spark.Cli` into one staged folder, with a comment saying why;
+      `spark.iss` copies `{#Staged}\*` recursively and `pack-portable.ps1` packs the same folder,
+      so both artefacts carry it or neither does. **Verified by the artefacts rather than by
+      reading them**: the portable zip was packed (288 files, 72.6 MB), extracted outside the
+      repository, and its `spark.exe` wrote a 192 KB STEP file of nine solids and 74 faces; the
+      installer was compiled (48.9 MB), **installed silently to a temporary folder**, found to hold
+      `spark.exe` beside `Spark.Desktop.exe`, run for its version, and uninstalled again.
+      `release.yml` has been proving the zip half on every release since 2026-09-02, by extracting
+      it outside the tree and failing the release if `spark.exe export` does not work.*
 - [x] Nothing in the repository publishes to nuget.org: `IsPackable` is `false` for every
       project, with no `PackageId`, `PackAsTool` or package metadata anywhere (**E12-T7**,
       withdrawn; **E12-T17**, withdrawn). *Spark consumes NuGet packages and produces none —
@@ -1979,8 +1999,15 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
 - [x] A portable zip (**E12-T10**). *Built 2026-09-01, and written by hand rather than with
       `Compress-Archive` so its bytes — and therefore its checksum — survive a
       rebuild.*
-- [ ] A **signed** Inno Setup installer (**E12-T9**). *Needs an identity to sign with; a
-      script cannot invent one.*
+- [ ] ~~A **signed** Inno Setup installer~~ — **withdrawn 2026-09-12 by the client**
+      (**E12-T9**): *Forget it. We are not buying any certificates.* *The installer itself exists,
+      is built by `scripts/pack-installer.ps1` inside the release workflow, and was compiled and
+      installed as part of the 2026-09-16 sweep. What this criterion asked for beyond it is a
+      signature, and there is no identity to sign with. **What a user sees is recorded rather than
+      left to be rediscovered as a defect**: the first run shows SmartScreen, and the release notes
+      say so instead of hiding it. Struck through rather than left open, to match `E2-T30`'s
+      withdrawal and the STEP one above — an open box and a withdrawn row read as unfinished work
+      to everybody who did not take the decision.*
 - [x] The release workflow refuses to publish when the computed version and the tag disagree
       (**E12-T11**). *Built 2026-09-01. The failure it exists for is one line of YAML: a
       shallow checkout has no tags, MinVer stamps 0.0.0-alpha.0, and the workflow publishes it

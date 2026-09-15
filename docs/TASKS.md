@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-16 (`E5-T3`: an async member is awaited, and `E5` is complete)
+**Last updated:** 2026-09-16 (the final sweep: every 1.0 criterion is ticked, withdrawn or dated)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 381 done · 9 in progress · 4 open · 5 blocked · 5 deferred · 12 withdrawn — **416 rows**
