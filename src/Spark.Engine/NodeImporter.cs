@@ -243,7 +243,13 @@ public static class NodeImporter
             return;
         }
 
-        if (shape.ReturnType == typeof(void) && !parameters.Any(parameter => parameter.IsOut))
+        // `E5-T3`: WHAT THE NODE PRODUCES, WHICH FOR AN ASYNCHRONOUS MEMBER IS THE AWAITED
+        // RESULT. Reading `shape.ReturnType` directly gave an `async` member a port typed
+        // `Task<double>` carrying a task object, which nothing downstream can use and nobody would
+        // read as a defect in Spark rather than in the package they imported.
+        Type produces = NodeInvoker.ResultTypeOf(shape.ReturnType);
+
+        if (produces == typeof(void) && !parameters.Any(parameter => parameter.IsOut))
         {
             exclusions.Add(new ExcludedMember(
                 method, "the method returns void and has no out parameter, so it produces no value a graph can carry."));
@@ -257,9 +263,9 @@ public static class NodeImporter
         }
 
         List<PortDefinition> outputs = [];
-        if (shape.ReturnType != typeof(void))
+        if (produces != typeof(void))
         {
-            outputs.Add(ReturnPort(shape, docs));
+            outputs.Add(ReturnPort(shape, produces, docs));
         }
 
         foreach (ParameterInfo parameter in parameters)
@@ -623,13 +629,23 @@ public static class NodeImporter
             : null;
     }
 
-    private static PortDefinition ReturnPort(MethodInfo method, XmlDocumentation? docs = null)
+    /// <summary>The output port for a method's return value.</summary>
+    /// <param name="method">The method, for its attribute and its documentation.</param>
+    /// <param name="produces">
+    /// What the node actually produces, which is the awaited result for an asynchronous member and
+    /// the return type for every other one. Passed in rather than read off
+    /// <paramref name="method"/>, because the two differ exactly where it matters.
+    /// </param>
+    /// <param name="docs">Where the <c>returns</c> text comes from.</param>
+    /// <returns>The port.</returns>
+    private static PortDefinition ReturnPort(
+        MethodInfo method, Type produces, XmlDocumentation? docs = null)
     {
         NodePortAttribute? port = method.ReturnParameter.GetCustomAttribute<NodePortAttribute>();
         return new PortDefinition(
             port?.Name ?? DefaultOutputPortName,
-            method.ReturnType,
-            PortDefinition.RankOfType(method.ReturnType),
+            produces,
+            PortDefinition.RankOfType(produces),
             port?.Description ?? docs?.ReturnsOf(method));
     }
 

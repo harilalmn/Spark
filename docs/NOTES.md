@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-16 (N192: a flag set nothing consumes is one nobody has checked)
+**Last updated:** 2026-09-16 (N193: three documents described a build that did not exist)
 
 ---
 
@@ -5216,6 +5216,49 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N193 — Three documents this month described a build that did not exist, and all three were believed
+
+Three claims, found in four days, each written by somebody describing a design and each read
+afterwards as a description of a build:
+
+- **`docs/help/concepts/solids.md`**: *those nodes are greyed out in the library rather than failing
+  when you press them.* Written when the kernel seam was built. **No user interface read
+  `BrepCapabilities` at all** until 2026-09-16.
+- **`TASKS.md` row `E5-T3`**: *`Task<T>` is awaited and the port type is `T`.* The string `Task`
+  did not occur in `NodeImporter.cs`. An `async` member produced a port typed `Task<double>`
+  carrying a task object.
+- **`EPICS.md`, `E12-T5`'s criterion**: *`render`, `pkg`, `docs` and `graph` arrive with the
+  milestones that give them something to do* — true, and beside it a `Usage()` that told a user the
+  same thing while the verbs were being written one a day. That one was harmless and is here
+  because it is the same shape.
+
+**What they have in common is not carelessness.** Each was written at the moment the design was
+decided, when it was the most accurate sentence available, and each was *true of the intent*. What
+makes them dangerous is that nothing distinguishes a sentence written ahead of the build from one
+written after it. A reader six weeks later — including the author — cannot tell, so both read as
+*this is how it works*.
+
+**Two of the three would have shipped.** A user on a build with no kernel would have found forty
+nodes offered and failing, with a help page telling them those nodes are greyed out. Somebody
+importing a library with an `async` member would have got a node emitting a task object, with a
+register row saying it was awaited.
+
+**What found all three was the same thing, and it was not review.** `E11-T32`'s criterion sweep
+reads the **code** for each acceptance clause and refuses to accept the row's own word for it —
+[N187](NOTES.md)'s rule, that a re-check which cannot name what it read has not happened. `grep -c
+Task NodeImporter.cs` is four keystrokes and settles a clause that had been asserted for weeks.
+
+**The cheap habit that would have prevented them: write the tense you mean.** *The library greys
+these out* and *the library will grey these out* are one word apart and completely different
+claims, and the second cannot rot — it is either still true or visibly overdue. Every one of these
+three used the present tense for something that had not been built.
+
+**And the structural version, which is stronger than a habit.** A claim with a mechanism behind it
+cannot drift: `E12-T5`'s verb list is checked by tests that run the verbs, `E5-T11`'s node count by
+an import that actually runs. A claim in prose is checked by whoever next reads it and happens to
+doubt it. **The sweep works because it converts prose into a question about code**, which is why it
+is worth its cost and why it keeps finding things nobody suspected.
 
 ## N192 — A flag set nothing consumes is a flag set nobody has checked
 

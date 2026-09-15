@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Spark.Engine;
 
@@ -32,6 +33,92 @@ namespace Spark.Engine;
 public static class NodeInvoker
 {
     /// <summary>
+    /// What a node built from this member actually produces: the awaited result for an
+    /// asynchronous member, and the return type itself for every other one (<c>E5-T3</c>).
+    /// </summary>
+    /// <param name="returnType">The member's declared return type.</param>
+    /// <returns>
+    /// <c>T</c> for <c>Task&lt;T&gt;</c> and <c>ValueTask&lt;T&gt;</c>, <see langword="void"/> for
+    /// bare <c>Task</c> and <c>ValueTask</c>, and <paramref name="returnType"/> otherwise.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="returnType"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>A node is a function from values to values, so an asynchronous member is awaited and its
+    /// result is what the port carries.</b> Without this the port's type is <c>Task&lt;double&gt;</c>
+    /// and its value is a task object — which nothing downstream can add, draw or serialise, and
+    /// which no user would recognise as a mistake in Spark rather than in the package they
+    /// imported. The importer imports whatever assembly it is pointed at, with no cooperation from
+    /// its author, so it reaches this the first time somebody imports a library with an
+    /// <c>async</c> member in it.
+    /// </para>
+    /// <para>
+    /// <b><c>ValueTask</c> is handled beside <c>Task</c> rather than refused</b>, because refusing
+    /// it would leave exactly the same defect wearing a different name in every library written
+    /// since 2018.
+    /// </para>
+    /// <para>
+    /// <b>Bare <c>Task</c> unwraps to <see langword="void"/></b>, and so is refused by the same
+    /// rule that refuses <c>void</c>: it produces no value a graph can carry. An <c>async</c>
+    /// method returning <c>Task</c> is a side effect, and a side effect is declared, not inferred.
+    /// </para>
+    /// </remarks>
+    public static Type ResultTypeOf(Type returnType)
+    {
+        ArgumentNullException.ThrowIfNull(returnType);
+
+        if (returnType == typeof(Task) || returnType == typeof(ValueTask))
+        {
+            return typeof(void);
+        }
+
+        if (returnType.IsGenericType)
+        {
+            Type definition = returnType.GetGenericTypeDefinition();
+
+            if (definition == typeof(Task<>) || definition == typeof(ValueTask<>))
+            {
+                return returnType.GetGenericArguments()[0];
+            }
+        }
+
+        return returnType;
+    }
+
+    /// <summary>Whether a member has to be awaited before its value can be used.</summary>
+    /// <param name="returnType">The member's declared return type.</param>
+    /// <returns>True for the four awaitable shapes this importer understands.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="returnType"/> is null.</exception>
+    /// <remarks>
+    /// <b>The four shapes, not a duck-typed check for a <c>GetAwaiter</c> method.</b> A general
+    /// awaitable is anything with the right method pattern, including types whose awaiter is not
+    /// safe to block on; these four are, and widening it is a decision to take when something needs
+    /// it rather than in anticipation.
+    /// </remarks>
+    public static bool IsAwaitable(Type returnType) => ResultTypeOf(returnType) != returnType;
+
+    /// <summary>
+    /// Wraps a call in <c>GetAwaiter().GetResult()</c> when it returns an awaitable.
+    /// </summary>
+    /// <param name="call">The call expression.</param>
+    /// <returns>The call, or the call awaited.</returns>
+    /// <remarks>
+    /// <b>The await blocks, deliberately.</b> <c>GraphEvaluator</c> is synchronous — a node is a
+    /// function from values to values, and making one node asynchronous would make the whole
+    /// evaluator asynchronous for the benefit of members that mostly are not. Blocking is safe
+    /// here for a specific reason and not a general one: evaluation runs on a worker thread with no
+    /// synchronisation context, so there is no context for the continuation to be posted back to
+    /// and nothing to dead-lock against. A node that ran on the UI thread could not do this.
+    /// </remarks>
+    private static Expression Await(Expression call) =>
+        IsAwaitable(call.Type)
+            ? Expression.Call(
+                Expression.Call(call, call.Type.GetMethod("GetAwaiter")!),
+                "GetResult",
+                typeArguments: null)
+            : call;
+
+    /// <summary>
     /// Compiles an invoker for a method. An instance method takes its receiver as input port 0.
     /// </summary>
     /// <param name="method">The method.</param>
@@ -54,7 +141,9 @@ public static class NodeInvoker
 
         ParameterInfo[] parameters = method.GetParameters();
 
-        if (method.ReturnType == typeof(void) && !HasOutParameter(parameters))
+        Type produces = ResultTypeOf(method.ReturnType);
+
+        if (produces == typeof(void) && !HasOutParameter(parameters))
         {
             throw new ArgumentException(
                 $"'{method.Name}' returns void and has no out parameters, so it produces no value a graph can carry.",
@@ -76,9 +165,9 @@ public static class NodeInvoker
         (List<ParameterExpression> outputVariables, List<Expression> callArguments) =
             BuildCallArguments(parameters, arguments, ref argumentIndex);
 
-        Expression call = Expression.Call(instance, method, callArguments);
+        Expression call = Await(Expression.Call(instance, method, callArguments));
 
-        return Compile(call, method.ReturnType, outputVariables, arguments);
+        return Compile(call, produces, outputVariables, arguments);
     }
 
     /// <summary>
@@ -127,7 +216,9 @@ public static class NodeInvoker
 
         ParameterInfo[] parameters = method.GetParameters();
 
-        if (method.ReturnType == typeof(void) && !HasOutParameter(parameters))
+        Type produces = ResultTypeOf(method.ReturnType);
+
+        if (produces == typeof(void) && !HasOutParameter(parameters))
         {
             throw new ArgumentException(
                 $"'{method.Name}' returns void and has no out parameters, so it produces no value a graph can carry.",
@@ -150,9 +241,9 @@ public static class NodeInvoker
         (List<ParameterExpression> outputVariables, List<Expression> callArguments) =
             BuildCallArguments(parameters, arguments, ref argumentIndex, token);
 
-        Expression call = Expression.Call(instance, method, callArguments);
+        Expression call = Await(Expression.Call(instance, method, callArguments));
 
-        return Compile<CancellableNodeInvocation>(call, method.ReturnType, outputVariables, arguments, token);
+        return Compile<CancellableNodeInvocation>(call, produces, outputVariables, arguments, token);
     }
 
     /// <summary>

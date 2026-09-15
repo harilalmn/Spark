@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Spark.Api;
 
 namespace Spark.Engine.Tests;
@@ -167,4 +168,52 @@ public static class ImportedNothing
     /// <summary>Never a node.</summary>
     /// <returns>Zero.</returns>
     public static double Whatever() => 0;
+}
+
+/// <summary>
+/// The four asynchronous shapes a node importer meets (<c>E5-T3</c>).
+/// </summary>
+/// <remarks>
+/// <b>Written as real <c>async</c> members rather than as methods returning a completed task</b>,
+/// so that the awaited call really does go through a state machine and a continuation. A method
+/// returning <c>Task.FromResult</c> completes synchronously and would pass a test that blocked
+/// forever on anything that did not.
+/// </remarks>
+public static class ImportedAsync
+{
+    /// <summary>A number, eventually.</summary>
+    /// <param name="a">What to double.</param>
+    /// <returns>Twice it.</returns>
+    public static async Task<double> Twice(double a)
+    {
+        await Task.Yield();
+        return a * 2;
+    }
+
+    /// <summary>A number from a value task, eventually.</summary>
+    /// <param name="a">What to treble.</param>
+    /// <returns>Three times it.</returns>
+    public static async ValueTask<double> Treble(double a)
+    {
+        await Task.Yield();
+        return a * 3;
+    }
+
+    /// <summary>Produces nothing, eventually.</summary>
+    /// <param name="a">Ignored.</param>
+    /// <returns>Nothing.</returns>
+    public static async Task Nothing(double a)
+    {
+        await Task.Yield();
+        _ = a;
+    }
+
+    /// <summary>Produces nothing through a value task, eventually.</summary>
+    /// <param name="a">Ignored.</param>
+    /// <returns>Nothing.</returns>
+    public static async ValueTask NothingAtAll(double a)
+    {
+        await Task.Yield();
+        _ = a;
+    }
 }

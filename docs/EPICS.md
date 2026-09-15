@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-16 (`E2-T28`: the library greys what this build cannot do)
+**Last updated:** 2026-09-16 (`E5-T3`: an async member is awaited, and `E5` is complete)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -720,7 +720,7 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       build-time fixture rather than downloaded, so the check does not depend on the internet.*
 - [x] `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes refine what
       reflection infers, for those who want them (**E5-T1**).
-- [ ] Member-kind rules are implemented as specified: setters excluded, `out` parameters
+- [x] Member-kind rules are implemented as specified: setters excluded, `out` parameters
       become extra outputs, `Task<T>` is awaited, `void` is excluded unless marked a side
       effect, `op_*` operators are excluded as nodes and harvested as implicit conversions
       instead, and extension methods present as instance methods on the extended type so
@@ -732,9 +732,21 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       excluded as nodes and harvested as implicit conversions (`TypeCompatibility` reads
       `op_Implicit`), and extensions present on the receiver's type — `ExtensionMethodImportTests`
       covers three cases including a collision with the receiver's own member. **The unmet clause
-      is `Task<T>` is awaited**: the string `Task` does not occur in `NodeImporter.cs` at all, so
-      an async member is neither awaited nor refused with a reason. That is the whole of what keeps
-      this box unticked.*
+      was `Task<T>` is awaited**: the string `Task` did not occur in `NodeImporter.cs` at all, so
+      an async member was neither awaited nor refused with a reason. **Built 2026-09-16, and it was
+      not merely missing — it was silently wrong.** `ReturnPort` read the declared return type, so
+      an `async` member became a node whose output port was typed `Task<double>` carrying a task
+      object: nothing downstream can add, draw or serialise one, and a user would read it as a
+      defect in the package they imported. `E5-T11` imports **3,621** nodes from `MathNet.Numerics`
+      with no attributes at all, so an ordinary library reaches this on the first import.
+      `NodeInvoker.ResultTypeOf` now unwraps `Task<T>` and `ValueTask<T>` to `T` and bare `Task` and
+      `ValueTask` to `void`, which the `void` rule then refuses as *produces no value* — an
+      asynchronous side effect is declared, not inferred. **`ValueTask` is handled beside `Task`
+      rather than refused**, because refusing it would leave the same defect wearing a different
+      name in every library written since 2018. **The await blocks, deliberately and with the
+      reason written down**: evaluation is synchronous and runs on a worker thread with no
+      synchronisation context, so there is nothing to dead-lock against. Watched going red: the
+      port-type test fails against the previous behaviour with `Task<double>` in the message.*
 - [x] **One node per overload**, grouped under one library entry with a flyout,
       disambiguated by differing parameter names (`ByCenterRadius` versus
       `ByCenterRadiusNormal`), never by `_2` (**E5-T4**). *Ticked 2026-09-15, when the second half

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Spark.Engine;
 
 namespace Spark.Engine.Tests;
@@ -206,6 +207,66 @@ public sealed class NodeImporterTests
 
         Assert.Contains("already registered", error.Message, StringComparison.Ordinal);
         Assert.Equal(1, library.Count);
+    }
+
+    /// <summary>
+    /// <b>An <c>async</c> member is awaited, and its port carries the result rather than the
+    /// task</b> (<c>E5-T3</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The port type is the assertion that matters.</b> Before this, `ReturnPort` read the
+    /// declared return type, so the node's output was typed `Task&lt;double&gt;` and its value was
+    /// a task object — which nothing downstream can add, draw or serialise, and which a user would
+    /// read as a defect in the package they imported rather than in Spark. The importer takes
+    /// whatever assembly it is pointed at with no cooperation from its author, so an `async` member
+    /// in an ordinary library reaches this on the first import.
+    /// </remarks>
+    [Theory]
+    [InlineData("ImportedAsync.Twice", 2.0, 4.0)]
+    [InlineData("ImportedAsync.Treble", 2.0, 6.0)]
+    public void AnAsynchronousMemberIsAwaitedAndItsPortCarriesTheResult(
+        string name, double input, double expected)
+    {
+        NodeDefinition definition = Definition(Import(typeof(ImportedAsync)), name);
+
+        PortDefinition output = Assert.Single(definition.Outputs);
+
+        Assert.Equal(typeof(double), output.ValueType);
+        Assert.Equal(expected, Assert.IsType<double>(definition.Invoke([input])[0]));
+    }
+
+    /// <summary>
+    /// <b>A bare <c>Task</c> is refused exactly as <c>void</c> is</b>, because it produces no value
+    /// a graph can carry — and an asynchronous side effect is declared, not inferred.
+    /// </summary>
+    [Theory]
+    [InlineData("Nothing")]
+    [InlineData("NothingAtAll")]
+    public void AnAsynchronousMemberProducingNothingIsRefusedWithAReason(string member)
+    {
+        ImportReport report = Import(typeof(ImportedAsync));
+
+        ExcludedMember excluded = Assert.Single(
+            report.Exclusions, exclusion => exclusion.Member.Name == member);
+
+        Assert.Contains("produces no value", excluded.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <c>ValueTask</c> is handled beside <c>Task</c> rather than refused — the same defect wearing
+    /// a different name would be in every library written since 2018.
+    /// </summary>
+    [Fact]
+    public void BothTaskAndValueTaskAreUnderstood()
+    {
+        Assert.Equal(typeof(double), NodeInvoker.ResultTypeOf(typeof(Task<double>)));
+        Assert.Equal(typeof(double), NodeInvoker.ResultTypeOf(typeof(ValueTask<double>)));
+        Assert.Equal(typeof(void), NodeInvoker.ResultTypeOf(typeof(Task)));
+        Assert.Equal(typeof(void), NodeInvoker.ResultTypeOf(typeof(ValueTask)));
+
+        // And nothing else is touched: a member returning an ordinary type is unchanged.
+        Assert.Equal(typeof(double), NodeInvoker.ResultTypeOf(typeof(double)));
+        Assert.False(NodeInvoker.IsAwaitable(typeof(double)));
     }
 
     private static ImportReport Import(params Type[] types) => NodeImporter.Import(types, Package);
