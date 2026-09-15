@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E6-T14`: Roslyn kept out of both hosts, and the box ticked)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark graph`, six verbs of seven)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -50,9 +50,9 @@ Three distinctions still do the work in what follows:
   tessellate behind `IBrepKernel`. **141 node methods over 21 families** in `Spark.Nodes.Core`.
   **2,964 tests over ten projects** as of 2026-09-09.
 - **What is not.** No split, trim, thicken, draft or offset on the kernel contract. No mesh
-  booleans. Trimmed faces come *back* from the provider but cannot be authored. **Four of the
-  seven `spark` verbs** — `render`, `pkg`, `docs`, `graph` — are unwritten; the CLI dispatches
-  `run`, `check`, `export` and `--version`. **No surface or solid property tests**: CsCheck
+  booleans. Trimmed faces come *back* from the provider but cannot be authored. **One of the
+  seven `spark` verbs** — `docs` — is unwritten; the CLI dispatches `run`, `check`, `export`,
+  `render`, `pkg`, `graph`, `pack` and `--version`. **No surface or solid property tests**: CsCheck
   covers the value layer and the curve layer and stops there. The software renderer and the CI
   visual-regression check are deliberately deferred past M6.
 - **M2 finished on 2026-08-30.** Real docking (`E8-T2`), group, note and align (`E8-T6`), watch

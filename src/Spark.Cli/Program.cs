@@ -46,8 +46,13 @@ namespace Spark.Cli;
 /// (`E3-T20`), and <c>run</c>, <c>check</c> and <c>export</c> open one wherever they take a graph.
 /// </para>
 /// <para>
-/// <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are `E12-T5` and arrive with the
-/// milestones that give them something to do.
+/// <c>spark graph</c> describes a graph file without binding it — the format, the counts, the
+/// definitions it names against the ones this build holds, and the packages it records against the
+/// folder beside it. It is the only verb that still works on a graph this build cannot open, which
+/// is the moment somebody reaches for it.
+/// </para>
+/// <para>
+/// <c>docs</c> is `E12-T5`'s last verb and arrives with the milestone that gives it something to do.
 /// </para>
 /// </remarks>
 internal static class Program
@@ -88,6 +93,7 @@ internal static class Program
                 "export" => Export(args.AsSpan(1), Console.Out, Console.Error),
                 "render" => Render(args.AsSpan(1), Console.Out, Console.Error),
                 "pkg" => Pkg(args.AsSpan(1), Console.Out, Console.Error),
+                "graph" => Graph(args.AsSpan(1), Console.Out, Console.Error),
                 "pack" => Pack(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -1479,6 +1485,241 @@ internal static class Program
     }
 
     /// <summary>
+    /// Describes a <c>.spark</c> file without binding it (<c>E12-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is the only verb that works on a graph this build cannot open</b>, and that is the
+    /// whole of why it exists. <c>run</c>, <c>check</c>, <c>export</c> and <c>render</c> all call
+    /// <see cref="GraphDocument.Restore"/>, which needs the node library and — for a graph with a
+    /// code block in it — the whole of Roslyn. This reads the document and reports on it. The
+    /// moment somebody wants it is the moment <c>check</c> has just said <i>this graph names a
+    /// definition I do not have</i>, which is precisely the moment the verbs that bind are
+    /// useless.
+    /// </para>
+    /// <para>
+    /// <b>One reconciliation, not three listings</b> — <see cref="List"/>'s rule, for
+    /// <see cref="List"/>'s reason. What a person reading a build log needs is not <i>what is in
+    /// this file</i> and separately <i>what does this build have</i>, but whether the two agree,
+    /// and printing the pair makes them do that comparison by eye.
+    /// </para>
+    /// <para>
+    /// <b>A code block is counted apart and is never <i>missing</i>.</b> Its definition is its
+    /// source, carried in the file; no library holds it and none could. Reporting it against the
+    /// library would make every graph containing one look broken.
+    /// </para>
+    /// <para>
+    /// <b>It must not load Roslyn</b>, which is the standing constraint on every path a graph with
+    /// no code block can reach (<c>E6-T14</c>) — and this verb reaches nothing else, because it
+    /// never asks for a factory. <c>ScriptingResidencyTests</c> is what holds it to that.
+    /// </para>
+    /// <para>
+    /// <b>Exit 1 when something is missing</b>, for <c>pkg list</c>'s reason: the exit code is the
+    /// answer to <i>will this open here</i>, and a verb whose exit code never varies is a verb a
+    /// build script cannot use. A definition the library lacks, a recorded package the folder
+    /// lacks, or a format this build is too old to read all fail it.
+    /// </para>
+    /// </remarks>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="output">Where the description goes.</param>
+    /// <param name="error">Where problems go.</param>
+    /// <returns>Zero when this build could open the file, one otherwise.</returns>
+    internal static int Graph(ReadOnlySpan<string> args, TextWriter output, TextWriter error)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+
+        string? input = null;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--open" when i + 1 < args.Length:
+                    input = args[++i];
+                    break;
+
+                default:
+                    if (input is null && !args[i].StartsWith('-'))
+                    {
+                        input = args[i];
+                        break;
+                    }
+
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null)
+        {
+            error.WriteLine("spark: graph needs a graph to describe. Try: spark graph graph.spark");
+            return 1;
+        }
+
+        // `E3-T20`: a bundle is described by describing the graph inside it, so that the package
+        // folder is where the reconciliation below expects to find it.
+        using OpenedInput opened = OpenedInput.From(input);
+        GraphDocument document = SparkFile.Read(File.ReadAllText(opened.Graph));
+
+        // The library, and nothing else. No session scripting, no factory, no catalogue - the
+        // question here is only which definitions exist, and asking it must not cost Roslyn.
+        using SparkSession session = new();
+
+        return Report(input, opened.Graph, document, session.Library, output);
+    }
+
+    /// <summary>Prints what the file holds against what this build has.</summary>
+    /// <param name="input">The path the user typed, which is the name they know.</param>
+    /// <param name="graph">The `.spark` file itself, which is inside the bundle for a `.sparkz`.</param>
+    /// <param name="document">The file as read.</param>
+    /// <param name="library">The definitions this build holds.</param>
+    /// <param name="output">Where it goes.</param>
+    /// <returns>Zero when nothing is missing and the format is readable, one otherwise.</returns>
+    private static int Report(
+        string input, string graph, GraphDocument document, NodeLibrary library, TextWriter output)
+    {
+        int blocks = document.Nodes.Count(node => node.Script is not null);
+        int appearance = document.Nodes.Count(node => node.Title is not null || node.Colour is not null);
+
+        int needs = GraphDocument.MinimumReaderVersion(
+            document.Notes.Count, document.Groups.Count, blocks, appearance, document.Packages.Count);
+
+        bool readable = document.FormatVersion <= GraphDocument.CurrentFormatVersion;
+
+        string verdict = readable
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"readable by this build (which writes {GraphDocument.CurrentFormatVersion}, "
+                + $"and this file needs a reader of {needs})")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"NOT readable by this build, which reads up to {GraphDocument.CurrentFormatVersion}");
+
+        output.WriteLine($"spark: {Path.GetFileName(input)}");
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture, $"  format       {document.FormatVersion}, {verdict}"));
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  nodes        {document.Nodes.Count}"));
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  wires        {document.Wires.Count}"));
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture, $"  literals     {document.Nodes.Sum(node => node.Literals.Count)}"));
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  notes        {document.Notes.Count}"));
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  groups       {document.Groups.Count}"));
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  code blocks  {blocks}"));
+
+        int missing = Definitions(document, library, blocks, output);
+
+        missing += Recorded(graph, document, output);
+
+        string outcome = missing == 0
+            ? "this build can open it"
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{missing} thing(s) missing, so this build cannot open it as authored");
+
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: {document.Nodes.Count} node(s), {document.Wires.Count} wire(s); {outcome}"));
+
+        return missing == 0 && readable ? 0 : 1;
+    }
+
+    /// <summary>Reconciles the definitions the file names against the ones this build holds.</summary>
+    /// <remarks>
+    /// <b>Sorted by key, and counted.</b> A graph of two thousand nodes has a few dozen distinct
+    /// definitions, and the count beside each one is what turns the list into a description of the
+    /// graph rather than a dump of it. Sorting ordinally rather than by count keeps two runs over
+    /// the same file byte-identical, which is what makes the output diffable.
+    /// </remarks>
+    /// <param name="document">The file as read.</param>
+    /// <param name="library">The definitions this build holds.</param>
+    /// <param name="blocks">How many nodes carry their own source.</param>
+    /// <param name="output">Where it goes.</param>
+    /// <returns>How many distinct definitions the library does not have.</returns>
+    private static int Definitions(
+        GraphDocument document, NodeLibrary library, int blocks, TextWriter output)
+    {
+        Dictionary<string, int> used = [];
+
+        foreach (GraphDocumentNode node in document.Nodes)
+        {
+            // A code block's definition is its source, not a library entry, so it is counted with
+            // the others above and never reconciled against anything.
+            if (node.Script is null)
+            {
+                used[node.Key.Value] = used.GetValueOrDefault(node.Key.Value) + 1;
+            }
+        }
+
+        if (used.Count == 0 && blocks == 0)
+        {
+            return 0;
+        }
+
+        output.WriteLine();
+        output.WriteLine("  definitions");
+
+        int absent = 0;
+
+        foreach ((string key, int count) in used.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            int slash = key.IndexOf('/', StringComparison.Ordinal);
+            bool held = slash > 0
+                && library.TryGet(new NodeKey(key[..slash], key[(slash + 1)..]), out _);
+
+            if (!held)
+            {
+                absent++;
+            }
+
+            output.WriteLine(string.Create(
+                CultureInfo.InvariantCulture, $"    {(held ? "present" : "missing")}  {key}  x{count}"));
+        }
+
+        if (blocks > 0)
+        {
+            output.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"    in file  (code block, its source is its definition)  x{blocks}"));
+        }
+
+        return absent;
+    }
+
+    /// <summary>Reconciles the packages the file records against the folder beside it.</summary>
+    /// <remarks>
+    /// The same reconciliation <c>pkg list</c> prints, and deliberately the same words, so that
+    /// somebody who has read one recognises the other. It is here as well because the question
+    /// <i>will this open</i> has two halves and a missing package is the commoner one.
+    /// </remarks>
+    /// <param name="graph">The `.spark` file, which names the folder beside it.</param>
+    /// <param name="document">The file as read.</param>
+    /// <param name="output">Where it goes.</param>
+    /// <returns>How many recorded packages are not there.</returns>
+    private static int Recorded(string graph, GraphDocument document, TextWriter output)
+    {
+        if (document.Packages.Count == 0)
+        {
+            return 0;
+        }
+
+        IReadOnlyList<string> recorded = [.. document.Packages.Select(package => package.Path)];
+        ImmutableArray<AbsentGraphPackage> absent = GraphPackages.Absent(graph, recorded);
+        HashSet<string> gone = new(absent.Select(one => one.Recorded), StringComparer.OrdinalIgnoreCase);
+
+        output.WriteLine();
+        output.WriteLine("  packages");
+
+        foreach (string entry in recorded.OrderBy(one => one, StringComparer.Ordinal))
+        {
+            output.WriteLine(gone.Contains(entry) ? $"    missing  {entry}" : $"    present  {entry}");
+        }
+
+        return absent.Length;
+    }
+
+    /// <summary>
     /// Prints the version, and what this build links.
     /// </summary>
     /// <remarks>
@@ -1621,6 +1862,14 @@ internal static class Program
         Console.WriteLine("      Restoring downloads; it does not agree to load anything, so run and");
         Console.WriteLine("      check still need --trust-packages or a visit to the desktop window.");
         Console.WriteLine();
+        Console.WriteLine("  spark graph GRAPH.spark");
+        Console.WriteLine("      Describe a graph file without opening it: the format version, the");
+        Console.WriteLine("      counts, every definition it names marked present or missing against");
+        Console.WriteLine("      this build's library, and the packages it records against the folder");
+        Console.WriteLine("      beside it. It binds nothing, so it is the one verb that still works");
+        Console.WriteLine("      on a graph this build cannot open - which is when you want it.");
+        Console.WriteLine("      Exit 1 if anything it names is missing here.");
+        Console.WriteLine();
         Console.WriteLine("  spark pack GRAPH.spark [--out FILE.sparkz]");
         Console.WriteLine("      Zip a graph and the GRAPH.packages folder beside it into one .sparkz");
         Console.WriteLine("      file for sharing; by default GRAPH.sparkz, beside the graph. run, check");
@@ -1629,7 +1878,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
-        Console.WriteLine("  docs and graph arrive with later milestones.");
+        Console.WriteLine("  docs arrives with a later milestone.");
     }
 
     /// <summary>

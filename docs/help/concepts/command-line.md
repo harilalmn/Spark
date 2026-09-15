@@ -6,16 +6,16 @@ related: [concepts.files, concepts.evaluation, concepts.code-blocks]
 since: "2026.9"
 ---
 
-**Status:** Current. Describes the five verbs that exist — `run`, `check`, `export`, `render` and
-`pkg` — and says plainly which of the seven do not.
+**Status:** Current. Describes the six verbs that exist — `run`, `check`, `export`, `render`,
+`pkg` and `graph` — and says plainly which of the seven does not.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-15 (`E12-T5`: `spark render` and `spark pkg`, five verbs of seven)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark graph`, six verbs of seven)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
-> does not have is a canvas — and since `render` it does not need one to draw, either. Two of the
-> seven planned verbs — `docs` and `graph` — are not written yet, and `spark --help` says so rather
-> than pretending otherwise.
+> does not have is a canvas — and since `render` it does not need one to draw, either. One of the
+> seven planned verbs — `docs` — is not written yet, and `spark --help` says so rather than
+> pretending otherwise.
 
 ---
 
@@ -312,6 +312,89 @@ it is named, and the run fails, because the folder is still incomplete.
 
 ---
 
+## `spark graph` — what is in this file, and will it open here?
+
+```
+spark graph GRAPH.spark
+```
+
+Every other verb *opens* the graph: it binds each node to a definition in the library, compiles any
+code block, and then does its work. `spark graph` does none of that. It reads the file and describes
+it.
+
+```
+$ spark graph curves.spark
+spark: curves.spark
+  format       1, readable by this build (which writes 5, and this file needs a reader of 1)
+  nodes        18
+  wires        15
+  literals     19
+  notes        0
+  groups       0
+  code blocks  0
+
+  definitions
+    present  Spark.Nodes.Core/Circle.FromCenterRadius  x1
+    present  Spark.Nodes.Core/Colour.FromRgb  x4
+    present  Spark.Nodes.Core/Curve.DivideEqually  x1
+    present  Spark.Nodes.Core/Display.FromGeometryColour  x4
+    present  Spark.Nodes.Core/Ellipse.FromPlaneRadii  x1
+    present  Spark.Nodes.Core/Number.Range  x1
+    present  Spark.Nodes.Core/Plane.FromOriginNormal  x1
+    present  Spark.Nodes.Core/Plane.XY  x1
+    present  Spark.Nodes.Core/Point.FromCoordinates  x2
+    present  Spark.Nodes.Core/PolyLine.FromRegularPolygon  x1
+    present  Spark.Nodes.Core/Vector.ZAxis  x1
+spark: 18 node(s), 15 wire(s); this build can open it
+$ echo $?
+0
+```
+
+**Because it binds nothing, it is the one verb that still works on a graph this build cannot
+open** — and that is when you want it. A colleague sends you a file, `spark check` says a node is
+unresolved, and the question is *which node, and what do I need to install*:
+
+```
+$ spark graph facade.spark
+spark: facade.spark
+  format       5, readable by this build (which writes 5, and this file needs a reader of 5)
+  nodes        41
+  wires        52
+  literals     37
+  notes        2
+  groups       1
+  code blocks  1
+
+  definitions
+    present  Spark.Nodes.Core/Point.FromCoordinates  x12
+    missing  Acme.Nodes/Panel.ByOutline  x8
+    in file  (code block, its source is its definition)  x1
+
+  packages
+    missing  facade.packages/acme.nodes.1.2.0
+spark: 41 node(s), 52 wire(s); 2 thing(s) missing, so this build cannot open it as authored
+$ echo $?
+1
+```
+
+Two lines and you know the answer: install `acme.nodes` 1.2.0, or `spark pkg restore`.
+
+**`missing` is a definition this build does not have**, named in full as `package/name` — the same
+key the file stores, so it is searchable. **`present` is one it does.** **`in file` is a code
+block**, which is neither: its definition *is* its source, carried in the graph, so no library could
+hold it and it is never reported as missing.
+
+**It exits 1 when anything it names is absent here**, for `spark pkg list`'s reason — the exit code
+is the answer to *will this open on this machine*, which is a thing a build script can act on.
+
+**It never loads the compiler.** Describing a graph full of code blocks costs nothing beyond reading
+the file, because the source is text until something compiles it and this verb never does.
+
+**The output is stable**: the definitions are sorted by key, so two runs over one file produce
+identical bytes and a build log diffs cleanly.
+
+---
+
 ## `spark --version`
 
 Prints the version, and the third-party notice that the licence requires: which kernel is loaded,
@@ -323,9 +406,9 @@ stops matching the build.
 
 ## What is not written yet
 
-`docs` and `graph` are planned and do not exist. `spark --help` lists them under *arrive with later
-milestones* rather than accepting them and doing nothing, which is the failure mode a build script
-cannot see. **`render` and `pkg` were both in this list until 2026-09-15** and both have sections of
+`docs` is planned and does not exist. `spark --help` lists it under *arrives with a later milestone*
+rather than accepting it and doing nothing, which is the failure mode a build script cannot see.
+**`render`, `pkg` and `graph` were all in this list on 2026-09-15** and all three have sections of
 their own above.
 
 ---

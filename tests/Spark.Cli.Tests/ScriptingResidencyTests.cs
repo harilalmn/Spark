@@ -38,6 +38,12 @@ namespace Spark.Cli.Tests;
 /// that silently observed nothing at all — a hook that never ran, a variable never read — would
 /// report a clean run forever.
 /// </para>
+/// <para>
+/// <b>And one of the three is a capability rather than a cost.</b>
+/// <see cref="GraphDescribesACodeBlockWithoutLoadingSparkScripting"/> points <c>spark graph</c> at
+/// the graph the test above uses to prove Roslyn <i>does</i> load, and requires that it does not —
+/// which is what makes that verb usable on a file this build cannot open (<c>E12-T5</c>).
+/// </para>
 /// </remarks>
 public sealed class ScriptingResidencyTests
 {
@@ -90,17 +96,61 @@ public sealed class ScriptingResidencyTests
     }
 
     /// <summary>
+    /// <b><c>spark graph</c> describes a graph that <i>does</i> hold a code block and still loads
+    /// no Roslyn</b> — which is the whole of what that verb is for (<c>E12-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two tests above measure a cost the product should not pay. This one measures a
+    /// capability: <c>graph</c> never calls <see cref="GraphDocument.Restore"/>, so the file it is
+    /// pointed at can hold anything at all and the description still arrives. The negative is the
+    /// evidence for it, because a verb that quietly built a factory would produce the same output
+    /// and be useless for the case it exists to serve — a graph this build cannot open.
+    /// </para>
+    /// <para>
+    /// <b>It is the same graph <see cref="AGraphWithACodeBlockDoesLoadSparkScripting"/> runs</b>,
+    /// deliberately: one file, two verbs, and the difference between them is the claim. A test
+    /// using a graph with no block in it would prove nothing this file does not already prove.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void GraphDescribesACodeBlockWithoutLoadingSparkScripting()
+    {
+        const string script = "return new Line(new Point3d(0, 0, 0), new Point3d(1, 0, 0));";
+
+        string path = WriteGraph(graph => graph.AddNode(
+            NodeDefinition.FromScript(new ScriptNodeFactory(new ReferenceCatalog()).Create(script), script)));
+
+        (int exitCode, IReadOnlyCollection<string> loaded) = RunCli(path, "graph");
+
+        Assert.Equal(0, exitCode);
+
+        Assert.DoesNotContain(loaded, name =>
+            name.StartsWith("Spark.Scripting", StringComparison.Ordinal));
+
+        Assert.DoesNotContain(loaded, name =>
+            name.StartsWith("Microsoft.CodeAnalysis", StringComparison.Ordinal));
+
+        // The library is what `graph` reconciles against, so its absence would mean the verb had
+        // returned before doing the only thing that could have loaded anything.
+        Assert.Contains("Spark.Nodes.Core", loaded);
+    }
+
+    /// <summary>
     /// Runs <c>spark run --all PATH</c> in a child process under the startup hook and returns what
     /// it exited with and what it loaded.
     /// </summary>
     /// <param name="path">The graph to run.</param>
+    /// <param name="verb">The verb to run it under. <c>run</c> unless a caller says otherwise.</param>
     /// <returns>The exit code and the child's loaded-assembly names.</returns>
     /// <remarks>
     /// <c>--all</c> rather than a bare run so that a graph with no watch node in it is still a
     /// success; what is under test is what the process loaded, and a verb reporting nothing to
-    /// print would make the exit-code assertion say something else.
+    /// print would make the exit-code assertion say something else. It is passed only to
+    /// <c>run</c>, which is the only verb that has it.
     /// </remarks>
-    private static (int ExitCode, IReadOnlyCollection<string> Loaded) RunCli(string path)
+    private static (int ExitCode, IReadOnlyCollection<string> Loaded) RunCli(
+        string path, string verb = "run")
     {
         string log = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".assemblies");
 
@@ -111,8 +161,13 @@ public sealed class ScriptingResidencyTests
             UseShellExecute = false,
         };
 
-        start.ArgumentList.Add("run");
-        start.ArgumentList.Add("--all");
+        start.ArgumentList.Add(verb);
+
+        if (verb == "run")
+        {
+            start.ArgumentList.Add("--all");
+        }
+
         start.ArgumentList.Add(path);
 
         start.Environment["SPARK_LOADED_ASSEMBLIES"] = log;

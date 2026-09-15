@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N188: a field's declared type loads its assembly, null or not — both hosts)
+**Last updated:** 2026-09-15 (N189: the tool for a file that will not open is the one that never opens it)
 
 ---
 
@@ -5216,6 +5216,42 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N189 — The tool for a file that will not open is the one tool that never opens it
+
+`spark graph` (`E12-T5`) was the sixth of seven verbs, and the only interesting question was what
+it should print. Everything it could print was already reachable: `GraphDocument` knows the nodes,
+the wires, the scripts, the notes, the groups and the recorded packages the moment the file is
+parsed. So the code was never the work — **choosing the view was**, and the choice that made the
+verb worth having turned out to be a subtraction.
+
+**Every other verb binds.** `run`, `check`, `export` and `render` all call `GraphDocument.Restore`,
+which resolves each node against the library and compiles any code block. That is not incidental to
+them; it is what they are. It also means **every one of them fails on exactly the file a person most
+needs explained** — a graph from a colleague, naming a package this machine does not have. `check`
+answers *a node is unresolved*, which is true and nearly useless: it does not say which definition,
+how many nodes use it, or what to install.
+
+**So `graph` binds nothing.** It reads the document and reconciles it against the library by name,
+without constructing a single node. The consequence is the whole feature: it is the one verb that
+still answers on a file this build cannot open. Two lines of its output —
+`missing  Acme.Nodes/Panel.ByOutline  x8` and `missing  facade.packages/acme.nodes.1.2.0` — are
+the answer that the verbs which *can* evaluate cannot give, because they never get far enough.
+
+**The generalisation, which is why this is a note and not a commit message.** A diagnostic tool
+whose first act is to do the thing that is failing has excluded its own best use. It is a
+comfortable mistake to make, because binding is what makes every other operation possible and
+reaching for it feels like thoroughness. The test for it is one question: *what does this do on the
+input somebody would actually bring to it?*
+
+**And the guard for it belongs to the thing it must not do.** The strongest test of this verb is
+not in `GraphVerbTests` at all — it is `GraphDescribesACodeBlockWithoutLoadingSparkScripting` in
+`ScriptingResidencyTests`, which points `graph` at the very graph
+`AGraphWithACodeBlockDoesLoadSparkScripting` uses to prove that Roslyn *does* load, and requires
+that it does not. One file, two verbs, and the difference between them is the entire claim. A verb
+that quietly bound would print identical output and be useless for its one purpose, so **the
+assertion had to be about the process, not the text.** It was watched going red with one line —
+`_ = session.EnableScripting();` — added to the verb.
 
 ## N188 — A field's *declared type* loads its assembly, so a null that is never read still costs 20 MB of Roslyn
 

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E6-T14`: Roslyn kept out of both hosts, and the box ticked)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark graph`, six verbs of seven)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1899,8 +1899,8 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       neither does an interface designed without a host to try it against.*
 - [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
-      (**E12-T5**). *Five of seven: `export` since 2026-08-29, `run` since 2026-08-30,
-      `check` since 2026-09-09, and **`render` and `pkg` since 2026-09-15**. The identical-output half is met
+      (**E12-T5**). *Six of seven: `export` since 2026-08-29, `run` since 2026-08-30,
+      `check` since 2026-09-09, and **`render`, `pkg` and `graph` since 2026-09-15**. The identical-output half is met
       structurally rather than by care: the value rendering lives in `Spark.Api.ValueText`, beneath
       both the shell and the CLI, and a test fails the day a second one appears. `check` was the
       first verb with tests of its own (**E11-T29**) — the two before it shipped verified by eye,
@@ -1912,8 +1912,14 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       which `E7` closing the same day is what made true: `list` reconciles a graph's package folder
       against what its file records and exits 1 when something is missing, and `restore` fetches
       what is absent — downloading without agreeing, so `E7-T16`'s gate is untouched and `run` and
-      `check` still refuse what nobody has trusted. The remaining two — `docs` and `graph` — wait on
-      the milestones that give them something to do.*
+      `check` still refuse what nobody has trusted. **`graph` is the one verb that binds nothing**,
+      and that is what it is for: it describes a `.spark` file — the format version, the counts, every
+      definition it names marked present or missing against this build's library, the packages it
+      records against the folder — without calling `GraphDocument.Restore`, so it still answers on a
+      graph this build cannot open, which is exactly when somebody needs it. Its strongest test lives
+      in `ScriptingResidencyTests` rather than beside the verb: the same code-block graph that proves
+      Roslyn *does* load under `run` must not load it under `graph`. The remaining one — `docs` —
+      waits on the milestone that gives it something to do.*
 - [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
       desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
       `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no
