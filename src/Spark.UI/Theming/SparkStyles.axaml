@@ -171,6 +171,41 @@
     <Setter Property="BoxShadow" Value="0 8 24 0 #66000000" />
   </Style>
 
+  <!--
+    The library's overloaded-member row, and the variants inside its popup (E5-T4). Both are
+    buttons because both are clicked; neither LOOKS like a button, because a chrome-carrying
+    control inside a tree row would read as a control sitting on a list rather than as the list
+    itself. So: no fill, no border, no radius at rest, and the hover state is the whole of the
+    affordance. The row is a ToggleButton because the popup it opens is bound to its checked
+    state.
+
+    The hover fill is the raised surface the toolbar uses, which is DARKER than the panel behind
+    it, per section 4 - this design language moves down for emphasis, not up.
+  -->
+  <Style Selector="ToggleButton.overloads, Button.overload">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="ToggleButton.overloads /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.overload /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="ToggleButton.overloads:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.overload:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedHoverBrush}" />
+  </Style>
+
+  <Style Selector="ToggleButton.overloads:pressed /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.overload:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedPressedBrush}" />
+  </Style>
+
   <Style Selector="GridSplitter">
     <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
     <Setter Property="MinWidth" Value="0" />

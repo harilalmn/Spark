@@ -1584,16 +1584,7 @@ internal static class Program
 
         error.WriteLine($"spark: no help topic '{id}'.");
 
-        IReadOnlyList<HelpDocument> near = help.Search(id, limit: 5);
-
-        // A whole id that matches nothing is usually one segment wrong rather than gibberish -
-        // `nodes.Point.FromCoordinates` with the package left out, most often - so the last
-        // segment is asked for before giving up. Searching for the full id first still matters:
-        // when it does match, it ranks the exact topic where a bare member name would not.
-        if (near.Count == 0 && id.LastIndexOfAny(['.', '/']) is > 0 and int cut)
-        {
-            near = help.Search(id[(cut + 1)..], limit: 5);
-        }
+        IReadOnlyList<HelpDocument> near = Suggestions(help, id);
 
         if (near.Count > 0)
         {
@@ -1610,6 +1601,54 @@ internal static class Program
         }
 
         return 1;
+    }
+
+    /// <summary>What to offer somebody whose topic id did not resolve.</summary>
+    /// <param name="help">The library.</param>
+    /// <param name="id">The id they asked for.</param>
+    /// <returns>At most five topics, id matches first.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>An id that misses is usually one segment wrong rather than gibberish</b> —
+    /// <c>nodes.Point.FromCoordinates</c> with the package left out is the ordinary mistake — so
+    /// the last segment is searched as well as the whole string.
+    /// </para>
+    /// <para>
+    /// <b>Both searches run, and id matches are put first, because the first version only fell
+    /// back when the whole-id search found nothing and that turned out to be far too fragile.</b>
+    /// It worked until the command-line help topic gained a worked example of this very message,
+    /// which put the literal text <c>nodes.Point.FromCoordinates</c> into the corpus: the whole-id
+    /// search then matched that page's prose, the fallback never fired, and the one suggestion
+    /// offered was the topic that happened to quote the mistake. A rule that switches off as soon
+    /// as any result appears is a rule that any incidental sentence can switch off.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<HelpDocument> Suggestions(HelpLibrary help, string id)
+    {
+        string segment = id.LastIndexOfAny(['.', '/']) is > 0 and int cut ? id[(cut + 1)..] : id;
+
+        List<HelpDocument> ranked = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        // A topic whose *id* carries the segment is what somebody typing an id meant. Everything
+        // else is a body match, which is worth offering and is not worth offering first.
+        foreach (HelpDocument document in help.Search(segment, limit: 25))
+        {
+            if (document.Id.Contains(segment, StringComparison.OrdinalIgnoreCase) && seen.Add(document.Id))
+            {
+                ranked.Add(document);
+            }
+        }
+
+        foreach (HelpDocument document in help.Search(id, limit: 25).Concat(help.Search(segment, limit: 25)))
+        {
+            if (seen.Add(document.Id))
+            {
+                ranked.Add(document);
+            }
+        }
+
+        return [.. ranked.Take(5)];
     }
 
     /// <summary>Lists every topic: its id, and its title.</summary>

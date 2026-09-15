@@ -119,6 +119,42 @@ public sealed class DocsVerbTests : IDisposable
     }
 
     /// <summary>
+    /// <b>The page whose id carries the misspelt segment is offered first</b>, ahead of any topic
+    /// that merely mentions it in prose.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the regression, not a refinement.</b> The suggestion fell back to the last
+    /// segment only when searching the whole id found nothing — and then the command-line help
+    /// topic gained a worked example of this very message, putting the literal string
+    /// <c>nodes.Point.FromCoordinates</c> into the corpus. The whole-id search matched that page's
+    /// prose, the fallback never fired, and the single suggestion offered was the topic that quotes
+    /// the mistake. Documentation broke the feature the documentation was describing, which is a
+    /// coupling nobody would predict and this is what holds it.
+    /// </remarks>
+    [Fact]
+    public void AnIdMatchIsSuggestedAheadOfATopicThatMerelyQuotesTheId()
+    {
+        StringWriter error = new();
+
+        Assert.Equal(1, Program.Docs(["--topic", "nodes.Point.FromCoordinates"], new StringWriter(), error));
+
+        string[] lines =
+        [
+            .. error.ToString()
+                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .SkipWhile(line => !line.StartsWith("spark: did you mean", StringComparison.Ordinal))
+                .Skip(1),
+        ];
+
+        Assert.NotEmpty(lines);
+        Assert.Equal("nodes.Spark.Nodes.Core/Point.FromCoordinates", lines[0]);
+
+        // And the topic that quotes the mistake is still offered - it is a reasonable answer, just
+        // not the first one.
+        Assert.Contains("concepts.command-line", lines);
+    }
+
+    /// <summary>
     /// An id that matches nothing at all says how to find out what there is, rather than offering
     /// an empty list of suggestions.
     /// </summary>

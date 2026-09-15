@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E12-T5` Done: `spark docs`, and all seven verbs exist)
+**Last updated:** 2026-09-15 (`E5-T4`: overloads grouped under one row, and the box ticked)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -724,11 +724,24 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       is `Task<T>` is awaited**: the string `Task` does not occur in `NodeImporter.cs` at all, so
       an async member is neither awaited nor refused with a reason. That is the whole of what keeps
       this box unticked.*
-- [ ] **One node per overload**, grouped under one library entry with a flyout,
+- [x] **One node per overload**, grouped under one library entry with a flyout,
       disambiguated by differing parameter names (`ByCenterRadius` versus
-      `ByCenterRadiusNormal`), never by `_2` (**E5-T4**). **Half met: the importer produces one
-      node per overload and disambiguates by parameter names; the library panel does not group
-      them under one entry with a flyout, so they list separately.**
+      `ByCenterRadiusNormal`), never by `_2` (**E5-T4**). *Ticked 2026-09-15, when the second half
+      arrived. The importer half has been true since `35107f0`: one node per overload, named by the
+      differing parameter names — a constructor from its parameters (`ByCenterRadiusNormal`) and a
+      method by appending its argument list (`Combine(a, b)` beside `Combine(a, b, c)`), never a
+      numeric suffix, because a suffix would make the second overload's key depend on declaration
+      order and reflection does not guarantee one. **The panel now folds a family into one row over
+      a floating surface holding the ways to call it.** That it floats rather than becoming a
+      fourth level of the tree is §3 of the design language, which lists* the node library flyout
+      *by name among the **E3 — Floating** surfaces. **Two things are worth knowing before looking
+      for it.** `Spark.Nodes.Core` contains **no overloads at all**, so nothing in the first-party
+      library groups and the feature is invisible in it — it exists for imported packages, which is
+      the case the whole of this epic is built for, and it is proved against an imported type. And
+      it is a `Popup` declared in the template rather than a `Button.Flyout`, because a flyout's
+      content is not in the row's logical tree until it opens and the headless platform cannot open
+      one at all — between them the bindings could not have been checked anywhere
+      ([N191](NOTES.md)).*
 - [x] A `By*`/`From*`/`Create*` static on type `T` returning `T` whose parameter type
       sequence matches a constructor's suppresses that constructor. Anything a factory does
       not cover still emits its constructor, so nothing becomes unreachable (**E5-T5**).

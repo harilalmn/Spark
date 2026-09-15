@@ -1,7 +1,9 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Spark.UI.ViewModels;
 
 namespace Spark.UI.Views.Panes;
@@ -41,6 +43,34 @@ public sealed partial class LibraryPane : UserControl
         {
             PlaceRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>
+    /// Places one overload chosen from an overloaded member's flyout (<c>E5-T4</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It selects and then places, rather than placing directly</b>, because
+    /// <see cref="MainWindowViewModel.SelectedLibraryEntry"/> is what every route to the canvas
+    /// reads and what F1 looks help up against. Placing behind its back would leave the panel
+    /// showing one thing and the application believing another.
+    /// <para>
+    /// The popup is closed first. One left open over the canvas hides the node that has just
+    /// appeared, which reads as nothing having happened. Closing it also unchecks the row, because
+    /// the row's checked state is what <c>IsOpen</c> is bound to.
+    /// </para>
+    /// </remarks>
+    private void OnPlaceOverload(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel model
+            || sender is not Button { DataContext: LibraryEntryViewModel entry } button)
+        {
+            return;
+        }
+
+        button.FindLogicalAncestorOfType<Popup>()?.Close();
+
+        model.SelectedLibraryEntry = entry;
+        PlaceRequested?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

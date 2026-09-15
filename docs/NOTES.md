@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N190: an inverse function is a test you did not have)
+**Last updated:** 2026-09-15 (N191: prefer the widget whose state the tests can reach)
 
 ---
 
@@ -5216,6 +5216,52 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N191 — A control nothing can open, in a case nothing produces: picking the widget the tests can see
+
+`E5-T4`'s last criterion asked for overloads *grouped under one library entry with a flyout*. The
+grouping was twenty lines. The flyout took the rest of the step, and the reason is worth writing
+down because it will come back.
+
+**Two blindnesses met.** The first: **nothing in `Spark.Nodes.Core` produces an overload family.**
+All 221 generated node pages, not one name with a bracket in it — a constructor is named from its
+parameters (`ByCenterRadiusNormal`) and so never collides, and no method in the library collides
+either. The feature exists for imported packages, which is what `E5` is for. So the application can
+be opened, used and photographed without that `DataTemplate` ever being matched.
+
+**The second: the headless platform cannot open a popup.**
+`Unable to create IPopupImpl and no overlay layer is found for the target control`, thrown from
+`Popup.Open()`. Same family as [N90](NOTES.md) — an Avalonia headless limitation rather than a Spark
+defect.
+
+**Separately each is survivable; together they close every door.** A `Button.Flyout`'s content is
+**not in the row's logical tree until the flyout opens**, so it inherits no `DataContext` before
+then — which means `{Binding Overloads}` inside it cannot be evaluated by inspection. It could not
+be checked headlessly, because the popup will not open; and it could not be checked by hand,
+because nothing first-party makes a family to open. The first version of the markup was exactly
+that, and the test that found it asserted `ItemsSource` and got `null`.
+
+**The fix was to choose a control the tests can see.** A `Popup` declared in the template is a
+*logical child of the template*, so its content inherits `DataContext` whether or not it is open,
+and `ItemsSource` is resolved and assertable in a headless session that never renders a popup at
+all. The row became a `ToggleButton` and `IsOpen` binds to `IsChecked`. **Nothing about the user's
+experience changed** — both are an E3 floating surface anchored to the row, which is what the design
+language asked for; what changed is that the bindings are now provable.
+
+**The general rule: when two widgets are equivalent to the user, prefer the one whose state is
+reachable without the thing you cannot do.** That is not a testing convenience. A binding nothing
+can evaluate is a binding that ships broken the first time it is wrong, and "it worked when I
+clicked it" is unavailable for a case nobody can produce.
+
+**And the coda, from the same session's gates.** `spark docs` suggests near matches when a topic id
+misses, falling back to the last segment of the id **only when searching the whole id found
+nothing**. That rule survived one step. The command-line help topic then gained a worked example of
+this very message — putting the literal string `nodes.Point.FromCoordinates` into the corpus — so
+the whole-id search matched that page's prose, the fallback never fired, and the single suggestion
+offered was the topic that quotes the mistake. **A rule that switches off as soon as any result
+appears is a rule that any incidental sentence can switch off.** Both searches now run and id
+matches are ranked first. Documentation broke the feature the documentation described, which is a
+coupling nobody would predict and a test now holds.
 
 ## N190 — A writer nobody asked for found a page that was different bytes on Windows and on Linux
 

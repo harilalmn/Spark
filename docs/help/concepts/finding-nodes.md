@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the library panel and the canvas creation box, both of which exist.
 **Owner:** `spark-ui`
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-15 (`E5-T4`: overloads under one row)
 
 > **Scope.** How to get a node onto the canvas: the library panel, how it is grouped, how its search
 > ranks, and the two canvas gestures — **right-click** for the search box, **double-click** for a
@@ -46,6 +46,40 @@ a graph is built in, not alphabetical — and a block with nothing in it is not 
 **Why it is worth the two levels.** `Solid` alone holds thirty-eight nodes. Split three ways, a
 user who wants to *make* a solid reads sixteen names instead of thirty-eight, and never reads the
 five that measure one.
+
+## Overloads share one row
+
+Some members can be called in more than one way. A library that imports a `Combine` taking two
+numbers *and* a `Combine` taking three gets **a node for each** — the shapes are different, the
+ports are different, and a node whose ports changed under you would break the wires already
+attached to it.
+
+They are not listed twice. The panel shows **one row for the member**, with a chevron, and clicking
+it opens a small panel beside it listing the ways to call it:
+
+```
+  Combine                          ▸
+  2 overloads
+      ┌──────────────────────────────────┐
+      │ Combine(a, b)                    │
+      │ (a, b) → result                  │
+      │ Combine(a, b, c)                 │
+      │ (a, b, c) → result               │
+      └──────────────────────────────────┘
+```
+
+Click one and it is placed, exactly as clicking any other row places a node. The row itself places
+nothing — there is no *the* `Combine` to place, which is the whole reason the list exists.
+
+**How the names are told apart.** By their differing parameters, never by a number. A constructor is
+named for what it takes — `Circle.ByCenterRadius` beside `Circle.ByCenterRadiusNormal` — and a
+method keeps its name and gains its argument list: `Combine(a, b)` beside `Combine(a, b, c)`. There
+is no `Combine_2`, because which overload got the `_2` would depend on the order the types happened
+to be read in, and that order is not promised by anything.
+
+**You will not see this in Spark's own library.** Nothing in it is overloaded: every constructor is
+named for its parameters, so none of them collide. It is here for node packages you import, which
+are written by people who did not have to name anything with Spark in mind.
 
 ## The search ranks; it does not filter
 

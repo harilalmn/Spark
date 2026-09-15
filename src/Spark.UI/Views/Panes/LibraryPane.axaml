@@ -88,7 +88,7 @@
             from a font is a character missing on the machine without that font, and the bolt is in
             none of them.
           -->
-          <TreeDataTemplate x:DataType="vm:LibraryKindGroupViewModel" ItemsSource="{Binding Entries}">
+          <TreeDataTemplate x:DataType="vm:LibraryKindGroupViewModel" ItemsSource="{Binding Rows}">
             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,2"
                         ToolTip.Tip="{Binding Description}"
                         AutomationProperties.Name="{Binding Label}">
@@ -100,6 +100,78 @@
                          Text="{Binding Count}" />
             </StackPanel>
           </TreeDataTemplate>
+
+          <!--
+            An overloaded member: one row, and a floating surface holding the ways to call it
+            (E5-T4). That it floats rather than becoming a fourth level of the tree is section 3's
+            decision, not this file's - the design language lists "the node library flyout" among
+            the E3 Floating surfaces, beside menus and the autocomplete popup, and `Border.float`
+            is that elevation.
+
+            A Popup declared here rather than a Button.Flyout, and the reason is testability
+            rather than taste. A Flyout's content is NOT in the row's logical tree until the flyout
+            opens, so it inherits no DataContext before then - and the headless session cannot open
+            a popup at all ("Unable to create IPopupImpl and no overlay layer is found"), which is
+            the same class of limitation as N90. Between them, a Flyout's bindings could not be
+            checked anywhere: not headlessly, and not in the application either, because nothing in
+            `Spark.Nodes.Core` produces an overload family to open. A Popup declared in the
+            template is a logical child of it, so `{Binding Overloads}` resolves whether or not it
+            is open, and a test can assert that it did.
+
+            The row is a ToggleButton so that the popup has something to be open for, and because
+            the whole row has to be the target: a family is not placeable, so a click that only
+            selected it would do nothing at all and read as the panel being broken.
+          -->
+          <DataTemplate x:DataType="vm:LibraryOverloadViewModel">
+            <Border BorderThickness="2,0,0,0" BorderBrush="{Binding Rail}" Padding="6,4,0,4"
+                    ToolTip.Tip="{Binding Description}">
+              <Panel>
+                <ToggleButton x:Name="OverloadRow" Classes="overloads" Padding="0"
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                              AutomationProperties.Name="{Binding DisplayName}">
+                  <StackPanel Spacing="1">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                      <!-- The chevron says there is more behind this row, which a plain name does
+                           not. It is drawn geometry for NodeKindGlyphs' reason: a character taken
+                           from a font is a character missing on a machine without that font. -->
+                      <Path Data="M 0,0 L 4,4 L 0,8 Z" Fill="{Binding Rail}"
+                            Width="4" Height="8" Stretch="Uniform" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="10" Text="{Binding Summary}" />
+                  </StackPanel>
+                </ToggleButton>
+
+                <Popup x:Name="OverloadPopup"
+                       PlacementTarget="{Binding #OverloadRow}"
+                       Placement="RightEdgeAlignedTop"
+                       IsLightDismissEnabled="True"
+                       IsOpen="{Binding #OverloadRow.IsChecked, Mode=TwoWay}">
+                  <Border Classes="float" Padding="4" MaxWidth="320">
+                    <ItemsControl ItemsSource="{Binding Overloads}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LibraryEntryViewModel">
+                          <Button Classes="overload" Padding="8,5" HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Left"
+                                  Click="OnPlaceOverload"
+                                  ToolTip.Tip="{Binding Description}"
+                                  AutomationProperties.Name="{Binding DisplayName}">
+                            <StackPanel Spacing="1">
+                              <TextBlock Text="{Binding DisplayName}"
+                                         TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="10"
+                                         Text="{Binding Signature}"
+                                         TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Border>
+                </Popup>
+              </Panel>
+            </Border>
+          </DataTemplate>
 
           <DataTemplate x:DataType="vm:LibraryEntryViewModel">
             <!-- Trimmed rather than wrapped, and the tooltip carries the whole of it. A node name

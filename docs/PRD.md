@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-09-15 (FR-70 Done: `docs` landed and all seven verbs exist)
+**Last updated:** 2026-09-15 (FR-23 Done: overloads grouped under one library row)
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**
@@ -227,7 +227,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-20 | **Zero-config reflection import**: an arbitrary .NET assembly with no Spark attributes at all produces a usable node library. | Not started (E5) |
 | FR-21 | `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and friends refine what reflection infers, for those who want to. | Not started (E5) |
 | FR-22 | Import rules: methods included; property getters included and **setters excluded**; constructors become `Type.ByParamNames`; static readonly fields become constant nodes; extension methods present as instance methods; `out` parameters become extra outputs; `Task<T>` is awaited; operators are excluded as nodes and harvested as conversions instead. | Not started (E5) |
-| FR-23 | **One node per overload**, grouped under a single library entry with a flyout, disambiguated by differing parameter names — never by a numeric suffix. | Not started (E5) |
+| FR-23 | **One node per overload**, grouped under a single library entry with a flyout, disambiguated by differing parameter names — never by a numeric suffix. | **Done** (E5-T4). The importer half since `35107f0`; the panel half 2026-09-15, as one row over an **E3 Floating** surface holding the ways to call the member. `Spark.Nodes.Core` has no overloads, so it is invisible in the first-party library and exists for imported packages |
 | FR-24 | A public static `By*`/`From*`/`Create*` returning its own type suppresses the matching constructor, so `new Circle(c, r)` and `Circle.ByCenterRadius(c, r)` collapse to one node. Anything a factory does not cover still emits its constructor. | Not started (E5) |
 | FR-25 | Node and port descriptions come from the assembly's sidecar XML documentation file, so any library shipping its `.xml` gets tooltips with no extra work. | Not started (E5) |
 | FR-26 | An `Angle` parameter renders as a degree-valued port automatically, for first-party and third-party libraries alike. | Not started (E2, E5) |
