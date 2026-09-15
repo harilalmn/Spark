@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E1-T19`: the headless smoke already runs on both legs)
+**Last updated:** 2026-09-15 (`E2-T38`: the golden diff table, verified by a real failure)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1553,7 +1553,12 @@ nothing.
       **A hash that moves alone is explained in words**, because it is the one outcome a reader is
       likely to misread as a broken check. Fixtures are exact-arithmetic only: no sphere, cone, arc
       or circle, since a hash has no tolerance and the transcendentals are not bit-identical across
-      platforms.*
+      platforms. **Verified 2026-09-15 by corrupting a committed golden and reading what came out**
+      (`E2-T38`, the M0 row that asked for the same thing) rather than by reading the source — which
+      is how the one real defect surfaced: the `.actual.tsv` the report names was never deleted by
+      the run that went green again, and being gitignored it then survived as evidence for a
+      failure that no longer existed ([N177](NOTES.md)). Fixed here and in
+      `VisualRegressionTests`' two image sidecars.*
 - [x] The lacing case table asserts value and rank separately (**E11-T12**). *It is `E4-T12`'s
       `LacingCaseTests` and `LacingCorpusCoverageTests`; ticked by the 2026-09-11 reconciliation.*
 - [x] The node↔member two-way diff passes in both directions (**E11-T13**). *It is `E5-T6`'s

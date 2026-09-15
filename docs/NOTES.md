@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N176 corrected: the measurement was right about the rule and wrong about the family)
+**Last updated:** 2026-09-15 (N177: the failure's own evidence file outlives the failure)
 
 ---
 
@@ -5216,6 +5216,37 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N177 — The failure's own evidence file outlives the failure, and then it lies
+
+**2026-09-15, `E2-T38`.** Two golden-file checks in this repository write a sidecar when they go
+red — `GeometryGolden.Check` writes `tests/corpus/geometry/NAME.actual.tsv`, and
+`VisualRegressionTests` writes `reference-scene.actual.png` and a `.diff.png` beside it — so that
+the reader can open what the run actually produced instead of reconstructing it. **Neither deleted
+the sidecar on the run that went green again**, and both are gitignored.
+
+**Gitignored is what makes it a trap rather than a nuisance.** An untracked artefact that `git
+status` would have shown gets noticed and removed; one the ignore file hides survives the commit
+that fixes the golden, survives every green run after it, and sits in the corpus directory with a
+name that says *this is the summary this run produced*. The next person to hit a failure in a
+**different** fixture lists the directory, finds two `.actual.tsv` files, and reads two regressions
+where there is one — and the stale one is the more convincing of the pair, because it is a complete,
+well-formed summary of a shape that was real once.
+
+**The rule, stated so it generalises past these two.** *An artefact written to explain a failure
+must be deleted by the run that stops failing.* Anything that survives the condition it documents
+becomes evidence for a condition that no longer holds, and diagnostic output is believed more
+readily than it is dated. The cost is one `File.Delete` on the success path — it is
+[`File.Delete`](https://learn.microsoft.com/dotnet/api/system.io.file.delete) precisely because it
+does not throw when the file is absent, so the ordinary case needs no `File.Exists` around it.
+
+**Found by making a failure happen rather than by reading the code.** `E2-T38` asked for a readable
+diff table, and everything it described already existed from `E11-T11`; the row was closed by
+corrupting a real golden and reading the message, which printed the table correctly and then
+mentioned a file that a passing run would leave behind. **Reading `Check` would not have shown
+this** — the missing line is the one that is not there, and the tests all asserted on `Compare`,
+which never touches the disk. Both sidecar paths are now fixed, and
+`APassingCheckRemovesTheSidecarAFailingOneLeft` goes red against the old behaviour.
 
 ## N176 — The pattern that caught four rows in a row fires zero times in 120 commits
 

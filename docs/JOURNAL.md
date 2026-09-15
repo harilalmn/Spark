@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E1-T19` Done: E1 has no open rows left)
+**Last updated:** 2026-09-15 (`E2-T38` Done: the diff table was there, and the file it names outlived the failure)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Nine steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Ten steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E1-T19` `Done`, and `E1` now has no `Open` rows at all.** The row had written its own conclusion — *the test is already inside `Spark.UI.Tests` and therefore already runs on both CI legs* — and left the decision, which is the right way to leave a row. **The claim worth verifying was the Linux one**: opening a real `MainWindow` on a runner with **no display server** is the whole of what a headless smoke test asserts, and [N90](NOTES.md) is a month of failing to do it. **Run 34890781633, `Build and test (ubuntu-latest)`: `Spark.UI.Tests.dll` passed, `failed: 0`, in 1m 55s** — quoted with its run id, because *it runs in CI* is exactly the claim this week keeps finding stale. **The test is not vacuous**: it asserts the `DockControl` laid out with real bounds and calls `CaptureRenderedFrame()`, so it is not a window that was constructed and never drawn. **`Done` rather than `Withdrawn`** — nothing was abandoned; a separate job would re-run the same assembly. **Third row this week waiting on something that had already happened.** |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3982** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E2-T38` — *golden-file geometry tests with readable diff tables* — and check first whether it is already `Done`, because everything it describes appears to exist.** The row's note is one line from M0: *hashes plus summary stats — bounding box, counts, area, volume. A bare hash mismatch tells you nothing.* **`tests/corpus/geometry/*.tsv` holds committed goldens, `GoldenGeometryTests` reads them, and `.gitignore` carries a rule for the `*.actual.tsv` a failing run writes beside its golden** — which only exists if somebody built the diff. **So read `GoldenGeometryTests` and make a failure happen**: corrupt a golden, look at what the message actually says, and close the row only if the table is there and readable. If it is not, that is the work. **Then**: `E2-T67` (mass properties from the kernel, not the tessellation), `E11-T7` (the Markdown renderer parity half), `E10-T14` (the website, waiting on [PRD Q8](PRD.md#14-open-questions)) — the last three `Open` rows. |
-| **Verify with** | **Make the failure happen and read it**, which is the only way to judge a diagnostic: a golden test's message is its entire product on the day it goes red, and no assertion about a message is worth as much as seeing one. **If the row closes, it closes on a pasted failure message**, not on the presence of a file. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E2-T38` `Done`, delivered by `E11-T11` a day earlier — and closing it found a defect in two places.** The row asked for a *diagnostic*, so it was closed by **corrupting `closed-cube.tsv` and reading what came out**, not by confirming the code exists: a `field / golden / actual / delta` table, `!` against the five rows that moved, signed deltas where subtraction means something and `changed` where it does not, **every unmoved row still printed**, and `5 of 11 measurements moved.` All four statistics the row named are in it. **What reading the source would not have shown**: the report names the `.actual.tsv` it writes, and nothing deleted that sidecar on the run that went green again — same for `VisualRegressionTests`' `.actual.png` and `.diff.png`. Gitignored is what makes it a trap: the file survives the commit that fixes the golden and then reads as the current run's output, so the next failure in a *different* fixture shows two regressions where there is one ([N177](NOTES.md)). Both fixed; `APassingCheckRemovesTheSidecarAFailingOneLeft` goes red against the old behaviour, asserted on `Check` because every existing test was on `Compare`, which never touches the disk. **Fourth row this week that was waiting on something already done — and the first where looking anyway paid.** |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3983** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E2-T67` — mass properties on a `Brep`: volume, area and centroid, *from the kernel rather than the tessellation*.** [TODO](TODO.md) records the defect in one line: `Solid.Volume` and `Solid.Area` are measured on the triangles, so the answer moves when the tessellation tolerance moves and is wrong by the chord error on anything curved — a cylinder is under-reported by the difference between an inscribed prism and the cylinder. **OCCT has the exact answer**: `BRepGProp::VolumeProperties` and `SurfaceProperties` integrate over the analytic faces, and `GProp_GProps` carries the centroid with them. **The catch, and it decides the shape of the step**: `E13-T21` records that the OpenCascade install is gone from this machine, so **nothing native can be rebuilt** — check first whether the existing `spark_occt` export surface already reaches `BRepGProp`, because if it does not, this row is blocked on the same reinstall as `E13-T18` and must be recorded as such rather than half-built. If it is reachable, the managed side is `IBrepKernel` plus nodes, and the test that matters is **a cylinder measured against πr²h in closed form**, red under the tessellated implementation. **Then**: `E11-T7` (the Markdown renderer parity half) and `E10-T14` (the website, waiting on [PRD Q8](PRD.md#14-open-questions)) — the last two `Open` rows after it. |
+| **Verify with** | **A closed-form comparison, not a tighter tolerance**: a cylinder's volume against πr²h and a sphere's against 4/3πr³, asserted to a tolerance the tessellated implementation cannot reach, so the test is red before the change and green after. Then the three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16589,3 +16589,64 @@ remaining unsettled row is `E1-T28`'s branch protection, `Blocked` on a client d
 
 **Cost.** One session, most of it reading a CI log to turn *should close as satisfied* into *closed,
 here is the run id*.
+
+### 2026-09-15 — `E2-T38`: the table was there, and the file it names outlived the failure
+
+**What.** `E2-T38` — *golden-file geometry tests with readable diff tables* — is `Done`, delivered
+by `E11-T11` on 2026-09-14. It is the M0 row that asked for the same thing and stayed open one day
+past the day it was satisfied. **And a defect came out of closing it**, in two places.
+
+**Closed on a pasted failure, not on the presence of a file.** The row's deliverable is a
+*diagnostic*, and the only honest evidence for a diagnostic is one you have read. So
+`tests/corpus/geometry/closed-cube.tsv` was corrupted on disk — volume 8→12, area 24→28, `bbox.max`
+(1,1,1)→(1,1,2), diagonal and hash to match — and `Spark.Geometry.Tests` run. What it printed:
+
+```
+closed-cube does not match its golden.
+
+  field             golden            actual            delta
+  ------------------------------------------------------------
+  kind              mesh              mesh
+  mesh.vertices     8                 8
+  mesh.faces        12                12
+  mesh.closed       yes               yes
+  mesh.naked edges  0                 0
+! mesh.area         28                24                -4
+! mesh.volume       12                8                 -4
+  bbox.min          (-1, -1, -1)      (-1, -1, -1)
+! bbox.max          (1, 1, 2)         (1, 1, 1)         changed
+! bbox.diagonal     4.1231056256      3.4641016151      -0.6590040105
+! hash              0f13aa9c21b45e88  d64cea8b536a1207  changed
+
+5 of 11 measurements moved.
+```
+
+All four statistics the row named are in it. Signed deltas where a delta means something, `changed`
+where it does not — a point and a hash have no subtraction. **Every unmoved row is printed too**,
+which is the part the row's own words are about: a volume that moved beside an unchanged face count
+is a different finding from one beside a face count that halved.
+
+**What making the failure happen found, and reading `Check` would not have.** The message ends by
+naming the `.actual.tsv` it wrote beside the golden — and **nothing deleted that sidecar on the run
+that went green again**. The same omission sits in `VisualRegressionTests`, for `.actual.png` and
+its `.diff.png`. Both are gitignored, and that is what makes it a trap rather than untidiness: an
+untracked file `git status` shows gets removed, and one the ignore rule hides survives the commit
+that fixes the golden and then reads as the output of whatever run you are looking at. The next
+failure in a *different* fixture shows two sidecars and two regressions where there is one, and the
+stale one is the more convincing of the pair because it is a complete, well-formed summary of a
+shape that was real once. [N177](NOTES.md) states the general rule: **an artefact written to explain
+a failure must be deleted by the run that stops failing.**
+
+**Why no existing test caught it.** Every test of the report was on `Compare`, which returns a
+string and never touches the disk — deliberately, and it is the right design. Writing and deleting
+the sidecar is the only part of the class that does I/O, and it was the only part with no test.
+`APassingCheckRemovesTheSidecarAFailingOneLeft` asserts on `Check`, the file-backed path.
+
+**Verified.** The failure above, pasted from the run that produced it. The new test **goes red
+against the old behaviour** — the `File.Delete` removed, rebuilt, run: *`…closed-cube.actual.tsv`
+survived a passing run.* Build clean with zero warnings, format clean, **3983** tests over ten
+executables — the previous 3982 plus this one — zero failures and zero skips, every runner exit code
+0. The golden was restored and the tree carries no corpus change.
+
+**Cost.** One session. The row would have closed in five minutes on *the file exists and the code
+looks right*, and that reading would have shipped the stale-sidecar defect intact.

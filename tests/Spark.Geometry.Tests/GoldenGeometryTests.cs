@@ -82,6 +82,30 @@ public sealed class GoldenGeometryTests
         Assert.True(File.Exists(path), $"no golden at {path}; run with {GeometryGolden.UpdateVariable}=1 and read it before committing.");
     }
 
+    /// <summary>
+    /// <b>A passing run deletes the sidecar a previous failure left behind.</b> The
+    /// <c>.actual.tsv</c> is gitignored, so nothing else will ever notice it is stale: it survives
+    /// the commit that fixes the golden and then sits beside it looking like this run's output.
+    /// The next reader to hit a failure in a <i>different</i> fixture finds two sidecars and
+    /// reads two regressions.
+    /// </summary>
+    /// <remarks>
+    /// Asserted on the file-backed <see cref="GeometryGolden.Check"/> path rather than on
+    /// <see cref="GeometryGolden.Compare"/>, because writing and deleting the sidecar is the only
+    /// part of this class that touches the disk and the only part <c>Compare</c> cannot reach.
+    /// </remarks>
+    [Fact]
+    public void APassingCheckRemovesTheSidecarAFailingOneLeft()
+    {
+        string sidecar = GeometryGolden.SidecarFor(GeometryGolden.PathFor("closed-cube"));
+
+        File.WriteAllText(sidecar, "# left over from a failure that has since been fixed" + Environment.NewLine);
+        Assert.True(File.Exists(sidecar));
+
+        Assert.Null(GeometryGolden.Check("closed-cube", ClosedCube()));
+        Assert.False(File.Exists(sidecar), $"{sidecar} survived a passing run.");
+    }
+
     /// <summary>An identical pair reports no difference, so the comparison is not simply always red.</summary>
     [Fact]
     public void AnIdenticalPairReportsNoDifference()

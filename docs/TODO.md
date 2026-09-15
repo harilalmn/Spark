@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E1-T19`: E1 has no open rows left)
+**Last updated:** 2026-09-15 (`E2-T38` Done: three `Open` rows left in the register)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -568,6 +568,16 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.
+> 11. ~~**`E2-T38`** — golden-file geometry tests with readable diff tables.~~ **Done
+>     2026-09-15, and delivered by `E11-T11` the day before.** Closed by *corrupting a real
+>     golden and reading the failure*, which is the only way to judge a diagnostic: the table
+>     prints `field / golden / actual / delta`, marks the rows that moved, keeps the ones that
+>     did not, and carries all four statistics the row named. **Doing it that way found the
+>     defect that reading the source would not have** — the `.actual.tsv` the report names
+>     survived the run that went green again, and being gitignored it then stood as evidence
+>     for a failure that no longer existed ([N177](NOTES.md)). Same omission in
+>     `VisualRegressionTests`' image sidecars; both fixed. **Three `Open` rows are left in the
+>     whole register**: `E2-T67`, `E11-T7` and `E10-T14`.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

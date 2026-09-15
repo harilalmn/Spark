@@ -73,16 +73,22 @@ public sealed class VisualRegressionTests
         Assert.Equal(Height, goldenHeight);
 
         string? report = Compare(golden, rendered);
+        string actualPath = Path.Combine(CorpusDirectory(), "reference-scene.actual.png");
+        string diffPath = Path.Combine(CorpusDirectory(), "reference-scene.diff.png");
+
         if (report is null)
         {
+            // DELETED ON THE RUN THAT GOES GREEN AGAIN, for the reason GeometryGolden.Check
+            // spells out: both are gitignored, so a stale pair survives silently and then reads
+            // as the output of whichever run you are looking at. A difference map of a difference
+            // that no longer exists is the most convincing wrong evidence in this repository.
+            File.Delete(actualPath);
+            File.Delete(diffPath);
             return;
         }
 
-        string actualPath = Path.Combine(CorpusDirectory(), "reference-scene.actual.png");
         File.WriteAllBytes(actualPath, PngImage.Encode(rendered, Width, Height));
-        File.WriteAllBytes(
-            Path.Combine(CorpusDirectory(), "reference-scene.diff.png"),
-            PngImage.Encode(DifferenceMap(golden, rendered), Width, Height));
+        File.WriteAllBytes(diffPath, PngImage.Encode(DifferenceMap(golden, rendered), Width, Height));
 
         Assert.Fail(
             $"{report}\nThe render was written to {actualPath} and a difference map beside it. " +

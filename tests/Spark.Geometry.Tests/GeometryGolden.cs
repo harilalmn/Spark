@@ -264,19 +264,38 @@ internal static class GeometryGolden
         }
 
         string? report = Compare(Parse(File.ReadAllText(path)), actual);
+        string actualPath = SidecarFor(path);
 
         if (report is null)
         {
+            // THE SIDECAR FROM A PREVIOUS FAILURE IS DELETED ON THE RUN THAT GOES GREEN AGAIN.
+            // It is gitignored, so it never reaches a commit and nothing warns you it is stale;
+            // left behind, it sits beside the golden looking exactly like the output of the run
+            // you are reading, and the next person to hit an UNRELATED fixture's failure finds a
+            // second `.actual.tsv` and reads two regressions where there is one. A diff table
+            // that tells you what moved is this class's whole product, and a file that lies about
+            // WHICH fixture moved undoes it.
+            File.Delete(actualPath);
             return null;
         }
 
-        string actualPath = Path.ChangeExtension(path, ".actual.tsv");
         File.WriteAllText(actualPath, ToText(name, actual));
 
         return $"{name} does not match its golden.\n\n{report}\n"
             + $"The summary this run produced was written to {actualPath}.\n"
             + $"If the change is intended, re-run with {UpdateVariable}=1 and commit the new golden.";
     }
+
+    /// <summary>Where the summary of a failing run is written, beside its golden.</summary>
+    /// <param name="goldenPath">The golden's path, from <see cref="PathFor"/>.</param>
+    /// <returns>The absolute path of the <c>.actual.tsv</c> sidecar.</returns>
+    /// <remarks>
+    /// Written on failure and deleted on success, so that the presence of one always means
+    /// <i>this</i> fixture is red right now. `.gitignore` carries the rule that keeps it out of a
+    /// commit.
+    /// </remarks>
+    internal static string SidecarFor(string goldenPath) =>
+        Path.ChangeExtension(goldenPath, ".actual.tsv");
 
     /// <summary>Where a fixture's golden lives.</summary>
     /// <param name="name">The fixture's name.</param>
