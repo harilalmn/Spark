@@ -107,6 +107,27 @@ public static class Mesh
     public static Spark.Geometry.Mesh Reduce(Spark.Geometry.Mesh mesh, int targetFaceCount = 1000) =>
         MeshDecimation.Reduced(mesh, targetFaceCount);
 
+    /// <summary>Rebuilds a mesh so its triangles are all about one size.</summary>
+    /// <param name="mesh">The mesh to remesh.</param>
+    /// <param name="targetEdgeLength">The edge length to aim for.</param>
+    /// <returns>The remeshed mesh.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not <see cref="Reduce"/>.</b> Reducing only ever removes triangles, leaving the
+    /// rest where they were at whatever sizes they had. Remeshing makes them <i>regular</i>: it
+    /// adds them to a coarse region and removes them from a fine one, and the count it lands on is
+    /// whatever one edge length implies.
+    /// </para>
+    /// <para>
+    /// <b>The outline of an open mesh is kept exactly</b>, so a remeshed panel does not shrink away
+    /// from its own border — which also means the border keeps whatever edge lengths it arrived
+    /// with.
+    /// </para>
+    /// </remarks>
+    [return: NodePort("mesh")]
+    public static Spark.Geometry.Mesh Remesh(Spark.Geometry.Mesh mesh, double targetEdgeLength = 1.0) =>
+        MeshRemeshing.Remeshed(mesh, targetEdgeLength);
+
     /// <summary>Splits a mesh into its connected pieces.</summary>
     /// <param name="mesh">The mesh to split.</param>
     /// <returns>One mesh per piece. A mesh already in one piece comes back on its own.</returns>

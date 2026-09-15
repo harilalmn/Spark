@@ -102,6 +102,7 @@ Spark.Geometry.Mesh.TriangleCentroids() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.MeshDecimation
 Spark.Geometry.MeshFace.Reversed() -> Spark.Geometry.MeshFace
 Spark.Geometry.MeshPrimitives
+Spark.Geometry.MeshRemeshing
 Spark.Geometry.MeshTopology.Edges() -> (int From, int To)[]!
 Spark.Geometry.MeshTopology.VerticesAroundVertex(int vertex) -> int[]!
 Spark.Geometry.NurbsConversion
@@ -264,6 +265,7 @@ static Spark.Geometry.MeshPrimitives.Cone(in Spark.Geometry.Plane plane, double 
 static Spark.Geometry.MeshPrimitives.Cuboid(in Spark.Geometry.Plane plane, double width = 1, double length = 1, double height = 1, int xDivisions = 1, int yDivisions = 1, int zDivisions = 1) -> Spark.Geometry.Mesh!
 static Spark.Geometry.MeshPrimitives.Plane(in Spark.Geometry.Plane plane, double width = 1, double length = 1, int xDivisions = 1, int yDivisions = 1) -> Spark.Geometry.Mesh!
 static Spark.Geometry.MeshPrimitives.Sphere(in Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) -> Spark.Geometry.Mesh!
+static Spark.Geometry.MeshRemeshing.Remeshed(Spark.Geometry.Mesh! mesh, double targetEdgeLength) -> Spark.Geometry.Mesh!
 static Spark.Geometry.NurbsCurve.FromPeriodicControlPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, int degree = 3, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.NurbsCurve.InterpolatePointsPeriodic(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.NurbsCurve.InterpolatePointsWithTangents(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, Spark.Geometry.Vector3d startTangent, Spark.Geometry.Vector3d endTangent, int degree = 3) -> Spark.Geometry.NurbsCurve!

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N183: a sweep that reads rows instead of code writes new wrong rows)
+**Last updated:** 2026-09-15 (N184: three ways to tear a mesh that all look like one bug)
 
 ---
 
@@ -5216,6 +5216,46 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N184 — Three ways to tear a mesh that all look like one bug, and the probe that separated them
+
+**2026-09-15, `E2-T68`.** The remesher returned a closed sphere with **283 naked edges and 141
+non-manifold ones**. Three independent defects were producing that single symptom, and the first
+two fixes changed the number without fixing it — which is the trap: a wrong count that moves looks
+like progress.
+
+**What separated them was a probe, not more reading.** Four internal entry points, one per pass,
+and a test that ran them in order printing the naked and non-manifold counts after each:
+
+```
+start f=288 n=0/0 | split f=720 n=0/0 | collapse f=520 n=0/0 | flip f=520 n=24/12
+```
+
+**Split and collapse were innocent and the flip pass was doing all of it**, which no amount of
+staring at three plausible suspects would have established. The probe took ten minutes and each
+wrong guess before it had taken longer.
+
+**The three, because each is a general trap.**
+
+1. **Splitting faces instead of edges leaves T-junctions.** The pass split each face at its own
+   longest edge and assumed the neighbour across it would reach the same conclusion. It does not,
+   unless that edge is also the neighbour's longest — and where it is not, one side gains a
+   midpoint the other has never heard of. **The fix is to choose the long edges first and rebuild
+   each face around whichever of its three were chosen**: conforming by construction rather than by
+   argument about what the neighbour will decide.
+2. **A flip whose new edge already exists**, and **face indices that go stale inside the pass.** The
+   edge map holds face indices, and the moment one flip rewrites a face every other entry pointing
+   at it describes a triangle that no longer has those corners.
+3. **The two faces on an edge are not interchangeable.** The edge key is sorted, so it says nothing
+   about direction, and **which face traverses `a→b` decides the winding of both new triangles**.
+   Taking the first is right half the time; the other half emits two triangles wound against their
+   neighbours — which is a hole, not a visibly wrong flip. **This one survived the first two fixes**
+   and is the reason the count moved from 283 to 283 to 283 across three builds.
+
+**The identical number across three fixes is the lesson to keep.** Twice the fix was real, and
+twice the symptom did not move, because a different cause was saturating it. *A metric that does
+not change is not evidence that the change did nothing* — it is evidence that something else is
+setting the metric, and the next move is to find out what rather than to revert.
 
 ## N183 — A sweep that reads rows instead of code writes new wrong rows, and mine wrote two
 

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T68`: `Reduce` built; `Remesh` alone is left)
+**Last updated:** 2026-09-15 (`E2-T68` Done: `Remesh`, and `E2` has no open rows left)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -691,6 +691,20 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     midpoint placement already prevents what it guards. 512 triangles to exactly 128 at 88%
 >     of the volume; a subdivided cube keeps all eight corners exactly. **`Remesh` alone is
 >     left**, and `E10-T14` is still the only `Open` row.
+> 21. ~~**`E2-T68`**~~ **Done 2026-09-15 with `Remesh`**, the last of its seven.
+>     `MeshRemeshing.Remeshed` is the Botsch–Kobbelt loop — split long, collapse short, flip
+>     towards degree six, relax tangentially — and **three defects were found by tests, not
+>     by reading**: splitting faces rather than edges left T-junctions and tore a closed
+>     sphere into **283 naked edges**; a flip needs refusing when its new edge already
+>     exists and when its faces were already flipped; and **which face traverses `a→b`
+>     decides the winding of both new triangles**, which survived the first two fixes and
+>     was isolated by a per-pass probe. Relaxation is **tangential** because plain Laplacian
+>     smoothing returned 75% of the sphere's volume. The border is kept exactly, but
+>     freezing every edge *touching* it was too strong and left a ring of stubs — those now
+>     collapse onto the boundary vertex. **The tests' own metric was replaced too**: max over
+>     min is set by two edges out of hundreds, so they measure the share within half and
+>     double the target, 0.32 → 0.86 on a stretched grid. **`E10-T14` is the only `Open`
+>     row, and `E2` now has none.**
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

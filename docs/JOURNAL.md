@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E2-T68`: `Reduce` built, and two of its four were already delivered)
+**Last updated:** 2026-09-15 (`E2-T68` Done: `Remesh`, and `E2` has no open rows left)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Nineteen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Twenty steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T68`: `Reduce` built as `MeshDecimation.Reduced`, and the row's *four remaining* was two** — `Mesh.Repaired` and `Mesh.MadeWatertight` were already delivered, which is [N183](NOTES.md) landing on the very next row it was written about. **Quadric error metrics, with the survivor placed at an endpoint or the midpoint rather than at the quadric's minimum**: no 4×4 inverse to be singular on a flat neighbourhood, and no vertex can move anywhere its neighbours were not. **A test found a real wreck** — asking a cube for one triangle removed every face, because a tetrahedron collapses into two identical triangles and then into nothing; refusing duplicate faces stops it there. **And a guard I wrote proves nothing**: disabling the flip check leaves all eight tests green, including a corrugated fixture built to fold, because midpoint placement already prevents what it guards. It is kept, and **the method now says on itself that no fixture fires it** — what must not happen is a reader taking it as covered. 512 triangles to exactly 128 at 88% of the volume; a subdivided cube keeps all eight corners exactly; an already-small mesh comes back untouched **including its quads**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4043** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`Remesh` — the last member of `E2-T68`, and the last piece of geometry work in the register that needs nobody's permission.** **Read the row against the tree first** ([N183](NOTES.md)): this row has now been wrong about its own remainder twice in two days, and `Repaired`, `MadeWatertight` and `Smooth` were each found already built by a sweep. **What `Remesh` means has to be decided before it is written**, and the decision is the work: Dynamo's takes a target edge length, which for a mesh means *split every edge longer than it, collapse every edge shorter than it, flip edges towards degree six, and relax* — the Botsch–Kobbelt loop, four passes over the same data. **Two of the four already exist here**: collapse is `MeshDecimation`'s and relaxation is `Mesh.Smoothed`, which holds an open mesh's boundary still. So the new work is edge splitting and valence-driven flipping, and the honest first step is to say whether Spark's `Remesh` is uniform (one target length) or adaptive (curvature-driven), because they are different members and Dynamo's is the former. **Everything else in the register needs a person**: `E10-T14` waits on `PRD Q8`, put to the client with a recommendation on 2026-09-15, and the OpenCascade reinstall would free four rows at once. |
-| **Verify with** | **Edge lengths, not eyeballs**: after a remesh to length *L*, the distribution of edge lengths must lie inside a stated band around *L* — the usual four-thirds and four-fifths — and the shape must still be there, measured as volume against the original the way `Reduce`'s tests do. **And the fixture must start badly conditioned**, because a remesher that does nothing passes every test written over an already-uniform mesh. The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E2-T68` `Done` with `Remesh` — the Botsch–Kobbelt loop — and `E2` now has no open rows at all.** **Three independent defects produced one symptom**: a closed sphere with 283 naked edges, and the count read **283, 283, 283 across three builds** while two of the three fixes were real, because a third cause was saturating it ([N184](NOTES.md)). **A per-pass probe separated them in ten minutes** where guessing had not: split and collapse were clean and the flip pass was doing all of it. Splitting *faces* rather than *edges* leaves T-junctions; a flip needs refusing when its new edge exists and when its faces are already touched; and **which face traverses `a→b` decides the winding of both new triangles** — the key is sorted and says nothing about direction, so taking the first is right half the time and the other half makes a hole. **Relaxation is tangential** because plain Laplacian smoothing returned 75% of the sphere's volume. **The boundary rule was too strong**: freezing every edge *touching* the border left a ring of stubs, and those now collapse onto the boundary vertex, which still never moves. **And the tests' own metric was replaced** — max over min is set by two edges out of hundreds — for the share within half and double the target, 0.32 to 0.86. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4051** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **Nothing in the register can be started without a person, and `PRD Q8` is the one to chase.** `E10-T14` (the website) is the only `Open` row and waits on it; the recommendation went to the client on 2026-09-15 — **GitHub Pages on the public `Spark-Releases` repository**, since the source repository is private, the binaries are already public there, Pages costs nothing and sits beside the downloads — and what it does not settle is a custom domain and *who maintains it after 1.0*, which is the half a recommendation cannot answer. **The other four blockers are also people**: branch protection (`E1-T28`, one `gh api -X PUT` on the day the marathon ends), the signing identity (`E13-T17`), the six counsel questions (`Q13`), and **the OpenCascade reinstall — one `vcpkg install`, about 1.3 hours at full CPU, which frees `E13-T18`, `E13-T21`, `E13-T22` and `E2-T67` at once** and is the highest-value unblock left. **If a session resumes with none of those answered**, the honest work is the six `In progress` rows, each of which names its own remaining half: `E5-T14`, `E6-T14`'s docked script pane, `E7-T20`'s install half (three named problems, in order), `E10-T3` and `E12-T5`. **Read each against the tree before starting** — [N183](NOTES.md), which this week proved twice in two consecutive rows. |
+| **Verify with** | **The artefact, never the row** — this week found six rows, ten criterion boxes and ten status paragraphs stale, and every one read as plausible. **And when a measurement does not move after a real fix, find out what is setting it** rather than reverting ([N184](NOTES.md)). The three gates, the residue budget **re-derived** since new public members move it, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -17146,3 +17146,62 @@ tests over ten executables, zero failures and zero skips.
 
 **Cost.** One session. `Remesh` is the last member of this row, and `E10-T14` is still the only
 `Open` row in the register.
+
+### 2026-09-15 — `E2-T68` Done: `Remesh`, and three ways to tear a mesh that all looked like one
+
+**What.** `MeshRemeshing.Remeshed` — the Botsch–Kobbelt loop — with the node `Mesh.Remesh`, eight
+tests and three mutations caught. **`E2-T68` closes, and with it `E2` has no open rows at all.**
+
+**The loop.** Five iterations of four passes: split every edge longer than 4/3 of the target,
+collapse every edge shorter than 4/5 of it, flip towards vertex degree six, relax tangentially.
+Nothing in it is clever alone; the result comes from the four correcting each other over a handful
+of rounds. **The dead band is load-bearing** — splitting and collapsing at exactly the target makes
+the two passes trade the same triangles back and forth forever.
+
+**It returned a closed sphere with 283 naked edges, and three independent defects were producing
+that one symptom.** The first two fixes changed nothing, which is the trap: **the count read 283,
+283, 283 across three builds** while two of the three fixes were real, because a third cause was
+saturating the measurement. [N184](NOTES.md).
+
+**What separated them was a probe, not more reading.** Four internal entry points, one per pass, and
+a test printing the naked and non-manifold counts after each: `split 0/0 | collapse 0/0 | flip
+24/12`. **The flip pass was doing all of it**, which staring at three plausible suspects would never
+have established. The probe took ten minutes; each guess before it had taken longer.
+
+- **Splitting faces instead of edges leaves T-junctions.** The pass split each face at its own
+  longest edge and assumed the neighbour would agree — it does not, unless the shared edge is also
+  the neighbour's longest. Now the long *edges* are chosen first and each face is rebuilt around
+  whichever of its three were chosen: conforming by construction rather than by argument.
+- **A flip needs refusing when its new edge already exists**, and when either of its faces was
+  already flipped this pass — the edge map holds face indices that go stale the instant one is
+  rewritten.
+- **The two faces on an edge are not interchangeable.** The key is sorted, so it says nothing about
+  direction, and which face traverses `a→b` decides the winding of both new triangles. Taking the
+  first is right half the time and the other half produces a hole rather than a visibly wrong flip.
+  **This is the one that survived the first two fixes.**
+
+**Relaxation is tangential, and the word is the point.** Plain Laplacian smoothing moves every
+vertex of a closed convex surface inwards; five rounds **returned 75% of the sphere's volume** until
+the displacement was projected onto the tangent plane. `Mesh.Smoothed` is not wrong — it is right
+for its own purpose and the wrong tool inside a loop that must not change the shape.
+
+**The boundary rule was too strong and had to be narrowed.** A boundary vertex never moves and a
+boundary edge is never collapsed; freezing every edge that merely *touches* the boundary as well
+left a ring of stubs around any finely chopped border, and a 20:1 grid kept its 0.1-long edges
+however many iterations it got. An edge with one endpoint on the boundary now collapses **onto** it
+— the interior vertex goes, the border does not move a bit.
+
+**And the tests' own metric was wrong.** Largest edge over smallest is set entirely by two edges out
+of hundreds, so it reported an unimproved mesh whenever one sliver survived in a corner — it is
+right for *hunting* a bad mesh and wrong for asserting improvement. The tests now measure the share
+of interior edges within half and double the target: **0.32 to 0.86** on a stretched grid. **And one
+fixture turned out to be 97% in band before anything ran**, which was caught only because it was
+measured before it was trusted.
+
+**Verified.** Eight tests; three mutations, each caught — taking the wrong face as the forward one,
+dropping the tangential projection, and freezing every boundary-touching edge. Build clean with zero
+warnings, format clean, **4051** tests over ten executables, docs harness 68, residue re-derived and
+exact at **346**, zero failures and zero skips.
+
+**Cost.** One session, most of it on the torn sphere. The ten minutes spent building the probe were
+the only ten that moved it.

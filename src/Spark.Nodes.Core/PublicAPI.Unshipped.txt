@@ -34,6 +34,7 @@ static Spark.Nodes.Core.Mesh.MadeWatertight(Spark.Geometry.Mesh! mesh, double to
 static Spark.Nodes.Core.Mesh.PlaneGrid(Spark.Geometry.Plane plane, double width = 1, double length = 1, int xDivisions = 1, int yDivisions = 1) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.Project(Spark.Geometry.Mesh! mesh, Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction) -> Spark.Geometry.Point3d?
 static Spark.Nodes.Core.Mesh.Reduce(Spark.Geometry.Mesh! mesh, int targetFaceCount = 1000) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Mesh.Remesh(Spark.Geometry.Mesh! mesh, double targetEdgeLength = 1) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.Repaired(Spark.Geometry.Mesh! mesh) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.Smooth(Spark.Geometry.Mesh! mesh, double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.Sphere(Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) -> Spark.Geometry.Mesh!
