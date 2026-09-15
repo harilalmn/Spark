@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E11-T32` extended: the check now reads the criteria it could not see)
+**Last updated:** 2026-09-15 (`E11-T34`: the kernel's shape rules are guarded, not grepped)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifteen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Sixteen steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T32` extended: the criterion check now reads the boxes citing more than one row, so this morning's ten hand-ticks are guarded.** A multi-row box ticks **iff every cited row is `Done`**, and the message names which row falls short. **Writing it forced a definition of *cites*, and the obvious one is wrong**: a criterion's prose names rows it does not depend on — the index-based-BRep box cites `E2-T22` and `E2-T23`, and its annotation names a measurement, an excluded gap and a row that closed twelve members. **The parenthesis is the discriminator, measured before it was adopted**: of 219 criteria, 208 cite a row, **all 208 cite one inside a parenthesis and none only outside**. It also recovered **18 genuinely single-row criteria** that the old rule dropped for mentioning a second in prose and that nothing was checking. Single-row 152 → 170, multi-row 55 → 38, and the two sets are now asserted to **exactly cover** every row-citing criterion — the gap between *cites a row* and *is checked* is what hid for weeks. **Six disagreements on the first run**: one real tick (OCCT licence obligations, four `LicenceObligationTests` behind it) and five legitimate exemptions with five *different* reasons. Proved in both directions. Harness 67 → **68**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **4021** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **The eleven criteria that cite no row at all, which no comparison can ever reach.** 208 of 219 cite one; the other eleven are checked by nothing and can never be, because there is no row to compare against — *no drafting or annotation types exist anywhere in the kernel* and *curves, surfaces, meshes and BReps are sealed and immutable* are two of them, and both were ticked by hand this morning on a grep. **The answer is to give each a row, not to weaken the check**, and two of them deserve a real one: nothing guards immutability, and nothing guards the absence of drafting types — both are one architecture test each, in a project that already has five. **Then put `PRD Q8` to the client with a recommendation**, since `E10-T14` is the last `Open` row and needs an answer: **GitHub Pages on the public `Spark-Releases` repository** — the source repository is private, the binaries are already public there, Pages costs nothing and puts the site beside the downloads. Say what it does not settle: a custom domain, and who edits it after 1.0. |
-| **Verify with** | **A new architecture test has to go red against the thing it forbids** — add a mutable public array-returning member, or a `Dimension` type, and watch it fail — because the whole point of turning a hand-grep into a test is that the grep will not be re-run and the test will. Then a floor assertion on the zero-row set, so it cannot silently grow. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E11-T34` `Done` — the two acceptance criteria that assert something about the *code* are guarded instead of grepped.** Both were ticked this morning on a search run once, and both cite **no register row**, so no version of `AcceptanceCriterionChecks` could reach them; nine of the eleven zero-row criteria are E1 scaffolding facts that already have a build setting or a test behind them, and these two had nothing. `KernelShapeTests`, six tests over the sources as text: sealing, the `private protected` closed hierarchies, no public settable property or instance field, **no member handing back the array it is built on**, and no drafting type *declared*. **The first run reported hundreds of false positives** because the field pattern's `(=[^=]|;)` matches the `=` of `=>` — the temptation there is to loosen the threshold and call the check noisy; the fix is a negative lookahead with the reason commented on the line. **Proved on four mutations, each caught by name**, including `public Point3d[] Vertices() => _vertices;`, which differs from the correct line by two characters. Architecture tests 20 → **26**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **4027** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **68** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **Put `PRD Q8` to the client with a recommendation, because `E10-T14` is the last `Open` row in the register and nothing else can start it.** The question is *where does the website live, and who maintains it*. **The recommendation, with the reasoning already in the tree**: GitHub Pages on the public `Spark-Releases` repository — the source repository went private on 2026-09-09, the binaries already live in a public repository holding no source, and Pages there costs nothing, needs no new account or hosting bill, and puts the site beside the downloads it exists to point at. **Say what it does not settle**: a custom domain, and who edits it after 1.0 — which is the *who maintains it* half of `Q8` and is the half a recommendation cannot answer. **While waiting, the remaining unswept surface is the section intros and `Status` paragraphs** in `TASKS.md` and `EPICS.md`: one per epic, none reconciled against anything, and the last two steps found the two worst claims of the week in exactly that shape — E13's *nothing of this epic exists in the tree*, and E10's *what that leaves*, five claims false. |
+| **Verify with** | **Per intro: the directory listed, the project loaded, or the test count run** — the same discipline the row sweeps used, because these paragraphs have no status column and no box, so nothing but reading them against the tree will do. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and one came off on 2026-09-15.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. ~~**(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader**.~~ **Came off 2026-09-15, and it had been satisfied since 2026-09-12**: the client exported a `.step` from Spark, opened it in **AutoCAD**, worked on it there and reported no issues, which is a third-party reader and is the whole of what the row asked for. `E13-T12` is `Done` and its `EPICS` box is ticked. It stayed on this list for three days because nothing re-reads a *Blocked on* entry once the thing that unblocked it is recorded somewhere else. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16924,3 +16924,54 @@ and zero skips.
 
 **Cost.** One session. The naive rule would have shipped and cost five wrong exemptions; measuring
 the parenthesis over all 219 criteria before adopting it took one script.
+
+### 2026-09-15 — `E11-T34`: the kernel's shape rules are guarded, not grepped
+
+**What.** Two acceptance criteria that assert something about the *code* were ticked this morning on
+a search I ran once. They are now `Spark.Architecture.Tests.KernelShapeTests` — six tests, proved on
+four mutations — and both boxes cite a register row for the first time, so the criterion check can
+reach them.
+
+**Why these two and not the other nine.** Eleven criteria cite no row at all, which means no version
+of `AcceptanceCriterionChecks` can ever reach them: it compares a box against the rows it cites, and
+there are none. Nine of the eleven are E1 scaffolding facts — `Directory.Packages.props` pins every
+version, CS1591 is an error, the build is clean with zero warnings — and each already has a build
+setting or a test behind it. **The two that assert something about the kernel had nothing.**
+
+**What is asserted, and what deliberately is not.** Every concrete public geometry class is
+`sealed`, with `abstract` and `static` the stated exceptions; `Curve` and `Surface` close their
+hierarchies with a `private protected` constructor, which is what makes an exhaustive switch over
+the curve types exhaustive; no public settable property and no public instance field, with `const`
+and `static readonly` permitted because `Point3d.Origin` is neither mutable nor state; and no
+drafting or annotation type is **declared** — matched on declarations rather than on text, since the
+word *annotation* is fine in a comment and fatal as a class. **Nothing forbids a private mutable
+field**: the criterion says immutability is observable rather than bitwise, and `Brep` caches its
+bounding box and residency behind a `Lock`.
+
+**The clause worth the whole test.** *Backing state never handed out* is the part a reviewer misses,
+because `public Point3d[] Vertices() => _vertices;` looks exactly like the correct line and differs
+from it by two characters. It is stated as a prohibition on the shape `=> _field;` and
+`return _field;` from an array-returning member, rather than as an attempt to prove a copy happened
+— the first is exact and the second would be a parser.
+
+**The first run failed, and the failure is the useful part.** The public-field pattern ended
+`(=[^=]|;)`, which matches the `=` of `=>`, so **every expression-bodied property in the kernel read
+as a public field** — hundreds of them. The temptation at that point is to loosen the threshold and
+declare the check noisy; the fix is `(=(?![>=])|;)`, and the reason sits as a comment on the line so
+the next person does not re-loosen it.
+
+**Proved on four mutations, each caught by name.** Unsealing `Mesh`: *Mesh.cs: public class Mesh*.
+A `{ get; set; }`: *settable — public int Scratch { get; set; }*. A public field: *public field —
+public int Loose;*. A `DimensionStyle` nested in `Mesh`: *Mesh.cs: DimensionStyle*. And the array
+leak, which is the one this exists for. All restored.
+
+**And `TheKernelSourcesAreFound`**, because five assertions over a file list would all pass on an
+empty one — [N167](NOTES.md), which cost a red commit once.
+
+**Verified.** The mutations above. `ProgressDashboardChecks` went red on the new row until the
+dashboard was regenerated, which is the check doing its job. Build clean with zero warnings, format
+clean, **4027** tests over ten executables, docs harness **68**, architecture tests 20 → **26**, zero
+failures and zero skips.
+
+**Cost.** One session. Nine of the eleven unreachable criteria needed nothing; the two that did are
+now the only ones in that set with a row.

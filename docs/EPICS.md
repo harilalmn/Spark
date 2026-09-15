@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the criterion check now reads multi-row boxes; five exemptions)
+**Last updated:** 2026-09-15 (`E11-T34`: the two code criteria are guarded and now cite a row)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -225,15 +225,17 @@ serves mesh booleans, viewport picking and intersection seeding alike.
 - [x] Curves, surfaces, meshes and BReps are sealed and immutable, with backing state never
       handed out. Mutable **builders** are the only mutable things and never escape into
       the graph. Lazy internal caches are permitted: immutability is observable, not
-      bitwise. *Ticked 2026-09-15, on the code rather than on a test. Every concrete type is
+      bitwise (**E11-T34**). *Ticked 2026-09-15, on the code rather than on a test. Every concrete type is
       `public sealed`, and **every array-typed public member copies** — `Mesh.Vertices()`,
       `Mesh.Faces()`, `Brep.Points()`, `Brep.Curves()`, `Brep.Surfaces()` and `Brep.Vertices()`
       are each a collection expression over the backing array. `Curve`'s constructor is
       `private protected`, so the curve set is closed to the assembly, and `BrepBuilder` is the
       mutable thing that hands back a `Brep`. The lazy caches the clause permits are real: the
-      bounding box and the residency, behind a `Lock`. **Nothing guards any of this**, and that is
-      worth saying plainly — it holds by construction, and an architecture test asserting it would
-      be cheap.*
+      bounding box and the residency, behind a `Lock`. **Nothing guarded any of this when the box was ticked**, and saying so is what produced
+      **E11-T34** the same day: `KernelShapeTests` now asserts the sealing, the closed hierarchies,
+      the absence of public mutable state, and — the clause the criterion is really about — that
+      **no member hands back the array it is built on**, which differs from the correct line by two
+      characters. Proved on four mutations.*
 - [x] `Tolerance` is explicit and passed, never ambient, defaults per call via
       `in Tolerance tol = default`, and is scale-aware (**E2-T4**). *There is no static,
       thread-local or document-scoped default anywhere in the assembly. `ForScale` and
@@ -389,11 +391,14 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       [E13-T12](#e13--occt-provider)** (**E2-T36**). OCCT gives AP203, AP214 and AP242 plus
       IGES, and **R12 retires**. The validation rule survives verbatim: a public corpus and a
       third-party viewer, **never our own reader**.
-- [x] No drafting or annotation types exist anywhere in the kernel (**D13**). *Ticked 2026-09-15
-      by search: no `Dimension`, `Annotation`, `Leader`, `Hatch`, `Label` or `Text…` type is
-      declared anywhere under `src/`. It is a negative criterion, so it is checked the way a
-      negative has to be — by looking for the thing and not finding it — and it will need
-      re-checking rather than staying true on its own.*
+- [x] No drafting or annotation types exist anywhere in the kernel (**D13**, **E11-T34**). *Ticked
+      2026-09-15 by search, and **guarded the same day** rather than left to be re-searched:
+      `KernelShapeTests.NoDraftingOrAnnotationTypeExistsInTheKernel` matches a written-out
+      vocabulary — `Dimension`, `Annotation`, `Leader`, `Hatch`, `Callout`, `Balloon`, `TextNote`,
+      `Label`, `Tag`, `Symbol`, `TitleBlock`, `PaperSpace` and two more — against **type
+      declarations** rather than against text, since the word is fine in a comment and fatal as a
+      class. A negative criterion has to be checked by looking for the thing and not finding it,
+      and the reason to make it a test is that a search is run once.*
 
 **Status.** Two slices are landed. The **value layer** — `Angle`, `Tolerance`, `Point3d`,
 `Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
