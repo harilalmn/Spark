@@ -6,16 +6,16 @@ related: [concepts.files, concepts.evaluation, concepts.code-blocks]
 since: "2026.9"
 ---
 
-**Status:** Current. Describes the four verbs that exist — `run`, `check`, `export` and `render` —
-and says plainly which of the seven do not.
+**Status:** Current. Describes the five verbs that exist — `run`, `check`, `export`, `render` and
+`pkg` — and says plainly which of the seven do not.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-15 (`E12-T5`: `spark render`, the fourth verb of seven)
+**Last updated:** 2026-09-15 (`E12-T5`: `spark render` and `spark pkg`, five verbs of seven)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
-> does not have is a canvas — and since `render` it does not need one to draw, either. Three of the
-> seven planned verbs — `pkg`, `docs` and `graph` — are not written yet, and `spark --help` says so
-> rather than pretending otherwise.
+> does not have is a canvas — and since `render` it does not need one to draw, either. Two of the
+> seven planned verbs — `docs` and `graph` — are not written yet, and `spark --help` says so rather
+> than pretending otherwise.
 
 ---
 
@@ -263,6 +263,55 @@ is not a `.png` is refused rather than written under a lying extension.
 
 ---
 
+## `spark pkg` — is this checkout complete?
+
+```
+spark pkg list    --open GRAPH.spark
+spark pkg restore --open GRAPH.spark
+```
+
+A graph records the packages it expects, and they live in `GRAPH.packages` beside it. `list`
+reconciles the two.
+
+```
+$ spark pkg list --open facade.spark
+spark: facade.packages
+  present  facade.packages/acme.nodes.1.2.0
+  missing  facade.packages/contoso.panels.3.1.0
+spark: 2 recorded, 1 missing, 4 assembly(ies) beside the graph
+$ echo $?
+1
+```
+
+**It exits 1 when something is missing**, and that is the reason to run it rather than to look in
+the folder. A build that cannot gate here meets the same fact later, as a compile error inside a
+code block, two steps and one confusing message from the cause.
+
+**`unrecorded` is the third state**, and it is not a failure. An assembly in the folder that the
+file does not record loads and works today — and it will not travel with the graph, because nothing
+tells the next machine to fetch it.
+
+**`restore` fetches what the file records and the folder lacks.**
+
+```
+$ spark pkg restore --open facade.spark
+spark: restored contoso.panels 3.1.0
+spark: restored 1 of 1; 0 could not be.
+spark: restoring does not agree to load anything. Open the graph in Spark to agree to the
+assemblies, or pass --trust-packages to run and check.
+```
+
+**Restoring downloads; it does not agree.** A folder of assemblies beside a downloaded graph is
+remote code execution, which is why nothing loads without consent recorded per content hash — see
+[saving and opening graphs](files.md). A verb that both fetched code and consented to it on your
+behalf would be a hole in that, so `run` and `check` go on refusing assemblies nobody has agreed to,
+exactly as they did before you restored them.
+
+**A loose `.dll` cannot be restored.** It came from no feed, so there is nowhere to fetch it from;
+it is named, and the run fails, because the folder is still incomplete.
+
+---
+
 ## `spark --version`
 
 Prints the version, and the third-party notice that the licence requires: which kernel is loaded,
@@ -274,10 +323,10 @@ stops matching the build.
 
 ## What is not written yet
 
-`pkg`, `docs` and `graph` are planned and do not exist. `spark --help` lists them under *arrive
-with later milestones* rather than accepting them and doing nothing, which is the failure mode a
-build script cannot see. **`render` was in this list until 2026-09-15** and is now a section of its
-own above.
+`docs` and `graph` are planned and do not exist. `spark --help` lists them under *arrive with later
+milestones* rather than accepting them and doing nothing, which is the failure mode a build script
+cannot see. **`render` and `pkg` were both in this list until 2026-09-15** and both have sections of
+their own above.
 
 ---
 

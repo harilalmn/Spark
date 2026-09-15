@@ -15,14 +15,14 @@ title	The command line
 since	2026.9
 nodes	(none)
 related	concepts.files, concepts.evaluation, concepts.code-blocks
-blocks	81
+blocks	92
 example	yes
-block[0].paragraph	[strong]Status:[text] Current. Describes the four verbs that exist — [code]run[text], [code]check[text], [code]export[text] and [code]render[text] — and says plainly which of the seven do not. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-15 ([code]E12-T5[text]: [code]spark render[text], the fourth verb of seven)
+block[0].paragraph	[strong]Status:[text] Current. Describes the five verbs that exist — [code]run[text], [code]check[text], [code]export[text], [code]render[text] and [code]pkg[text] — and says plainly which of the seven do not. [strong]Owner:[text] [code]graph-engine[text] [strong]Last updated:[text] 2026-09-15 ([code]E12-T5[text]: [code]spark render[text] and [code]spark pkg[text], five verbs of seven)
 block[1].quote	[strong]Scope.[text] [code]spark.exe[text] ships beside the desktop application and does everything **without opening
 block[2].quote	[text]a window**. It is the same engine, the same node library and the same value rendering; what it
-block[3].quote	[text]does not have is a canvas — and since [code]render[text] it does not need one to draw, either. Three of the
-block[4].quote	[text]seven planned verbs — [code]pkg[text], [code]docs[text] and [code]graph[text] — are not written yet, and [code]spark --help[text] says so
-block[5].quote	[text]rather than pretending otherwise.
+block[3].quote	[text]does not have is a canvas — and since [code]render[text] it does not need one to draw, either. Two of the
+block[4].quote	[text]seven planned verbs — [code]docs[text] and [code]graph[text] — are not written yet, and [code]spark --help[text] says so rather
+block[5].quote	[text]than pretending otherwise.
 block[6].rule	---
 block[7].heading	level=2 [text]Why there is a command line at all
 block[8].paragraph	[text]A graph is a document and an evaluation is a computation. Both of those claims are easy to make and easy to be wrong about, and the way they stop being claims is that something outside the application can open a file and get the same answer. That is what [code]spark[text] is for: a build that checks graphs, a script that exports a hundred of them, a diff between yesterday's answer and today's.
@@ -88,13 +88,24 @@ block[67].paragraph	[strong]Exit 2 means the graph ran and drew nothing.[text] A
 block[68].code	lines=5
 block[69].paragraph	[code]--no-script[text] and [code]--trust-packages[text] mean exactly what they mean for [code]run[text] and [code]export[text]. A name that is not a [code].png[text] is refused rather than written under a lying extension.
 block[70].rule	---
-block[71].heading	level=2 [code]spark --version
-block[72].paragraph	[text]Prints the version, and the third-party notice that the licence requires: which kernel is loaded, under what licence, and that it is dynamically linked and replaceable. The same text appears in the application's About box, from one source, because two copies of a licence notice is one copy that stops matching the build.
-block[73].rule	---
-block[74].heading	level=2 [text]What is not written yet
-block[75].paragraph	[code]pkg[text], [code]docs[text] and [code]graph[text] are planned and do not exist. [code]spark --help[text] lists them under [emphasis]arrive with later milestones[text] rather than accepting them and doing nothing, which is the failure mode a build script cannot see. [strong]`render` was in this list until 2026-09-15[text] and is now a section of its own above.
-block[76].rule	---
-block[77].heading	level=2 [text]Related
-block[78].listitem	[link->files.md]Saving and opening graphs[text] — what is in the file these verbs read.
-block[79].listitem	[link->evaluation.md]How a graph evaluates[text] — what a diagnostic is, and why errors do not cascade.
-block[80].listitem	[link->code-blocks.md]Code blocks[text] — and why [code]--no-script[text] refuses rather than skips.
+block[71].heading	level=2 [code]spark pkg[text] — is this checkout complete?
+block[72].code	lines=2
+block[73].paragraph	[text]A graph records the packages it expects, and they live in [code]GRAPH.packages[text] beside it. [code]list[text] reconciles the two.
+block[74].code	lines=7
+block[75].paragraph	[strong]It exits 1 when something is missing[text], and that is the reason to run it rather than to look in the folder. A build that cannot gate here meets the same fact later, as a compile error inside a code block, two steps and one confusing message from the cause.
+block[76].paragraph	[strong]`unrecorded` is the third state[text], and it is not a failure. An assembly in the folder that the file does not record loads and works today — and it will not travel with the graph, because nothing tells the next machine to fetch it.
+block[77].paragraph	[strong]`restore` fetches what the file records and the folder lacks.
+block[78].code	lines=5
+block[79].paragraph	[strong]Restoring downloads; it does not agree.[text] A folder of assemblies beside a downloaded graph is remote code execution, which is why nothing loads without consent recorded per content hash — see [link->files.md]saving and opening graphs[text]. A verb that both fetched code and consented to it on your behalf would be a hole in that, so [code]run[text] and [code]check[text] go on refusing assemblies nobody has agreed to, exactly as they did before you restored them.
+block[80].paragraph	[strong]A loose `.dll` cannot be restored.[text] It came from no feed, so there is nowhere to fetch it from; it is named, and the run fails, because the folder is still incomplete.
+block[81].rule	---
+block[82].heading	level=2 [code]spark --version
+block[83].paragraph	[text]Prints the version, and the third-party notice that the licence requires: which kernel is loaded, under what licence, and that it is dynamically linked and replaceable. The same text appears in the application's About box, from one source, because two copies of a licence notice is one copy that stops matching the build.
+block[84].rule	---
+block[85].heading	level=2 [text]What is not written yet
+block[86].paragraph	[code]docs[text] and [code]graph[text] are planned and do not exist. [code]spark --help[text] lists them under [emphasis]arrive with later milestones[text] rather than accepting them and doing nothing, which is the failure mode a build script cannot see. [strong]`render` and `pkg` were both in this list until 2026-09-15[text] and both have sections of their own above.
+block[87].rule	---
+block[88].heading	level=2 [text]Related
+block[89].listitem	[link->files.md]Saving and opening graphs[text] — what is in the file these verbs read.
+block[90].listitem	[link->evaluation.md]How a graph evaluates[text] — what a diagnostic is, and why errors do not cascade.
+block[91].listitem	[link->code-blocks.md]Code blocks[text] — and why [code]--no-script[text] refuses rather than skips.

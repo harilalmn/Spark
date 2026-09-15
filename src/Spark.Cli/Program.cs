@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using NuGet.Versioning;
 using Spark.Api;
 using Spark.Engine;
 using Spark.Geometry;
@@ -85,6 +87,7 @@ internal static class Program
                 "check" => Check(args.AsSpan(1), Console.Error),
                 "export" => Export(args.AsSpan(1), Console.Out, Console.Error),
                 "render" => Render(args.AsSpan(1), Console.Out, Console.Error),
+                "pkg" => Pkg(args.AsSpan(1), Console.Out, Console.Error),
                 "pack" => Pack(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -1011,6 +1014,243 @@ internal static class Program
 
         return true;
     }
+    /// <summary>
+    /// Reports and repairs the package folder beside a graph (<c>E12-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A face on a finished library rather than new machinery.</b> <c>GraphPackages</c> already
+    /// answers <i>what is beside this graph</i> and <i>what does its file record that is not
+    /// there</i>, and <c>NuGetPackageClient</c> already installs into a store. What this adds is
+    /// the two questions a build asks — <i>is this checkout complete?</i> and <i>make it
+    /// complete</i> — and an exit code for the first.
+    /// </para>
+    /// <para>
+    /// <b><c>list</c> exits 1 when something is missing</b>, which is the whole reason it is worth
+    /// having over reading the folder. Without it a build discovers an absent package as a compile
+    /// error inside a code block, two steps and one confusing message away from the cause.
+    /// </para>
+    /// <para>
+    /// <b><c>restore</c> downloads; it does not agree.</b> Consent is unchanged and that is
+    /// deliberate: <c>run</c> and <c>check</c> still refuse assemblies nobody has trusted, so a
+    /// package restored on a fresh machine needs <c>--trust-packages</c> or the desktop window
+    /// exactly as it did before. A verb that both fetched code and consented to it on the user's
+    /// behalf would be a hole in <c>E7-T16</c>'s gate wearing a convenience's clothes.
+    /// </para>
+    /// </remarks>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="output">Where the listing goes.</param>
+    /// <param name="error">Where problems go.</param>
+    /// <param name="source">The feed to restore from, or null for nuget.org. Tests pass a folder.</param>
+    /// <returns>Zero when the folder is complete, one otherwise.</returns>
+    internal static int Pkg(
+        ReadOnlySpan<string> args, TextWriter output, TextWriter error, string? source = null)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+
+        if (args.Length == 0)
+        {
+            error.WriteLine("spark: pkg needs a sub-command: list or restore.");
+            return 1;
+        }
+
+        string command = args[0];
+
+        if (command is not ("list" or "restore"))
+        {
+            error.WriteLine($"spark: unknown pkg sub-command '{command}'. Use list or restore.");
+            return 1;
+        }
+
+        string? input = null;
+
+        for (int i = 1; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--open" when i + 1 < args.Length:
+                    input = args[++i];
+                    break;
+
+                default:
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null)
+        {
+            error.WriteLine($"spark: pkg {command} needs --open PATH.");
+            return 1;
+        }
+
+        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+        IReadOnlyList<string> recorded = [.. document.Packages.Select(package => package.Path)];
+        ImmutableArray<AbsentGraphPackage> absent = GraphPackages.Absent(input, recorded);
+
+        return command is "list"
+            ? List(input, recorded, absent, output)
+            : Restore(input, absent, source, output, error);
+    }
+
+    /// <summary>Prints what the graph records and what is beside it.</summary>
+    /// <remarks>
+    /// <b>The recorded list and the folder are printed as one reconciliation rather than two
+    /// listings.</b> What a person needs is not *what is in the folder* but *does the folder match
+    /// the file*, and a pair of lists makes them do that comparison by eye.
+    /// </remarks>
+    /// <param name="input">The graph's path.</param>
+    /// <param name="recorded">What the file records.</param>
+    /// <param name="absent">Which of those are not there.</param>
+    /// <param name="output">Where the listing goes.</param>
+    /// <returns>Zero when nothing is missing, one otherwise.</returns>
+    private static int List(
+        string input,
+        IReadOnlyList<string> recorded,
+        ImmutableArray<AbsentGraphPackage> absent,
+        TextWriter output)
+    {
+        GraphPackages beside = GraphPackages.Discover(input);
+
+        output.WriteLine($"spark: {Path.GetFileName(GraphPackages.FolderFor(input))}");
+
+        HashSet<string> missing = new(absent.Select(a => a.Recorded), StringComparer.OrdinalIgnoreCase);
+
+        foreach (string entry in recorded)
+        {
+            output.WriteLine(missing.Contains(entry) ? $"  missing  {entry}" : $"  present  {entry}");
+        }
+
+        // Anything in the folder the file does not record. It loads and works; it is listed because
+        // a package nobody wrote down is a package that does not travel with the graph.
+        foreach (string entry in GraphPackages.Entries(input))
+        {
+            if (!recorded.Contains(entry, StringComparer.OrdinalIgnoreCase))
+            {
+                output.WriteLine($"  unrecorded  {entry}");
+            }
+        }
+
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: {recorded.Count} recorded, {absent.Length} missing, "
+            + $"{beside.Assemblies.Length} assembly(ies) beside the graph"));
+
+        return absent.Length == 0 ? 0 : 1;
+    }
+
+    /// <summary>Installs what the file records and the folder lacks.</summary>
+    /// <remarks>
+    /// <b>The identity is recovered from the folder name, because a graph records paths.</b>
+    /// <c>PackageIdentity.FolderName</c> is <c>id.version</c> lower-cased, so the split is found by
+    /// trying the dots — see <see cref="SplitIdentity"/>, which scans from the long end for a
+    /// reason.
+    /// </remarks>
+    /// <param name="input">The graph's path.</param>
+    /// <param name="absent">What to fetch.</param>
+    /// <param name="source">The feed, or null for nuget.org.</param>
+    /// <param name="output">Where progress goes.</param>
+    /// <param name="error">Where failures go.</param>
+    /// <returns>Zero when everything recorded is now present, one otherwise.</returns>
+    private static int Restore(
+        string input,
+        ImmutableArray<AbsentGraphPackage> absent,
+        string? source,
+        TextWriter output,
+        TextWriter error)
+    {
+        if (absent.Length == 0)
+        {
+            output.WriteLine("spark: nothing to restore; every package the graph records is there.");
+            return 0;
+        }
+
+        PackageStore store = new(GraphPackages.FolderFor(input));
+        NuGetPackageClient client = new(source);
+        int restored = 0;
+        int refused = 0;
+
+        foreach (AbsentGraphPackage package in absent)
+        {
+            if (SplitIdentity(package.Name) is not { } identity)
+            {
+                // A loose assembly somebody dropped in the folder by hand. It came from no feed, so
+                // there is nowhere to fetch it from, and saying so is the whole of what this verb
+                // can do about it.
+                error.WriteLine(
+                    $"spark: '{package.Name}' is not a package folder, so it cannot be restored "
+                    + "from a feed. It was added by hand and has to be put back by hand.");
+
+                refused++;
+                continue;
+            }
+
+            try
+            {
+                client.InstallAsync(identity, store, CancellationToken.None).GetAwaiter().GetResult();
+
+                output.WriteLine($"spark: restored {identity}");
+                restored++;
+            }
+            catch (SparkPackageException failure)
+            {
+                error.WriteLine($"spark: {identity} could not be restored: {failure.Message}");
+                refused++;
+            }
+        }
+
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: restored {restored} of {absent.Length}; {refused} could not be."));
+
+        if (restored > 0)
+        {
+            // Said once, here, because the person who just downloaded code is the person who needs
+            // to know that downloading it did not agree to run it.
+            output.WriteLine(
+                "spark: restoring does not agree to load anything. Open the graph in Spark to "
+                + "agree to the assemblies, or pass --trust-packages to run and check.");
+        }
+
+        return refused == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Splits a package folder name into an identity.
+    /// </summary>
+    /// <remarks>
+    /// <b>Scanned from the long end, and that is not arbitrary.</b> The name is
+    /// <c>id.version</c> with dots in both halves, so several splits parse: for
+    /// <c>Acme.Nodes.1.0.0</c> the suffixes <c>1.0.0</c>, <c>0.0</c> and <c>0</c> are all valid
+    /// <c>NuGetVersion</c>s. Taking the first that parses while scanning from the short end yields
+    /// <c>Acme.Nodes.1.0</c> at version <c>0</c>, which is a package that does not exist. The
+    /// longest valid suffix is the version.
+    /// </remarks>
+    /// <param name="name">The folder name.</param>
+    /// <returns>The identity, or null when no split parses — a loose file or a hand-made folder.</returns>
+    /// <remarks>
+    /// <b>The id comes back lower-cased</b>, because that is how NuGet names the folder and the
+    /// folder is all a graph records. Package ids are case-insensitive, so the install is the same
+    /// one the publisher intended; what is lost is only the publisher's capitalisation, and
+    /// inventing it back would be a guess printed as a fact.
+    /// </remarks>
+    private static PackageIdentity? SplitIdentity(string name)
+    {
+        string[] parts = name.Split('.');
+
+        for (int take = parts.Length - 1; take >= 1; take--)
+        {
+            string version = string.Join('.', parts[^take..]);
+
+            if (NuGetVersion.TryParse(version, out _))
+            {
+                return new PackageIdentity(string.Join('.', parts[..^take]), version);
+            }
+        }
+
+        return null;
+    }
     private static int WriteMeshes(string output, string extension, List<Mesh> meshes)
     {
         Mesh combined = Combine(meshes);
@@ -1373,6 +1613,14 @@ internal static class Program
         Console.WriteLine("      Exit 2 if the graph ran but produced nothing to draw: an empty image");
         Console.WriteLine("      written silently is the failure a visual check exists to catch.");
         Console.WriteLine();
+        Console.WriteLine("  spark pkg list|restore --open GRAPH.spark");
+        Console.WriteLine("      list reconciles the graph's package folder against what the file");
+        Console.WriteLine("      records, and exits 1 when something is missing - so a build finds out");
+        Console.WriteLine("      here rather than as a compile error inside a code block later.");
+        Console.WriteLine("      restore fetches what the file records and the folder lacks.");
+        Console.WriteLine("      Restoring downloads; it does not agree to load anything, so run and");
+        Console.WriteLine("      check still need --trust-packages or a visit to the desktop window.");
+        Console.WriteLine();
         Console.WriteLine("  spark pack GRAPH.spark [--out FILE.sparkz]");
         Console.WriteLine("      Zip a graph and the GRAPH.packages folder beside it into one .sparkz");
         Console.WriteLine("      file for sharing; by default GRAPH.sparkz, beside the graph. run, check");
@@ -1381,7 +1629,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
-        Console.WriteLine("  pkg, docs and graph arrive with later milestones.");
+        Console.WriteLine("  docs and graph arrive with later milestones.");
     }
 
     /// <summary>
