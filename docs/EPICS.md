@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E12-T5`: `spark render`, the fourth verb of seven)
+**Last updated:** 2026-09-15 (`E5-T14` Done: `E5` is complete, and its status paragraph was four clauses stale)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -740,18 +740,23 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
 - [x] An `Angle` parameter renders as a degree-valued port automatically, for first-party
       and third-party libraries alike — the typed hook that bare doubles could not provide
       (**E5-T8**).
-- [ ] `Spark.Nodes.Core` covers geometry, and adds curated List, Math, String and Logic
+- [x] `Spark.Nodes.Core` covers geometry, and adds curated List, Math, String and Logic
       categories; a curated `Math` category serves arithmetic in place of operator nodes
-      (**E5-T12**, **E5-T13**, **E5-T14**).
+      (**E5-T12**, **E5-T13**, **E5-T14**). *Ticked 2026-09-15, when the last of its three rows
+      closed. All four curated categories exist — `ListNodes`, `Math`, `Text` and `Logic` — and
+      `E5-T14` closed on a **check** rather than on a number, which is what it spent months waiting
+      for: `NodeClaimChecks` resolves all 28 of the parity manifest's* Exposed as the node X.Y
+      *claims against the live assembly.*
 - [x] `Appearance` and `Displayable` live in `Spark.Api`, not the kernel, and a
       `Display.ByGeometryColor` node wraps. Unwrapped geometry renders with defaults, so
       `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no
       reference to anything above it (**E5-T15**).
 
-**Status.** Built in `35107f0`, and **swept 2026-09-15: the count below had more than doubled and
-nobody had re-read it.** **141 node methods over 21 families reach the library with no registration
-anywhere** — the paragraph said 57, a figure taken before the curve, surface and solid families
-existed — and there is still no partial class, no dictionary and no attribute required.
+**Status.** Built in `35107f0`, and **swept twice on 2026-09-15 — the second time because the
+first sweep's own replacement number was already stale.** **199 node members over 27 families reach
+the library with no registration anywhere.** The paragraph said 57, then 141; 199 is the first
+figure here that was *measured twice* — summing the public static members file by file, and reading
+the running application's status bar — and the two agree exactly — and there is still no partial class, no dictionary and no attribute required.
 `Spark.Nodes.Core` holds no reference to `Spark.Engine`, so the first-party library is imported by
 exactly the path a third-party package would take, which is the claim the number is evidence for
 and the reason the number is worth keeping right.
@@ -764,9 +769,16 @@ silently skipped, which is why `E5-T9` and `E5-T10` are `Open` as decisions rath
 This is the DoodleSharp failure the project has been designing against since M0: three
 hand-maintained dictionaries that drifted in **both** directions at once, invisibly, for years.
 
-Still open: named generic instantiations (extension methods on their receiver landed 2026-09-11, `E5-T9`, and unconstrained generic methods closed over `object` the same day, `E5-T10`), the third-party import acceptance
-test, and the curated List/Math/String/Logic categories. `E5-T14` is `In progress` at 57 nodes,
-which is a number rather than a finish line.
+**Nothing is still open, and this paragraph listed four things that were not.** It is corrected
+2026-09-15 rather than deleted, because what it got wrong is instructive: every clause in it had
+been delivered and each was delivered by a *different* row, so no single row closing would ever
+have prompted somebody to re-read it. Named generic instantiations landed 2026-09-11 — extension
+methods on their receiver (`E5-T9`) and unconstrained generic methods closed over `object`
+(`E5-T10`), which the sentence admitted in its own parenthesis while still calling them open. The
+third-party import acceptance test is `E5-T11`, `Done` 2026-09-14. The curated
+List/Math/String/Logic categories exist as `ListNodes`, `Math`, `Text` and `Logic`. And *`E5-T14`
+is `In progress` at 57 nodes* was wrong three ways at once: the row is `Done`, the figure is
+**199**, and a count was never the criterion — `NodeClaimChecks` is. **`E5` has no open rows.**
 
 ---
 

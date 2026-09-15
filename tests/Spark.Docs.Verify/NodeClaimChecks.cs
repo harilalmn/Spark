@@ -11,10 +11,18 @@ namespace Spark.Docs.Verify;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The register ends many of its rows with <i>Exposed as the node X.Y</i>, and until now nothing
-/// checked that.</b> It is written by hand, on the day the row is closed, and it is the sentence a
-/// reader trusts when asking <i>can a graph reach this?</i> — so a rename anywhere in
+/// <b>The parity manifest ends many of its rows with <i>Exposed as the node X.Y</i>, and until now
+/// nothing checked that.</b> It is written by hand, on the day the row is closed, and it is the
+/// sentence a reader trusts when asking <i>can a graph reach this?</i> — so a rename anywhere in
 /// <c>Spark.Nodes.Core</c> turns it into a confident lie with no symptom.
+/// </para>
+/// <para>
+/// <b>The rows are in <c>tests/corpus/dynamo-parity.tsv</c>, and saying so is not pedantry.</b>
+/// This file used to call it <i>the register</i> throughout, which is right about what it is for
+/// and wrong about where it lives — <c>docs/TASKS.md</c> is what <i>the register</i> means
+/// everywhere else in this repository, and it contains one occurrence of the sentence. Somebody
+/// checking this check's reach grepped the wrong file and got an answer that looked like a defect
+/// (2026-09-15).
 /// </para>
 /// <para>
 /// <b>That is not hypothetical.</b> <c>Mesh.Repair</c> was renamed to <c>Mesh.Repaired</c> an hour
@@ -25,8 +33,9 @@ namespace Spark.Docs.Verify;
 /// <para>
 /// <b>This is what closes <c>E5-T14</c>'s question rather than counting nodes.</b> That row said in
 /// as many words that <i>a node count with no target is not a criterion</i>, and waited for the
-/// parity assessments to say what the target was. They have. The target is the register, and this
-/// is the check that the register and the node library agree.
+/// parity assessments to say what the target was. They have. The target is the manifest's claims,
+/// and this is the check that they and the node library agree. <b>The row closed on it</b> on
+/// 2026-09-15, without a count being the criterion at any point.
 /// </para>
 /// </remarks>
 public sealed class NodeClaimChecks
@@ -53,7 +62,7 @@ public sealed class NodeClaimChecks
         Assert.Empty(missing);
     }
 
-    /// <summary>The register makes enough of these claims for the check to be worth having.</summary>
+    /// <summary>The manifest makes enough of these claims for the check to be worth having.</summary>
     /// <remarks>
     /// A check over a register that has stopped making claims passes forever. This is the floor
     /// under that: the number only ever goes up, and if it collapses somebody has changed the
@@ -67,9 +76,9 @@ public sealed class NodeClaimChecks
 
         Assert.True(
             Claim.Matches(manifest).Count >= 25,
-            $"the register makes {Claim.Matches(manifest).Count} node claims; it made 29 when this "
-            + "check was written, so either rows have lost the sentence or the pattern no longer "
-            + "matches it.");
+            $"the manifest makes {Claim.Matches(manifest).Count} node claims; it made 29 when this "
+            + "check was written and 28 a day later, so either rows have lost the sentence or the "
+            + "pattern no longer matches it.");
     }
 
     /// <summary>
