@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N177: the failure's own evidence file outlives the failure)
+**Last updated:** 2026-09-15 (N178: the error was an order of magnitude the other way)
 
 ---
 
@@ -5216,6 +5216,41 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N178 — The error was an order of magnitude the other way, and the row's argument changed with it
+
+**2026-09-15, `E2-T67`.** `Solid.Volume` measures a tessellation rather than integrating the faces,
+and its own remarks said the mesh volume *approaches the true one from below*. Two things were
+wrong with leaving that alone: it is a claim about the **sign** of an error that nobody had
+measured, and the sentence *measured on the tessellation* invites the reader to supply a magnitude
+for themselves.
+
+**The direction is right.** Against πr²h and π(R² − r²)h through the real OCCT shim, a cylinder, a
+tube and a box are all at or below the exact figure, and the box is exact to the last few bits —
+which is itself worth knowing, because it is why every demo and nearly every test in this
+repository is blind to the error.
+
+**The magnitude is the opposite of what was expected, and a test asserting the expectation was
+written before it was measured.** The reasoning was that the tolerance bounds a *distance* while
+the volume error integrates that distance over a whole face, so the error should be much larger
+than the tolerance. Measured, a cylinder of radius 2 and height 5 is low by **0.000797** against a
+tolerance of **0.01** — smaller, not larger, and 1.3e-5 relative. The reasoning had ignored the
+second half of `Tolerance`: OCCT honours a one-degree **angular** deflection as well, and on a
+radius of two that binds long before the linear one does. The test went red on the first run and
+was deleted rather than adjusted.
+
+**What survives is a better argument for the row, and a narrower one.** 1.3e-5 is not an accuracy
+problem, and closing `E2-T67` as *the volume is inaccurate* would have oversold it to whoever reads
+the register next. The real defect is that the answer **moves**: the same cylinder measures 1.14%
+low at (0.5, 30°) and 1.3e-7 low at (1e-4, 0.1°) — a spread of **0.715 in a volume of 62.83** — and
+`Solid.Volume` takes no tolerance parameter, so the number a user reads as a property of their
+solid is a property of a meshing setting they never passed and the viewport may change underneath
+them. `BRepGProp` integrates the faces and has no tolerance to be a function of.
+
+**The general point.** A defect described in prose acquires a magnitude in the reader's head, and
+the reader's guess is not free of consequences — it decides whether the row is urgent, how it is
+justified, and what a fix has to beat. Measuring took one test run and moved this row's case from
+*accuracy* to *determinism*, which is a different row.
 
 ## N177 — The failure's own evidence file outlives the failure, and then it lies
 

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T38` Done: three `Open` rows left in the register)
+**Last updated:** 2026-09-15 (`E2-T67` Blocked on the reinstall; two `Open` rows left)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -578,6 +578,17 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     for a failure that no longer existed ([N177](NOTES.md)). Same omission in
 >     `VisualRegressionTests`' image sidecars; both fixed. **Three `Open` rows are left in the
 >     whole register**: `E2-T67`, `E11-T7` and `E10-T14`.
+> 12. **`E2-T67`** — mass properties on a `Brep` from the kernel. **`Blocked` 2026-09-15 on
+>     the OpenCascade reinstall**, with `E13-T18` and `E13-T21`, and now evidenced: the
+>     toolchain is fine — `build-native.ps1` finds MSVC by itself — and then refuses,
+>     having searched all three vcpkg roots. The shim exports 40 functions and none touches
+>     `GProp`. **The unblocked half was done: the row's premise was measured, and it moved
+>     the argument** ([N178](NOTES.md)). *From below* holds, but the error is **1.3e-5** on
+>     a cylinder at the node default — an order of magnitude the *other* way from what the
+>     wording implies, and a test asserting the expectation was killed by the first run. The
+>     real case is that the answer moves: **1.14% low coarse, 1.3e-7 low fine, a spread of
+>     0.715 in a volume of 62.83**, on a node that takes no tolerance parameter. **Two
+>     `Open` rows left**: `E11-T7` and `E10-T14`.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

@@ -267,11 +267,24 @@ public static class Solid
     /// <param name="solid">The solid.</param>
     /// <returns>The volume.</returns>
     /// <remarks>
+    /// <para>
     /// <b>Measured on the tessellation, and that is honest rather than ideal.</b> The exact volume
     /// of a BRep is a surface integral over its faces, which is a kernel operation; what this gives
     /// is the volume of the mesh at the default tolerance, which approaches the true one from
     /// below. A node that reported an exact figure it had not computed would be worse than one that
     /// says which it is.
+    /// </para>
+    /// <para>
+    /// <b>Measured 2026-09-15, because <i>from below</i> was a claim and not a number</b>
+    /// (<c>E2-T67</c>, <c>MassPropertyAccuracyTests</c>). It holds, on every shape tested, and the
+    /// error is <b>far smaller than the wording suggests</b>: a cylinder of radius 2 and height 5
+    /// is low by 1.3e-5 relative at this default. A box is exact. <b>So the reason to want the
+    /// kernel's answer is not accuracy — it is that this one moves.</b> The same cylinder is 1.14%
+    /// low at a coarse tolerance and 1.3e-7 low at a fine one, a spread of 0.715 in a volume of
+    /// 62.8, and this node takes no tolerance parameter, so the caller cannot see the knob their
+    /// answer depends on. <c>BRepGProp</c> integrates the faces and has no tolerance to be a
+    /// function of; <c>E2-T67</c> waits on a shim that can export it.
+    /// </para>
     /// </remarks>
     [return: NodePort("volume")]
     public static double Volume(Brep solid) => ToMesh(solid).Volume();
