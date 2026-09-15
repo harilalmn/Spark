@@ -84,6 +84,11 @@ public sealed class NodeDefinition
     /// the old way opens (`E3-T23`). Null for the overwhelming majority, which have never been
     /// renamed.
     /// </param>
+    /// <param name="requiredCapabilities">
+    /// What the node needs the solid-modelling kernel to be able to do (`E2-T28`), from
+    /// <see cref="RequiresBrepCapabilityAttribute"/>. <see cref="BrepCapabilities.None"/> for every
+    /// node that never reaches the kernel, which is most of the library.
+    /// </param>
     /// <param name="codeExample">
     /// The body of a code block that calls this node's underlying member, or
     /// <see langword="null"/> when there is no such member. See <see cref="CodeExample"/>.
@@ -109,7 +114,8 @@ public sealed class NodeDefinition
         bool hasField = false,
         NodeMemberKind memberKind = NodeMemberKind.Action,
         string? codeExample = null,
-        IReadOnlyList<string>? aliases = null)
+        IReadOnlyList<string>? aliases = null,
+        BrepCapabilities requiredCapabilities = BrepCapabilities.None)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -152,6 +158,7 @@ public sealed class NodeDefinition
         DefaultLacing = defaultLacing;
         Version = version;
         IsSideEffect = isSideEffect;
+        RequiredCapabilities = requiredCapabilities;
         Description = description;
         Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
         ShowsValue = showsValue;
@@ -301,6 +308,25 @@ public sealed class NodeDefinition
     /// cached across runs.
     /// </summary>
     public bool IsSideEffect { get; }
+
+    /// <summary>
+    /// What the node needs the solid-modelling kernel to be able to do, or
+    /// <see cref="BrepCapabilities.None"/> for the nodes that need nothing (<c>E2-T28</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Declared by the node's author through <see cref="RequiresBrepCapabilityAttribute"/>, and
+    /// carried here for the shell's benefit the way <see cref="Category"/> is: the engine never
+    /// reads it, because an operation the kernel cannot perform still refuses through
+    /// <c>KernelResult</c> with a diagnostic, which is what keeps a graph openable on a machine
+    /// without a provider.
+    /// </para>
+    /// <para>
+    /// <b>What reads it is the library panel</b>, which greys a node out when
+    /// <c>BrepKernel.Current.Capabilities</c> does not have every flag here.
+    /// </para>
+    /// </remarks>
+    public BrepCapabilities RequiredCapabilities { get; }
 
     /// <summary>The compiled invoker.</summary>
     public NodeInvocation Invoke { get; }

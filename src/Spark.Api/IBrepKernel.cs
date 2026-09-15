@@ -57,6 +57,30 @@ public enum BrepCapabilities
     /// <summary>Cutting a solid with a surface or a plane.</summary>
     Split = 1 << 9,
 
+    /// <summary>Capping a closed loop of curves with a surface.</summary>
+    /// <remarks>
+    /// <b>Added 2026-09-15, because the flag set had never been checked against this
+    /// interface.</b> <see cref="IBrepKernel.Patch"/> has existed since the seam was built and had
+    /// no flag, so <c>Solid.Patch</c> could not be declared as needing anything and would have
+    /// stayed enabled on a build that cannot perform it. Found by annotating the nodes, which is
+    /// the first thing that ever asked the two lists to agree.
+    /// </remarks>
+    Patch = 1 << 16,
+
+    /// <summary>Tapering faces about a pull direction.</summary>
+    /// <remarks>Added 2026-09-15, with <see cref="Patch"/> and for the same reason.</remarks>
+    Draft = 1 << 17,
+
+    /// <summary>Giving a sheet body a thickness, making a solid of it.</summary>
+    /// <remarks>
+    /// Added 2026-09-15, with <see cref="Patch"/> and <see cref="Draft"/>. <b>Separate from
+    /// <see cref="Offset"/> rather than folded into it</b>: they are different OCCT operations
+    /// with different failure modes, and a provider that had one and not the other would either
+    /// grey out something it can do or offer something it cannot. Three of this interface's
+    /// twenty-one operations had no flag, which is what annotating the nodes found.
+    /// </remarks>
+    Thicken = 1 << 18,
+
     /// <summary>Joining loose faces into a shell, and repairing what does not quite meet.</summary>
     Sew = 1 << 10,
 

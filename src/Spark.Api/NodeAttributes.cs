@@ -358,3 +358,49 @@ public sealed class NodeSideEffectAttribute : Attribute
     /// <summary>What outside the graph this node depends on or changes.</summary>
     public string? Reason { get; }
 }
+
+/// <summary>
+/// Declares which solid-modelling capability a node needs, so a build that does not have it can
+/// say so before the node is placed rather than after it is run (<c>E2-T28</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The case this exists for is a real, supported configuration, not a hypothetical one.</b> A
+/// build with no native component is supported and tested; on one, <c>BrepKernel.Current</c> is
+/// <c>UnavailableBrepKernel</c>, it reports <see cref="BrepCapabilities.None"/>, and every solid
+/// operation refuses by name. Before this attribute the node library showed all of them exactly as
+/// it shows the ones that work, so the only way to find out was to place a node, wire it and run
+/// it. <i>Staged delivery being honest</i> is the phrase the epic uses and this is the mechanism.
+/// </para>
+/// <para>
+/// <b>Declared, not detected.</b> Nothing in a compiled method says which kernel operation it will
+/// reach — it might reach none, or one chosen at run time — so this cannot be inferred, and a
+/// table in the user interface keyed by node name would be a second list that drifts the first time
+/// somebody renames a node. It is also the only form available to a third-party package, which is
+/// what the importer exists for: a package that wraps <c>IBrepKernel</c> gets the same greying as
+/// <c>Spark.Nodes.Core</c> with no cooperation from the shell.
+/// </para>
+/// <para>
+/// <b>It never blocks anything at run time.</b> The operation still runs and still refuses through
+/// <c>KernelResult</c> with a diagnostic naming what was missing — because a graph saved on a
+/// machine with a provider must still open, still show its nodes and still re-save unchanged on a
+/// machine without one, which is the same promise a missing package gets. This only decides what
+/// the library looks like.
+/// </para>
+/// </remarks>
+[AttributeUsage(
+    AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property,
+    AllowMultiple = false,
+    Inherited = false)]
+public sealed class RequiresBrepCapabilityAttribute : Attribute
+{
+    /// <summary>Creates the attribute.</summary>
+    /// <param name="capability">
+    /// What the node needs. Several flags mean it needs all of them, which is what a node calling
+    /// two kernel operations requires.
+    /// </param>
+    public RequiresBrepCapabilityAttribute(BrepCapabilities capability) => Capability = capability;
+
+    /// <summary>What the node needs the kernel to be able to do.</summary>
+    public BrepCapabilities Capability { get; }
+}

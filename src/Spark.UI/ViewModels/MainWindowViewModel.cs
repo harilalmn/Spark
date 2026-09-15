@@ -1250,8 +1250,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="x">The left edge in world coordinates.</param>
     /// <param name="y">The top edge in world coordinates.</param>
     /// <returns>The new node's slot, or −1 when nothing was selected.</returns>
+    /// <remarks>
+    /// <b>An unavailable node is not placed</b> (<c>E2-T28</c>). The library greys it and this is
+    /// the other half of the same answer: a row that looks disabled and places anyway is worse than
+    /// one that was never greyed. Nothing is said here because the row already says it — the
+    /// tooltip names the missing capability, and a message box repeating it would be the
+    /// application telling the user what they just read.
+    /// </remarks>
     public int PlaceSelectedLibraryEntry(double x, double y) =>
-        SelectedLibraryEntry is { } entry ? PlaceEntryAt(entry, x, y) : -1;
+        SelectedLibraryEntry is { IsAvailable: true } entry ? PlaceEntryAt(entry, x, y) : -1;
 
     /// <summary>How many nodes have been placed from the library this session.</summary>
     public int PlacementOrdinal => _placementOrdinal;

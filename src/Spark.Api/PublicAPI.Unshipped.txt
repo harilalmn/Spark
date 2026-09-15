@@ -31,3 +31,9 @@ static Spark.Api.SparkConsole.WriteLine(object? value) -> void
 static Spark.Api.SparkConsole.WriteLine(string? text) -> void
 static Spark.Api.Help.HelpMarkdown.Write(Spark.Api.Help.HelpDocument! topic) -> string!
 static Spark.Api.Help.HelpMarkdown.WriteBody(System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpBlock!>! blocks) -> string!
+Spark.Api.BrepCapabilities.Draft = 131072 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Patch = 65536 -> Spark.Api.BrepCapabilities
+Spark.Api.RequiresBrepCapabilityAttribute
+Spark.Api.RequiresBrepCapabilityAttribute.Capability.get -> Spark.Api.BrepCapabilities
+Spark.Api.RequiresBrepCapabilityAttribute.RequiresBrepCapabilityAttribute(Spark.Api.BrepCapabilities capability) -> void
+Spark.Api.BrepCapabilities.Thicken = 262144 -> Spark.Api.BrepCapabilities

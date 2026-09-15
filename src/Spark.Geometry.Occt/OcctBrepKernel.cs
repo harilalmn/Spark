@@ -87,7 +87,14 @@ public sealed class OcctBrepKernel : IBrepKernel
         | BrepCapabilities.Heal
         | BrepCapabilities.Step
         | BrepCapabilities.Iges
-        | BrepCapabilities.Tessellate;
+        | BrepCapabilities.Tessellate
+        // Added 2026-09-15 with the flags themselves. All three have been implemented here since
+        // the provider was built and had no flag to be claimed through, so `Solid.Patch`,
+        // `Solid.Draft` and `Solid.Thicken` could not be declared as needing anything - which is
+        // what annotating the nodes found (`E2-T28`).
+        | BrepCapabilities.Patch
+        | BrepCapabilities.Draft
+        | BrepCapabilities.Thicken;
 
     /// <inheritdoc/>
     public KernelResult<Brep> Union(Brep first, Brep second, in Tolerance tolerance) =>

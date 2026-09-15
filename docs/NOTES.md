@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N191: prefer the widget whose state the tests can reach)
+**Last updated:** 2026-09-16 (N192: a flag set nothing consumes is one nobody has checked)
 
 ---
 
@@ -5216,6 +5216,48 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N192 — A flag set nothing consumes is a flag set nobody has checked
+
+`IBrepKernel` has carried a `BrepCapabilities` flag set since the seam was built on 2026-08-31, so
+that the library could grey out what a build cannot do. **Nothing read it.** The flags were
+declared, the provider claimed a list of them, a test asserted which ones it did *not* claim — and
+the one place in the product that read `Capabilities` at all read `Step`, to decide a file-format
+message. `BrepCapabilities.MeshBoolean`'s own remarks had already recorded that, on 2026-09-15,
+which is the only reason it was not a surprise.
+
+**Writing the consumer found three holes in fifteen minutes.** Annotating the fourteen `Solid`
+nodes that reach the kernel meant, for the first time, asking *which flag does this operation
+need* — and for three of them there was no answer. `IBrepKernel.Patch`, `IBrepKernel.Draft` and
+`IBrepKernel.Thicken` had no flag. All three have been implemented by the provider since it was
+built and every one of them works. They simply could not be **spoken about**: a node calling
+`Patch` had nothing to declare, so on a build with no kernel it would have stayed enabled and
+failed when pressed — the exact outcome the flag set exists to prevent.
+
+**Nothing was wrong with any of these three lists. What was wrong is that no code ever compared
+them.** The enum was written once, the interface grew afterwards, and the two drifted with no
+mechanism that could notice. A test asserting *the provider does not claim MeshBoolean* checks one
+flag against one provider; it cannot see an operation that has no flag at all, because there is
+nothing to write down.
+
+**The general shape, and it is not about enums.** A declaration with no consumer is unverified by
+construction — not under-tested, *unverifiable*, because there is no behaviour that changes when it
+is wrong. It reads as finished work: it compiles, it has doc comments, a reviewer nods at it. The
+first consumer is the first test, and it will find things, so **the interval between declaring a
+vocabulary and using it is the interval in which it silently stops describing the thing.** Fifteen
+months of that interval would have been worse than fifteen days.
+
+**Two smaller findings from the same step, both the same shape.**
+
+**The help topic promised the greying before it existed.** `docs/help/concepts/solids.md` said
+*those nodes are greyed out in the library rather than failing when you press them* — written when
+the seam was, describing behaviour the product did not have. Nobody caught it because the sentence
+was true of the design. It is now true of the build.
+
+**And the screenshot found the defect the tests could not.** Six tests passed on a row that says
+`This build has no solid-modelli…` — trimmed at three inches, with a tooltip patiently explaining
+what a union is. Every assertion about the string was correct. **A test asserts the text; only a
+picture shows the width.**
 
 ## N191 — A control nothing can open, in a case nothing produces: picking the widget the tests can see
 

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E5-T4`: overloads grouped under one row, and the box ticked)
+**Last updated:** 2026-09-16 (`E2-T28`: the library greys what this build cannot do)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -284,10 +284,21 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       partial results; kernel failure is diagnosable, never thrown (**E2-T28**). *Unchanged by
       ADR-0020, and more load-bearing than before: the failures are now OCCT's (**R18**), and
       `Result<T>` was designed before anyone knew whose they would be.*
-- [ ] A `Capabilities` flag set lets the node library grey out unsupported operations
-      instead of throwing — this is what makes staged delivery honest (**E2-T28**). *What it
-      greys out has inverted: most of what it was designed to expose arrives on day one, and
-      what is absent at 1.0 is **mesh** booleans.*
+- [x] A `Capabilities` flag set lets the node library grey out unsupported operations
+      instead of throwing — this is what makes staged delivery honest (**E2-T28**). *Ticked
+      2026-09-16. **What it greys out inverted twice.** It was designed to expose a staged
+      delivery; the note then said the gap at 1.0 was **mesh** booleans — but there is no
+      mesh-boolean node, so there was nothing for a flag to grey.
+      **The case that is real is the one the build supports**: with no native shim,
+      `UnavailableBrepKernel` reports `None`, every solid operation refuses by name, and the
+      library used to show all forty of them exactly as it showed the nodes that work.
+      A node now declares what it needs with `RequiresBrepCapability`, the panel greys the row and
+      says why in one sentence naming the **kernel** rather than the node, and an unavailable entry
+      is not placed. **Annotating the nodes is what first asked the flag set and `IBrepKernel` to
+      agree, and three of twenty-one operations had no flag** — `Patch`, `Draft` and `Thicken`, all
+      three implemented by the provider since it was built ([N192](NOTES.md)). Photographed both
+      ways: the same `Solid.Union` row with its signature on a build with the shim, and greyed with
+      its reason on one without.*
 - [x] **Residency is canonical, not cached** ([ADR-0021](adr/0021-brep-kernel-residency.md)).
       Exactly two crossings, `Import` and `Materialise`; a ten-operation chain performs zero
       imports and one materialisation; round-trip asserts **tolerance-bounded equivalence,

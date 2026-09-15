@@ -176,13 +176,27 @@
           <DataTemplate x:DataType="vm:LibraryEntryViewModel">
             <!-- Trimmed rather than wrapped, and the tooltip carries the whole of it. A node name
                  is `Type.Member`, so the half that identifies it is at the front; wrapping would
-                 make every long entry two rows tall to show a suffix the user already knows. -->
+                 make every long entry two rows tall to show a suffix the user already knows.
+
+                 A node this build's kernel cannot run is greyed and says why in its tooltip
+                 (E2-T28). The row is still listed, and deliberately: what a user needs to know is
+                 that Spark HAS a Solid.Union and that this build cannot run it - hiding it would
+                 answer a different question, and the wrong one, since the node still exists in
+                 every graph that already uses it. -->
             <Border BorderThickness="2,0,0,0" BorderBrush="{Binding Rail}" Padding="6,4,0,4"
-                    ToolTip.Tip="{Binding Description}">
+                    Classes.unavailable="{Binding !IsAvailable}"
+                    ToolTip.Tip="{Binding Tooltip}">
               <StackPanel Spacing="1">
                 <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
                 <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}"
-                           TextTrimming="CharacterEllipsis" />
+                           TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding IsAvailable}" />
+                <!-- The reason replaces the signature rather than sitting beside it: the ports of a
+                     node that cannot run are not the thing to read, and a third line would make
+                     every greyed row taller than its neighbours. -->
+                <TextBlock Classes="muted unavailable" FontSize="10" Text="{Binding Unavailable}"
+                           TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding !IsAvailable}" />
               </StackPanel>
             </Border>
           </DataTemplate>

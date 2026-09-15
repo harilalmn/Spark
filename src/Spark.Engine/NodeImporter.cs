@@ -694,6 +694,14 @@ public static class NodeImporter
             bool sideEffect = candidate.Member.IsDefined(typeof(NodeSideEffectAttribute), inherit: false)
                 || candidate.DeclaringType.IsDefined(typeof(NodeSideEffectAttribute), inherit: false);
 
+            // On the member only. A whole type of solid operations is plausible, but the flags
+            // differ per operation - Union needs Boolean and Fillet needs Fillet - so a type-level
+            // default would be wrong for most of the members that inherited it, and wrong in the
+            // direction that leaves a node enabled on a build that cannot run it.
+            BrepCapabilities required =
+                candidate.Member.GetCustomAttribute<RequiresBrepCapabilityAttribute>()?.Capability
+                ?? BrepCapabilities.None;
+
             // Declared on the member only, unlike the side-effect flag. A whole type of watch
             // nodes is not a thing, and inheriting it from the type would make every future
             // member of that type a watch by accident.
@@ -729,7 +737,8 @@ public static class NodeImporter
                 hasSlider: hasSlider,
                 hasField: hasField,
                 memberKind: kind,
-                codeExample: CodeExampleFor(candidate))
+                codeExample: CodeExampleFor(candidate),
+                requiredCapabilities: required)
             {
                 InvokeCancellable = candidate.InvokeCancellable,
             };

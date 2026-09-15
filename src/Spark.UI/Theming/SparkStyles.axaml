@@ -30,6 +30,21 @@
   </Style>
 
   <!--
+    A library row for a node this build's kernel cannot run (E2-T28). Disabled removes DEPTH, not
+    CONTRAST - the same rule the toolbar's disabled state follows, section 4: the text drops to the
+    disabled token, which is still above 4.5:1, and nothing is faded with opacity. A row at 40%
+    alpha would be unreadable rather than unavailable, and the reason it is unavailable is the one
+    sentence on the row somebody most needs to read.
+  -->
+  <Style Selector="Border.unavailable TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextDisabledBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.unavailable">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+
+  <!--
     The warning triangle before a warning message - the client's rule, 2026-09-11, for every banner
     and pane that warns. One class, so each draws the same glyph at the same size in the same amber
     and the next banner gets it by writing `Classes="warning"` rather than by drawing its own. 16 px

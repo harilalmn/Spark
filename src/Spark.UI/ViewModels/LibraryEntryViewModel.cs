@@ -27,7 +27,66 @@ public sealed class LibraryEntryViewModel
         Rail = NodeKindGlyphs.BrushOf(definition.MemberKind);
         Description = definition.Description ?? "No description.";
         Signature = Describe(definition);
+
+        BrepCapabilities missing = definition.RequiredCapabilities & ~BrepKernel.Current.Capabilities;
+
+        IsAvailable = missing == BrepCapabilities.None;
+        Unavailable = IsAvailable ? null : Explain(missing);
     }
+
+    /// <summary>
+    /// Whether this build's solid-modelling kernel can do what the node needs (<c>E2-T28</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Read once, when the entry is built, because that is when the library is built.</b>
+    /// Installing a kernel is a startup decision — <c>OcctKernel.TryInstall</c> runs before the
+    /// first window — so a value that could change under a live entry would be answering a question
+    /// nobody can ask.
+    /// </para>
+    /// <para>
+    /// <b>The configuration this exists for is real.</b> A build with no native component is
+    /// supported and tested; on one, every solid operation refuses by name, and until this the
+    /// library showed all of them exactly as it showed the nodes that work.
+    /// </para>
+    /// </remarks>
+    public bool IsAvailable { get; }
+
+    /// <summary>
+    /// One sentence saying why the node cannot run here, or null when it can.
+    /// </summary>
+    /// <remarks>
+    /// <b>It names the capability, not the node.</b> A user looking at a greyed-out
+    /// <c>Solid.Union</c> already knows which node it is; what they do not know is that this build
+    /// has no solid-modelling kernel, which is one fact explaining forty greyed rows rather than
+    /// forty separate mysteries.
+    /// </remarks>
+    public string? Unavailable { get; }
+
+    /// <summary>What the row's tooltip says: why it cannot run, or what it does.</summary>
+    /// <remarks>
+    /// <b>The reason displaces the description, rather than being appended to it.</b> The row is
+    /// narrow and the reason is trimmed on it — which is how this was found, in a screenshot of a
+    /// build with no kernel showing <i>This build has no solid-modelli…</i> and a tooltip
+    /// explaining what a union is. Somebody hovering a greyed row is asking one question, and it
+    /// is not what the node does.
+    /// </remarks>
+    public string Tooltip => Unavailable ?? Description;
+
+    /// <summary>Puts the missing flags into a sentence.</summary>
+    /// <param name="missing">What the kernel cannot do that the node needs.</param>
+    /// <returns>The sentence shown as the row's tooltip.</returns>
+    /// <remarks>
+    /// <b>A kernel reporting <see cref="BrepCapabilities.None"/> is called out by name</b>, because
+    /// it is not one absent operation, it is the whole provider being absent — and *this build has
+    /// no solid-modelling kernel* is what the user needs, where *needs Boolean* would send them
+    /// looking for a setting.
+    /// </remarks>
+    private static string Explain(BrepCapabilities missing) =>
+        BrepKernel.Current.Capabilities == BrepCapabilities.None
+            ? "This build has no solid-modelling kernel, so this node cannot run. "
+                + "The application still opens graphs that use it."
+            : "This build's solid-modelling kernel cannot " + missing.ToString() + ".";
 
     /// <summary>
     /// The node's key, as <c>Package/Name</c>.

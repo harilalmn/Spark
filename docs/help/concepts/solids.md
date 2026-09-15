@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes solids in the running application.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-09-15 (`E2-T27`: the mesh-boolean gap says what to do instead)
+**Last updated:** 2026-09-16 (`E2-T28`: the greying this page already described now exists)
 
 > **Scope.** A solid in Spark is a **boundary representation** — exact surfaces, joined along exact
 > edges, enclosing a volume. It is not a mesh. This topic covers what you can build, what you can
@@ -131,8 +131,18 @@ what makes a chain of ten operations mean what it says.
 surfaces, meshes, tessellation, the viewport, and every file format. What it cannot do is combine
 solids.
 
-When a provider is missing, those nodes are greyed out in the library rather than failing when you
-press them, and a graph that reaches one anyway says so:
+When a provider is missing, those nodes are **greyed out in the library** rather than failing when
+you press them. The row stays in the list — what you need to know is that Spark has a `Solid.Union`
+and that this build cannot run it — and instead of its ports it says why:
+
+```
+  Solid.Union
+  This build has no solid-modelling kernel, so this node cannot run.
+```
+
+Hovering says the same thing in full, and the node cannot be placed. A graph that already uses one
+still opens, still shows every node, and still saves unchanged; the node reports the refusal when it
+runs:
 
 > No solid-modelling kernel is installed, so this build cannot union. Exact solid operations need a
 > kernel provider. Spark's geometry, curves, surfaces, meshes and every file format work without

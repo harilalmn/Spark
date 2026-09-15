@@ -52,6 +52,7 @@ public static class Solid
     /// <param name="first">One solid.</param>
     /// <param name="second">The other.</param>
     /// <returns>The union.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Boolean)]
     [return: NodePort("solid")]
     public static Brep Union(Brep first, Brep second) =>
         Unwrap(BrepKernel.Current.Union(first, second, Tolerance.Default));
@@ -60,6 +61,7 @@ public static class Solid
     /// <param name="solid">The solid to cut.</param>
     /// <param name="cutter">What to cut away.</param>
     /// <returns>The difference.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Boolean)]
     [return: NodePort("solid")]
     public static Brep Difference(Brep solid, Brep cutter) =>
         Unwrap(BrepKernel.Current.Difference(solid, cutter, Tolerance.Default));
@@ -68,6 +70,7 @@ public static class Solid
     /// <param name="first">One solid.</param>
     /// <param name="second">The other.</param>
     /// <returns>The intersection.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Boolean)]
     [return: NodePort("solid")]
     public static Brep Intersection(Brep first, Brep second) =>
         Unwrap(BrepKernel.Current.Intersection(first, second, Tolerance.Default));
@@ -76,6 +79,7 @@ public static class Solid
     /// <param name="profile">The closed curve to sweep.</param>
     /// <param name="direction">Which way and how far.</param>
     /// <returns>The solid.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Extrude)]
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Extrude(Spark.Geometry.Curve profile, Vector3d direction) =>
@@ -89,6 +93,7 @@ public static class Solid
     /// The general case of <see cref="Extrude"/>, which sweeps along a straight line. Use that
     /// one when the path is straight — it needs no second curve and is what most graphs mean.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Sweep)]
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Sweep(Spark.Geometry.Curve profile, Spark.Geometry.Curve rail) =>
@@ -102,6 +107,7 @@ public static class Solid
     /// a patch is handed a circuit and finds a surface that meets it. Asking for one when you
     /// meant the other produces a plausible answer to the wrong question.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Patch)]
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("patch")]
     public static Brep Patch(IReadOnlyList<Spark.Geometry.Curve> boundary) =>
@@ -116,6 +122,7 @@ public static class Solid
     /// split by a plane comes back as two solids whose volumes add up to the block's; the same
     /// block *differenced* by the same tool comes back as one. Use this when both halves matter.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Split)]
     [return: NodePort("pieces")]
     public static IReadOnlyList<Brep> Split(Brep solid, Brep cutter) =>
         Unwrap(BrepKernel.Current.Split(solid, [cutter], Tolerance.Default));
@@ -130,6 +137,7 @@ public static class Solid
     /// say it.</b> An index would be an index into an order nobody can predict; a direction means
     /// nothing for a cutter that cuts more than once.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Split)]
     [return: NodePort("solid")]
     public static Brep Trim(Brep solid, Brep cutter, Point3d keep) =>
         Unwrap(BrepKernel.Current.Trim(solid, [cutter], keep, Tolerance.Default));
@@ -138,6 +146,7 @@ public static class Solid
     /// <param name="solid">The solid.</param>
     /// <param name="distance">How far. Negative moves inwards.</param>
     /// <returns>The offset solid.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Offset)]
     [return: NodePort("solid")]
     public static Brep Offset(Brep solid, double distance = 0.1) =>
         Unwrap(BrepKernel.Current.Offset(solid, distance, Tolerance.Default));
@@ -150,6 +159,7 @@ public static class Solid
     /// The counterpart of <see cref="Hollow"/>: that one takes material out of a closed solid,
     /// this one adds it to something that encloses nothing yet.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Thicken)]
     [return: NodePort("solid")]
     public static Brep Thicken(Brep sheet, double thickness = 0.1) =>
         Unwrap(BrepKernel.Current.Thicken(sheet, thickness, Tolerance.Default));
@@ -162,6 +172,7 @@ public static class Solid
     /// Every edge, because choosing a subset needs a way to *point at* an edge on the canvas — a
     /// selection mechanism that is `E8` work and not this row's.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Fillet)]
     [return: NodePort("solid")]
     public static Brep FilletAll(Brep solid, double radius = 0.1)
     {
@@ -188,6 +199,7 @@ public static class Solid
     /// moulder means by "draft this part" — the alternative is refusing the whole solid because
     /// its top is flat.
     /// </remarks>
+    [RequiresBrepCapability(BrepCapabilities.Draft)]
     [return: NodePort("solid")]
     public static Brep Draft(Brep solid, Vector3d pullDirection, Spark.Geometry.Plane neutral, double angle = 2) =>
         Unwrap(BrepKernel.Current.Draft(
@@ -197,6 +209,7 @@ public static class Solid
     /// <param name="solid">The solid.</param>
     /// <param name="thickness">The wall thickness.</param>
     /// <returns>The shelled solid.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Shell)]
     [return: NodePort("solid")]
     public static Brep Hollow(Brep solid, double thickness = 0.1) =>
         Unwrap(BrepKernel.Current.Shell(solid, [], thickness, Tolerance.Default));
@@ -258,6 +271,7 @@ public static class Solid
     /// <param name="solid">The solid.</param>
     /// <param name="tolerance">The largest distance the mesh may stray from the solid.</param>
     /// <returns>The mesh.</returns>
+    [RequiresBrepCapability(BrepCapabilities.Tessellate)]
     [return: NodePort("mesh")]
     public static Spark.Geometry.Mesh ToMesh(Brep solid, double tolerance = 0.01) =>
         Unwrap(BrepKernel.Current.Tessellate(
