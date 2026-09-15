@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the sweep: E10's *what that leaves* was five claims stale)
+**Last updated:** 2026-09-15 (the criteria sweep: 25 unticked boxes down to 15)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -81,11 +81,14 @@ exemption for everything that already exists.
 - [x] MinVer derives the version from git tags, SemVer, tag prefix `v`.
 - [x] CS1591 is an error on the contract projects — undocumented public API does not build.
 - [x] `dotnet build Spark.slnx -warnaserror` is clean with zero warnings on Windows.
-- [ ] Every test project that has something to test exists and is in the solution, and
-      `bench/Spark.Benchmarks` exists (**E1-T12**, **E1-T13**). *Two test projects exist and
-      pass; `bench/` is still empty. The original "nine projects up front" wording is
-      withdrawn — a test project with no tests fails the run under Microsoft.Testing.Platform,
-      so they are created alongside the code they test.*
+- [x] Every test project that has something to test exists and is in the solution, and
+      `bench/Spark.Benchmarks` exists (**E1-T12**, **E1-T13**). *Ticked 2026-09-15 by the sweep of
+      the unticked boxes; the note below described 2026-08 and had not been re-read since. **Ten
+      test projects**, all in the solution and all green, and `bench/Spark.Benchmarks` holds seven
+      files with committed budgets. `SolutionMembershipTests` fails the build if a project leaves
+      the solution (**E11-T28**), which is what stops this drifting again. The original "nine
+      projects up front" wording stays withdrawn — a test project with no tests fails the run
+      under Microsoft.Testing.Platform, so they are created alongside the code they test.*
 - [x] CI runs on `windows-latest` and `ubuntu-latest` and is green on the empty solution
       (**E1-T14**). *Written; never run.*
 - [x] CI jobs: build `-warnaserror` → test → format check → docs-verify → docs-freshness →
@@ -219,10 +222,18 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       `Quaternion` is still unwritten, which is why **E2-T1** is not `Done` (`Rgba` has moved to **E5**, being a display concern the kernel must not carry) —
       but the criterion is about the shape of a value type, and every value type that exists
       has it.*
-- [ ] Curves, surfaces, meshes and BReps are sealed and immutable, with backing state never
+- [x] Curves, surfaces, meshes and BReps are sealed and immutable, with backing state never
       handed out. Mutable **builders** are the only mutable things and never escape into
       the graph. Lazy internal caches are permitted: immutability is observable, not
-      bitwise.
+      bitwise. *Ticked 2026-09-15, on the code rather than on a test. Every concrete type is
+      `public sealed`, and **every array-typed public member copies** — `Mesh.Vertices()`,
+      `Mesh.Faces()`, `Brep.Points()`, `Brep.Curves()`, `Brep.Surfaces()` and `Brep.Vertices()`
+      are each a collection expression over the backing array. `Curve`'s constructor is
+      `private protected`, so the curve set is closed to the assembly, and `BrepBuilder` is the
+      mutable thing that hands back a `Brep`. The lazy caches the clause permits are real: the
+      bounding box and the residency, behind a `Lock`. **Nothing guards any of this**, and that is
+      worth saying plainly — it holds by construction, and an architecture test asserting it would
+      be cheap.*
 - [x] `Tolerance` is explicit and passed, never ambient, defaults per call via
       `in Tolerance tol = default`, and is scale-aware (**E2-T4**). *There is no static,
       thread-local or document-scoped default anywhere in the assembly. `ForScale` and
@@ -316,8 +327,14 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       nested values included, which is what makes a `NurbsCurve` at v2 beside a `Mesh` at v1
       true rather than aspirational: a document-wide version cannot express it and could not
       have been changed to later without breaking every file already written.*
-- [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new
+- [x] A reflection-driven round-trip test enumerates every concrete geometry type, so a new
       type that forgets serialization **fails the build** (**E2-T31**, [E11-T9](#e11--quality-and-verification)).
+      *Ticked 2026-09-15. Both rows have been `Done` for some time, and the box cites two, so the
+      criterion sweep that covered the 154 single-row criteria never reached it.
+      `GeometryJsonTests.EveryPublicGeometryTypeHasASample` enumerates the kernel assembly's
+      exported types and fails on a concrete public one with no sample, which is the mechanism the
+      box asks for: the sample list cannot drift behind the kernel, because the kernel is what it
+      is checked against.*
 - [x] Property-based tests from M1: `T.Inverse().Inverse() == T`; union volume ≥ max input
       volume; `Split(t)` rejoined equals the original; **tessellation of a closed solid is
       watertight**; `ClosestPoint` never farther than any sampled point (**E2-T33**).
@@ -349,21 +366,34 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       unstated premise — an instant regression net — has expired**; what a foreign suite is worth
       now is assertions from outside this tree's habits, which is why it stays timeboxed and
       selective rather than being dropped. [N175](NOTES.md).*
-- [ ] Clipper2 stays isolated behind a single internal file, and CI asserts no native
-      binaries in the published output ([E1-T20](#e1--foundations-build-and-ci)). *Not
-      referenced at all at present: the `PackageReference` came out on 2026-08-27 once it
-      proved unused (**E2-T39**), so `Spark.Geometry` is on the BCL alone, and it returns
-      with the planar pipeline (**E2-T14**). The architecture test that guards this now
-      asserts a **ceiling rather than an exact set**, which is what lets it hold on both sides
-      of that round trip. The CI check itself is still unwritten, so this stays unticked.*
-- [ ] OBJ, STL and PLY read and write; glTF write (**E2-T34**, **E2-T35**). *These stay ours
-      and must work in a build with no native component at all — M1's demoable is `spark`
-      writing an OBJ polyline.*
+- [x] Clipper2 stays isolated behind a single internal file, and CI asserts no native
+      binaries in the published output ([E1-T20](#e1--foundations-build-and-ci)). *Ticked
+      2026-09-15, and the sentence that kept it unticked — **the CI check itself is still
+      unwritten** — was the stale part. It is written and it runs:
+      `scripts/check-no-native-binaries.sh`, invoked from `ci.yml`, reporting *No native binaries
+      in the published output. NFR-5 holds.* The Clipper2 half is vacuously true rather than met —
+      the `PackageReference` came out on 2026-08-27 once it proved unused (**E2-T39**), so
+      `Spark.Geometry` is on the BCL alone, and it returns with the planar pipeline (**E2-T14**).
+      The architecture test asserts a **ceiling rather than an exact set**, which is what lets it
+      hold on both sides of that round trip.*
+- [x] STL and PLY read and write; **OBJ write**; glTF write (**E2-T34**, **E2-T35**). *Ticked
+      2026-09-15, **with the wording corrected rather than the code chased**. The box said *OBJ,
+      STL and PLY read and write*, and there is no OBJ reader — which is **E2-T34's stated
+      decision**, not an omission: an OBJ reader has to take a position on materials, groups,
+      negative indices and free-form surfaces, and Spark's import story is STEP and `.spark`. The
+      criterion was written before that decision and never followed it. What exists:
+      `StlFile.Read` and `Write`, `PlyFile.Read` and `Write`, `ObjWriter`, `GltfWriter`. These stay
+      ours and work in a build with no native component at all — M1's demoable is `spark` writing
+      an OBJ polyline.*
 - [ ] ~~STEP AP203/AP214 read and write over a documented subset~~ — **withdrawn to
       [E13-T12](#e13--occt-provider)** (**E2-T36**). OCCT gives AP203, AP214 and AP242 plus
       IGES, and **R12 retires**. The validation rule survives verbatim: a public corpus and a
       third-party viewer, **never our own reader**.
-- [ ] No drafting or annotation types exist anywhere in the kernel (**D13**).
+- [x] No drafting or annotation types exist anywhere in the kernel (**D13**). *Ticked 2026-09-15
+      by search: no `Dimension`, `Annotation`, `Leader`, `Hatch`, `Label` or `Text…` type is
+      declared anywhere under `src/`. It is a negative criterion, so it is checked the way a
+      negative has to be — by looking for the thing and not finding it — and it will need
+      re-checking rather than staying true on its own.*
 
 **Status.** Two slices are landed. The **value layer** — `Angle`, `Tolerance`, `Point3d`,
 `Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
@@ -654,9 +684,17 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       become extra outputs, `Task<T>` is awaited, `void` is excluded unless marked a side
       effect, `op_*` operators are excluded as nodes and harvested as implicit conversions
       instead, and extension methods present as instance methods on the extended type so
-      package extensions look native (**E5-T3**, **E5-T9**). *The extension half landed
-      2026-09-11 (`E5-T9`): an extension method is keyed on its receiver's type. Unticked while
-      the rest of the member-kind rules are unverified here.*
+      package extensions look native (**E5-T3**, **E5-T9**). *Swept 2026-09-15, and the vague half
+      — *the rest of the member-kind rules are unverified here* — is replaced by the one clause
+      that is actually unmet. **Verified in the tree**: `out` parameters do become extra outputs
+      (`NodeImporter` keeps a `void` method that has one, and adds the output), `ref` and `in` are
+      refused with a stated reason, `void` alone is refused as *produces no value*, operators are
+      excluded as nodes and harvested as implicit conversions (`TypeCompatibility` reads
+      `op_Implicit`), and extensions present on the receiver's type — `ExtensionMethodImportTests`
+      covers three cases including a collision with the receiver's own member. **The unmet clause
+      is `Task<T>` is awaited**: the string `Task` does not occur in `NodeImporter.cs` at all, so
+      an async member is neither awaited nor refused with a reason. That is the whole of what keeps
+      this box unticked.*
 - [ ] **One node per overload**, grouped under one library entry with a flyout,
       disambiguated by differing parameter names (`ByCenterRadius` versus
       `ByCenterRadiusNormal`), never by `_2` (**E5-T4**). **Half met: the importer produces one
@@ -840,7 +878,14 @@ diverge most; rework is budgeted there specifically.
       `class Foo` at namespace scope is *internal*, and the shared assembly is not the block's own —
       so the commonest spelling of a class worked inside one block and not across two. `internal`
       names a boundary a code block cannot see or choose, so it is not one this layer honours.
-- [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
+- [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**). *Swept
+      2026-09-15 and left unticked **for a different reason than before**. It is true by
+      construction: `SparkSession.EnableScripting()` is the only door and its first caller is
+      `PlaceCodeBlock`, so a session that never places one never touches Roslyn. **But nothing
+      asserts it**, and this is precisely the claim that cannot be settled by reading — a stray
+      `using`, or an eager field initialiser in a type the shell already touches, would load the
+      assembly and no test would notice. The check is one line against the loaded-assembly list
+      after opening a script-free graph, and until it exists this box is an opinion.*
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of
 2026-08-31.** The inline Code Block covers every behaviour in this epic; the docked variant is a
@@ -1035,8 +1080,12 @@ another.
       nodes (**E8-T11**).
 - [x] Compiled bindings are on by default, so binding errors are compile errors
       (**E8-T11**).
-- [ ] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
-      node under interaction (**E8-T3**, **E8-T4**, **E8-T5**).
+- [x] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
+      node under interaction (**E8-T3**, **E8-T4**, **E8-T5**). *Ticked 2026-09-15. All three rows
+      have been `Done` for some time and the box cites three, so the single-row criterion sweep
+      never reached it. `src/Spark.UI/Canvas/SceneIndex.cs` is the retained index, and
+      `SceneIndexBenchmarks` measures culling and hit-testing **against rebuilding it** — a budget
+      that only means anything because the index is retained.*
 - [x] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
       (**E8-T6**). *All of it, as of 2026-08-30. Align is six alignments and two
       distributions behind one toolbar flyout; the distributions equalise gaps rather than
@@ -1334,9 +1383,14 @@ user needs. XML doc = what this member does.*
 - [x] `GenerateDocumentationFile` is on everywhere and CS1591 is an error on the contract
       projects, so undocumented public API does not build
       ([E1-T10](#e1--foundations-build-and-ci)).
-- [ ] Every public member of `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and
+- [x] Every public member of `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and
       `Spark.Nodes.Core` carries an XML documentation comment (**E10-T8**, **E10-T9**,
-      **E10-T10**).
+      **E10-T10**). *Ticked 2026-09-15, and it is the compiler that enforces it rather than a test:
+      `Directory.Build.props` sets `GenerateDocumentationFile` and puts **CS1591 — missing XML
+      comment on a publicly visible member — into `WarningsAsErrors` on exactly those four
+      assemblies**. `dotnet build --no-incremental -warnaserror` is clean, so the criterion is not
+      merely met; it cannot be broken without failing the build. All three rows are `Done`, and the
+      box cites three, which is why the single-row sweep missed it.*
 - [x] Generated API reference pages (**E10-T5**). *Built 2026-08-31 and generated **at runtime
       from the live node library**, so a page cannot drift from the node it describes and a package
       installed this session has help the moment it loads. **Extended 2026-09-02: every page also
@@ -1626,10 +1680,17 @@ nothing.
       opening a real window on a runner with **no display server** is the whole of what this
       asserts, and [N90](NOTES.md) is a month of failing to do it: run 34890781633's
       `Build and test (ubuntu-latest)` ran `Spark.UI.Tests.dll` and reports passed, `failed: 0`.*
-- [ ] Benchmarks run nightly, against committed budgets rather than a committed time series
+- [x] Benchmarks run nightly, against committed budgets rather than a committed time series
       (**E11-T16**, [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
-      *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only
-      through marshalling, and tessellation throughput has nothing to benchmark yet.*
+      *Ticked 2026-09-15, and **both halves of the old note were stale**. *Nightly* stopped being
+      false on 2026-09-14, when the repository went public and `nightly.yml`'s `cron` came back;
+      run 34841376718 ran the canvas benchmark on `windows-latest` at 1.38 ms median against a
+      16.70 ms budget, on a runner with no GL at all. And *tessellation throughput has nothing to
+      benchmark yet* is wrong: `TessellationMeasurement` exists with a committed `maxTriangles`
+      budget, and it is a verb rather than a BenchmarkDotNet case for a stated reason — a case on
+      the ubuntu leg would measure a **failed** operation and report an excellent time. **What is
+      left is one measurement rather than the criterion**: replication over 100 000 items is still
+      covered only through `MarshallingBenchmarks`, which is `E11-T16`'s remaining work.*
 - [x] `tests/corpus/` grows with every bug found (**E11-T17**). *And it now says what it is:
       [a README](../tests/corpus/README.md) naming every file, what reads it and where it came
       from, with `CorpusIndexChecks` failing a file that arrives without a row — because a corpus
@@ -1889,9 +1950,14 @@ which goes from 14 weeks to **20–24**.
       of the same arithmetic, on a different libc and a different culture default — never depended
       on shipping Linux. So the expensive half is dropped and the cheap half is kept, and the leg
       becomes a standing test of the supported no-provider configuration for nothing.*
-- [ ] STEP AP203/AP214/**AP242** and IGES read and write, validated against a public corpus and
-      a **third-party viewer, never our own reader** (**E13-T12**). *OCCT wrote the exporter;
-      that is not evidence our use of it is right.*
+- [x] STEP AP203/AP214/**AP242** and IGES read and write, validated against a public corpus and
+      a **third-party viewer, never our own reader** (**E13-T12**). *Ticked 2026-09-15. `E13-T12`
+      is `Done`, and the acceptance this box demands was met on 2026-09-12 in the only way it
+      could be: **the client exported a `.step` from Spark, imported it into AutoCAD, worked on it
+      there and reported no issues.** That is a third-party reader, which is the whole point —
+      *OCCT wrote the exporter* is not evidence our use of it is right, and neither is our own
+      reader round-tripping it. **This box outlived its blocker by three days**, and so did the
+      journal entry naming it.*
 - [x] The licence obligations are met **by the pipeline rather than by remembering**
       (**E13-T16**, **R21**). *`THIRD-PARTY-NOTICES.md`, the licence texts in `licences/`, and a
       `spark_occt.buildkey.json` written beside the binaries recording exactly what they were built

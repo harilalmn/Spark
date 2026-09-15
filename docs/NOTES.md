@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N180: `In progress` is where a stale register hides)
+**Last updated:** 2026-09-15 (N181: the sweep's own filter was the blind spot)
 
 ---
 
@@ -5216,6 +5216,45 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N181 — The sweep's own filter was the blind spot, and it hid ten of the boxes it was built to find
+
+**2026-09-15.** The criterion sweep of earlier the same day walked **the 154 acceptance criteria in
+`EPICS.md` that cite exactly one register row**, compared each box against that row's status, and
+found 22 disagreements — 17 documents lagging, five real exemptions, written out to
+`tests/corpus/epic-criterion-exemptions.tsv`. It was a good sweep and it worked.
+
+**Its filter was also the reason it missed most of what was wrong.** Of the 25 boxes still
+unticked, **fourteen cite two or more rows, or none at all** — and they are exactly the boxes the
+comparison could not make, because *the row's status* is not defined when there are three rows or
+zero. Ten of them ticked on inspection:
+
+- *Every test project exists and `bench/` exists* — cites two rows, both `Done` since August. Its
+  note still said **two test projects exist and `bench/` is still empty**; there are ten and seven
+  files.
+- *A reflection-driven round-trip test enumerates every concrete geometry type* — cites two,
+  both `Done`, and the test enumerates the assembly.
+- *The canvas is one control over a retained `SceneIndex`* — cites three, all `Done`.
+- *Every public member carries an XML doc comment* — cites three, all `Done`, and it is
+  **CS1591 as an error** in `Directory.Build.props`, so it cannot be broken without failing the
+  build.
+- *No drafting or annotation types exist* and *curves, surfaces, meshes and BReps are sealed and
+  immutable* cite **no row at all** and therefore could never appear in a row-status comparison.
+  Both hold, and one of them holds with nothing guarding it.
+
+**The two that were stale in a more interesting way.** *Clipper2 stays isolated, and CI asserts no
+native binaries* was held unticked by its own sentence — *the CI check itself is still unwritten* —
+and the check is written and runs from `ci.yml`. *OBJ, STL and PLY read and write* will never tick,
+because `E2-T34` **decided not to build an OBJ reader** and the criterion was written before the
+decision; the fix was to correct the box, not to chase the code. **A criterion can be wrong. It is
+not a specification handed down from outside — somebody wrote it, on a day, with what they knew.**
+
+**The rule.** *A sweep is only as complete as its selector, and the selector is the thing nobody
+audits.* When a check reports *22 of 154 disagreed*, the number to ask about is not the 22 — it is
+**what the 154 was drawn from and what fell outside it**. Here the excluded set was 65 criteria and
+contained ten stale boxes, a higher hit rate than the set that was swept. The same shape as
+[N167](NOTES.md), one level up: there, a grep that could not fail; here, a sweep that could not
+look.
 
 ## N180 — `In progress` is where a stale register hides, because the row is never wrong enough to notice
 

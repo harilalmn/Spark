@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the sweep of the nine `In progress` rows)
+**Last updated:** 2026-09-15 (the criteria sweep: ten boxes ticked, 25 down to 15)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -612,6 +612,24 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     (three wrong counts), `E12-T5` (a fourth verb that belongs to `E3-T20`). **Three were
 >     exactly right**, and all three had been re-checked within the week. **E10's *what that
 >     leaves* paragraph in EPICS was five claims stale** and is corrected in place.
+> 15. **The sweep of the 25 unticked acceptance criteria, 2026-09-15. Ten ticked; 25 down to
+>     15.** *All Epics are done* is the run parameter and an unticked box is the only thing
+>     that measures it. **The blind spot was the previous sweep's own filter**
+>     ([N181](NOTES.md)): it walked the 154 criteria citing *exactly one* row, and fourteen
+>     of the 25 unticked cite two, three, four or none — the comparison it made was
+>     undefined for them. Ticked: the test-projects and `bench/` box (whose note still said
+>     *two test projects exist and `bench/` is still empty*), the reflection round-trip,
+>     the retained `SceneIndex`, XML docs on every public member (**CS1591 as an error**,
+>     so it cannot be broken without failing the build), sealed-and-immutable, no drafting
+>     types, Clipper2-and-no-native-binaries (held unticked by *the CI check is still
+>     unwritten*, and it runs from `ci.yml`), the mesh formats, benchmarks-run-nightly, and
+>     STEP/IGES third-party validation — **which had been satisfied since 2026-09-12 by the
+>     client's AutoCAD import, and was still on the journal's *Blocked on* list.** **The
+>     worst single find was not a box**: `TASKS.md`'s E13 intro said *seventeen tasks, all
+>     `Open`, none started; nothing of this epic exists in the tree*, with seventeen of
+>     eighteen `Done` and 78 tests running against the provider. **What is left unticked is
+>     now honest**: `Task<T>` in the importer, the flyout, the `Capabilities` grey-out, the
+>     signing identity, `D19`/`D20` deferrals, and one box that is true and unguarded.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

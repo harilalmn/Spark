@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the sweep of the nine `In progress` rows: one closed, five stale halves)
+**Last updated:** 2026-09-15 (the criteria sweep: E13's intro said none of this epic exists)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 381 done · 9 in progress · 4 open · 5 blocked · 5 deferred · 12 withdrawn — **416 rows**
@@ -551,8 +551,16 @@ Everything else in this file is a plan, not a claim.
 
 ## E13 — OCCT provider
 
-Seventeen tasks, all `Open`, none started. **Nothing of this epic exists in the tree** — there
-is no `native/` directory, no `Spark.Geometry.Occt` project and no OCCT anywhere in it. Epic
+**Eighteen tasks, seventeen `Done` and one `Blocked`, as of the sweep of 2026-09-15.** *This
+paragraph read "Seventeen tasks, all `Open`, none started. **Nothing of this epic exists in the
+tree** — there is no `native/` directory, no `Spark.Geometry.Occt` project and no OCCT anywhere in
+it." Every clause of that is false and had been for weeks: `native/spark_occt/` holds the shim's
+sources, `src/Spark.Geometry.Occt/` is a project in the solution, and
+`Spark.Geometry.Occt.Tests` runs **78 tests against the real provider with nothing skipped**. It
+survived because a section intro is prose with no status column and no row to reconcile against —
+[N180](NOTES.md) is about the same failure one level down.* The one `Blocked` row is `E13-T18`,
+waiting with `E13-T21` and `E2-T67` on the OpenCascade reinstall: the toolchain is intact and
+`scripts/build-native.ps1` refuses, having searched all three vcpkg roots. Epic
 context is [EPICS.md E13](EPICS.md#e13--occt-provider); the decisions are
 [ADR-0020](adr/0020-occt-via-c-abi-shim.md) and
 [ADR-0021](adr/0021-brep-kernel-residency.md).
