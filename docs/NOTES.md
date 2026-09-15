@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N181: the sweep's own filter was the blind spot)
+**Last updated:** 2026-09-15 (N181 closed: the check now reads multi-row criteria)
 
 ---
 
@@ -5255,6 +5255,24 @@ audits.* When a check reports *22 of 154 disagreed*, the number to ask about is 
 contained ten stale boxes, a higher hit rate than the set that was swept. The same shape as
 [N167](NOTES.md), one level up: there, a grep that could not fail; here, a sweep that could not
 look.
+
+**Closed the same day, and closing it turned up a second thing.** `AcceptanceCriterionChecks` now
+covers multi-row criteria — a box ticks if and only if **every** cited row is `Done`. Writing that
+forced a definition of *cites*, and the obvious one is wrong: reading every `E<n>-T<m>` in the
+folded text conflates the rows a criterion **depends on** with the rows its annotation **mentions**.
+The index-based-BRep box cites `E2-T22` and `E2-T23`; its annotation names a measurement that
+supports it, a gap it excludes and a row that closed twelve members. `E2-T64` being `Deferred` says
+nothing about whether the topology is index-based.
+
+**The distinguishing feature turned out to be the parenthesis, and it was measured rather than
+assumed.** Of 219 criteria, 208 cite a row, and **all 208 cite one inside a parenthesis while not
+one cites a row only outside** — so reading citations from parentheses loses nothing. It also
+corrected the old reading in the other direction: **18 criteria that really cite a single row** had
+been dropped from the original check because their prose mentioned a second, and were covered by
+nothing. Single-row 152 → 170, multi-row 55 → 38, and the two sets are now asserted to **exactly
+cover** every row-citing criterion. **That last assertion is the real fix** — the gap between *cites
+a row* and *is checked* is what hid for weeks, and a gap is invisible unless something insists it is
+zero.
 
 ## N180 — `In progress` is where a stale register hides, because the row is never wrong enough to notice
 

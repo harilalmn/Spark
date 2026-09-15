@@ -32,10 +32,29 @@ namespace Spark.Docs.Verify;
 /// <para>
 /// <b>A criterion is not its row, and that is why there is an exemptions file rather than a
 /// predicate.</b> A criterion can be one third of a row (<c>E1-T28</c>'s concurrency groups, where
-/// the row is blocked on branch protection) or broader than it (<c>E13-T12</c>, whose acceptance
-/// needs a third-party viewer). Both are legitimate and both are written down with a reason a
-/// stranger can check. <see cref="NoExemptionIsStale"/> is what stops the file becoming the place
-/// fixed problems go to be forgotten.
+/// the row is blocked on branch protection) or broader than it, or met while its row is not —
+/// <c>E11-T16</c>, where the benchmarks run nightly against committed budgets and what keeps the
+/// row open is one measurement the criterion never named. All of those are legitimate and each is
+/// written down with a reason a stranger can check. <see cref="NoExemptionIsStale"/> is what stops
+/// the file becoming the place fixed problems go to be forgotten.
+/// </para>
+/// <para>
+/// <b>THE CRITERIA CITING SEVERAL ROWS WERE EXCLUDED, AND THE EXCLUDED SET WAS WHERE THE ERRORS
+/// WERE.</b> This check originally read *the* row a criterion cites, which is undefined when there
+/// are three of them or none, so 63 of 217 criteria went unchecked and the remark here said they
+/// *stay the reader's job*. The reader's job went undone: the sweep of 2026-09-15 read the 25
+/// unticked boxes by hand and **ten of them were stale, all in the excluded set** — a higher hit
+/// rate than in the set this check was covering. One had been held unticked for weeks by its own
+/// sentence, *the CI check itself is still unwritten*, about a script that runs in `ci.yml`.
+/// </para>
+/// <para>
+/// <b>So a multi-row box now ticks if and only if <i>every</i> row it cites is <c>Done</c></b>
+/// (<see cref="EveryCriterionCitingSeveralRowsAgreesWithAllOfThem"/>), which is what *this is met
+/// when both of these land* means when it is written out. It is a rule rather than a guess about
+/// which row governs, and where it is wrong the exemptions file says so and why — matched on any
+/// one of the cited rows. **What is still uncovered is the criteria citing no row at all**, and
+/// there is no comparison to make for those: the answer is to give them a row, not to weaken this.
+/// See [N181](../../docs/NOTES.md).
 /// </para>
 /// </remarks>
 public sealed class AcceptanceCriterionChecks
@@ -57,8 +76,25 @@ public sealed class AcceptanceCriterionChecks
 
         Assert.True(criteria.Count >= 200, $"found {criteria.Count} acceptance criteria in EPICS.md, expected at least 200");
         Assert.True(
-            SingleRowCriteria().Count >= 140,
-            $"found {SingleRowCriteria().Count} criteria citing exactly one register row, expected at least 140");
+            SingleRowCriteria().Count >= 160,
+            $"found {SingleRowCriteria().Count} criteria citing exactly one register row, expected at least 160");
+
+        // A FLOOR ON THE MULTI-ROW SET TOO, because it is the set that was silently empty before:
+        // the check that reads it was added on 2026-09-15 and would pass over nothing at all if
+        // the parser or the row expression stopped matching, which is the failure this whole file
+        // has a paragraph about.
+        Assert.True(
+            MultiRowCriteria().Count >= 30,
+            $"found {MultiRowCriteria().Count} criteria citing two or more register rows, expected at least 30");
+
+        // AND THAT THE TWO SETS TOGETHER COVER EVERY CRITERION THAT CITES ANYTHING. This is the
+        // assertion the 2026-09-15 sweep is the reason for: what went unchecked for weeks was not
+        // a criterion anybody had exempted, it was a criterion no rule selected. A gap between
+        // "cites a row" and "is checked" must be zero, not small.
+        Assert.Equal(
+            Cited().Count(c => c.Rows.Length >= 1),
+            SingleRowCriteria().Count + MultiRowCriteria().Count);
+
         Assert.True(Statuses().Count >= 400, $"found {Statuses().Count} rows in TASKS.md, expected at least 400");
     }
 
@@ -67,9 +103,9 @@ public sealed class AcceptanceCriterionChecks
     /// exemptions file says why not.
     /// </summary>
     /// <remarks>
-    /// Criteria citing two or more rows are not checked, deliberately: *this is met when both of
-    /// these land* is a real thing to write, and a rule that guessed which row governed would be
-    /// wrong quietly. 63 of the 217 criteria are like that, and they stay the reader's job.
+    /// Criteria citing two or more rows are
+    /// <see cref="EveryCriterionCitingSeveralRowsAgreesWithAllOfThem"/>'s, and were nobody's until
+    /// 2026-09-15.
     /// </remarks>
     [Fact]
     public void EveryCriterionAgreesWithTheRowItCites()
@@ -109,6 +145,73 @@ public sealed class AcceptanceCriterionChecks
     }
 
     /// <summary>
+    /// <b>Every criterion citing two or more rows is ticked if and only if all of them are
+    /// <c>Done</c></b>, unless the exemptions file says why not.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>All of them, rather than any of them, and the asymmetry is the point.</b> *This is met
+    /// when both of these land* is what a multi-row criterion says, so one row short of `Done`
+    /// leaves the box unticked and the reader is told **which** row — a box that ticked on its
+    /// first finished row would be a box that announces the work before it is done.
+    /// </para>
+    /// <para>
+    /// <b>An exemption matches on any one of the cited rows</b>, because there is no principled
+    /// way to pick which of three a reason belongs to; the <c>Match</c> text is what makes it
+    /// specific, and <see cref="NoExemptionIsStale"/> holds it to selecting exactly one criterion.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryCriterionCitingSeveralRowsAgreesWithAllOfThem()
+    {
+        IReadOnlyDictionary<string, string> statuses = Statuses();
+        List<Exemption> exemptions = Exemptions();
+        List<string> problems = [];
+
+        foreach (Criterion criterion in MultiRowCriteria())
+        {
+            string[] unknown = [.. criterion.Rows.Where(row => !statuses.ContainsKey(row))];
+
+            if (unknown.Length > 0)
+            {
+                problems.Add(
+                    $"EPICS.md line {criterion.Line}: cites {string.Join(", ", unknown)}, which TASKS.md does not have.");
+                continue;
+            }
+
+            string[] notDone =
+            [
+                .. criterion.Rows.Where(row => !statuses[row].StartsWith("Done", StringComparison.OrdinalIgnoreCase)),
+            ];
+
+            if ((notDone.Length == 0) == criterion.Ticked)
+            {
+                continue;
+            }
+
+            if (exemptions.Any(e =>
+                criterion.Rows.Contains(e.Row, StringComparer.Ordinal)
+                && criterion.Text.Contains(e.Match, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            problems.Add(criterion.Ticked
+                ? $"EPICS.md line {criterion.Line}: the box is ticked and "
+                    + $"{string.Join(", ", notDone.Select(row => $"{row} is '{statuses[row]}'"))}. "
+                    + "Untick it, finish the row, or add a line to "
+                    + "tests/corpus/epic-criterion-exemptions.tsv saying why they disagree.\n"
+                    + $"    {Shorten(criterion.Text)}"
+                : $"EPICS.md line {criterion.Line}: the box is unticked and all of "
+                    + $"{string.Join(", ", criterion.Rows)} are Done. Tick it, change a row, or add a line to "
+                    + "tests/corpus/epic-criterion-exemptions.tsv saying why they disagree.\n"
+                    + $"    {Shorten(criterion.Text)}");
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    /// <summary>
     /// <b>No exemption is stale.</b> An exemption whose criterion and row now agree is excusing
     /// nothing, and leaving it there is how a file of reasons becomes a file of history — the next
     /// disagreement on that row would then be excused by a sentence about a problem somebody
@@ -118,14 +221,20 @@ public sealed class AcceptanceCriterionChecks
     public void NoExemptionIsStale()
     {
         IReadOnlyDictionary<string, string> statuses = Statuses();
-        List<Criterion> criteria = SingleRowCriteria();
+
+        // EVERY ROW-CITING CRITERION, not only the single-row ones. An exemption written for a
+        // multi-row box would otherwise select zero criteria and be reported as a broken exemption
+        // rather than honoured - the check policing the file would forbid the file's own new case.
+        List<Criterion> criteria = [.. SingleRowCriteria(), .. MultiRowCriteria()];
         List<string> problems = [];
 
         foreach (Exemption exemption in Exemptions())
         {
             List<Criterion> matched =
             [
-                .. criteria.Where(c => c.Row == exemption.Row && c.Text.Contains(exemption.Match, StringComparison.Ordinal)),
+                .. criteria.Where(c =>
+                    c.Rows.Contains(exemption.Row, StringComparer.Ordinal)
+                    && c.Text.Contains(exemption.Match, StringComparison.Ordinal)),
             ];
 
             if (matched.Count != 1)
@@ -146,8 +255,10 @@ public sealed class AcceptanceCriterionChecks
                 continue;
             }
 
-            bool done = statuses.TryGetValue(exemption.Row, out string? status)
-                && status.StartsWith("Done", StringComparison.OrdinalIgnoreCase);
+            // The same rule the two checks above apply: one row, or all of several.
+            bool done = criterion.Rows.All(row =>
+                statuses.TryGetValue(row, out string? status)
+                && status.StartsWith("Done", StringComparison.OrdinalIgnoreCase));
 
             if (done == criterion.Ticked)
             {
@@ -212,11 +323,84 @@ public sealed class AcceptanceCriterionChecks
 
     /// <summary>The criteria that cite exactly one register row.</summary>
     private static List<Criterion> SingleRowCriteria() =>
+    [.. Cited().Where(c => c.Rows.Length == 1)];
+
+    /// <summary>
+    /// Every criterion with the rows it <b>cites</b>, which is not every row its text mentions.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A CRITERION CITES ITS ROWS IN A PARENTHESIS, AND NAMES OTHER ROWS IN ITS PROSE.</b>
+    /// Reading every <c>E&lt;n&gt;-T&lt;m&gt;</c> in the folded text conflates the two, and the
+    /// difference is not cosmetic: the index-based-BRep criterion cites <c>E2-T22</c> and
+    /// <c>E2-T23</c> and its annotation goes on to name <c>E2-T44</c>, <c>E2-T64</c> and
+    /// <c>E2-T65</c> — a measurement that supports it, a gap it excludes and a row that closed
+    /// twelve members. None of the three governs the box, and <c>E2-T64</c> being <c>Deferred</c>
+    /// says nothing about whether the topology is index-based.
+    /// </para>
+    /// <para>
+    /// <b>Measured before it was adopted, over all 219 criteria.</b> 208 cite at least one row;
+    /// **all 208 cite one inside a parenthesis, and not one cites a row only outside**, so the
+    /// rule loses nothing. It also corrects the older reading in the other direction: **18
+    /// criteria that really cite a single row** were being dropped from
+    /// <see cref="EveryCriterionAgreesWithTheRowItCites"/> because their prose happened to mention
+    /// a second, and they were checked by nothing at all. Single-row 152 → 170, multi-row
+    /// 55 → 38.
+    /// </para>
+    /// </remarks>
+    private static List<Criterion> Cited() =>
     [
-        .. Criteria()
-            .Select(c => c with { Rows = [.. RowId.Matches(c.Text).Select(m => m.Value).Distinct()] })
-            .Where(c => c.Rows.Length == 1),
+        .. Criteria().Select(c => c with
+        {
+            Rows = [.. RowId.Matches(Parentheticals(c.Text)).Select(m => m.Value).Distinct()],
+        }),
     ];
+
+    /// <summary>The parenthesised spans of a criterion, run together.</summary>
+    /// <remarks>
+    /// Nesting is counted rather than matched on the first <c>)</c>, because a citation can sit
+    /// inside a Markdown link — <c>([E13-T16](#e13--occt-provider), **R21**)</c> — whose own
+    /// parentheses would otherwise close the span before the row was read. An unclosed
+    /// parenthesis contributes what it has, since a criterion is prose and prose is unbalanced
+    /// often enough to matter.
+    /// </remarks>
+    private static string Parentheticals(string text)
+    {
+        System.Text.StringBuilder inside = new();
+        int depth = 0;
+
+        foreach (char character in text)
+        {
+            switch (character)
+            {
+                case '(':
+                    depth++;
+                    continue;
+
+                case ')':
+                    depth = Math.Max(0, depth - 1);
+                    inside.Append(' ');
+                    continue;
+
+                default:
+                    if (depth > 0)
+                    {
+                        inside.Append(character);
+                    }
+
+                    continue;
+            }
+        }
+
+        return inside.ToString();
+    }
+
+    /// <summary>The criteria that cite two or more register rows.</summary>
+    /// <remarks>
+    /// Unchecked until 2026-09-15, and the set the sweep of that day found ten stale boxes in.
+    /// </remarks>
+    private static List<Criterion> MultiRowCriteria() =>
+    [.. Cited().Where(c => c.Rows.Length >= 2)];
 
     /// <summary>Every <c>E&lt;n&gt;-T&lt;m&gt;</c> row in <c>TASKS.md</c> with its status.</summary>
     /// <remarks>

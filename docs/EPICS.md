@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the criteria sweep: 25 unticked boxes down to 15)
+**Last updated:** 2026-09-15 (the criterion check now reads multi-row boxes; five exemptions)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1836,12 +1836,19 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       say publicly is no longer true. What replaces it is the **positioning paragraph** in the
       README, which says that Spark ships OpenCascade and why that is not the dependency Spark
       exists to remove (**R13**).
-- [ ] **The publish pipeline meets the OCCT licence obligations** — dynamic linking,
+- [x] **The publish pipeline meets the OCCT licence obligations** — dynamic linking,
       replaceable shared libraries, **no single-file seal and no NativeAOT over OCCT**, the
       LGPL and exception texts shipped, prominent notice in About, README, installer and
       release notes, a source offer against a pinned tag, and any modification kept as a
-      numbered patch file ([E13-T16](#e13--occt-provider), **R21**). *This constrains
-      **E12-T8**, which was written before the constraint existed, and which **D21** has now
+      numbered patch file ([E13-T16](#e13--occt-provider), **R21**). *Ticked 2026-09-15, by the
+      extended criterion check rather than by hand: the box cites one row once the citation is read
+      from its parenthesis rather than from its prose, and `E13-T16` is `Done`. **Four tests hold
+      it**, in `Spark.Architecture.Tests.LicenceObligationTests`:
+      `TheThirdPartyNoticesExistAndNameOpenCascade`, `TheLicenceTextsAreShippedRatherThanLinked`,
+      `TheNativeBuildRecordsAKeyTheSourceOfferCanBeHonouredAgainst` and
+      `NothingPublishesSingleFileOrNativeAot` — which is the clause most likely to be broken by
+      somebody optimising a publish profile, and it is asserted rather than remembered. This
+      constrains **E12-T8**, which was written before the constraint existed, and which **D21** has
       answered on the two halves that are licence questions. Nothing here is legal advice; six
       questions are with counsel — **Q13**.*
 

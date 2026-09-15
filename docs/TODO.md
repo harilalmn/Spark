@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the criteria sweep: ten boxes ticked, 25 down to 15)
+**Last updated:** 2026-09-15 (`E11-T32` extended: the criterion check covers every citing box)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -630,6 +630,17 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     eighteen `Done` and 78 tests running against the provider. **What is left unticked is
 >     now honest**: `Task<T>` in the importer, the flyout, the `Capabilities` grey-out, the
 >     signing identity, `D19`/`D20` deferrals, and one box that is true and unguarded.
+> 16. **`E11-T32` extended so the blind spot is closed in code, not only written down.**
+>     Ten boxes were ticked by hand on 2026-09-15 and were guarded by nothing;
+>     `AcceptanceCriterionChecks` now ticks a multi-row box **iff every cited row is
+>     `Done`**. Writing it forced a definition of *cites*, and the obvious one was wrong —
+>     a criterion's prose names rows it does not depend on. **Measured over all 219: all 208
+>     row-citing criteria cite inside a parenthesis and none only outside**, so reading
+>     citations from the parenthesis loses nothing and recovers **18 single-row criteria**
+>     that were covered by nothing at all. The two sets are now asserted to *exactly cover*
+>     every row-citing criterion. Six disagreements on the first run: one real tick (the
+>     OCCT licence obligations) and five legitimate exemptions with reasons. Proved in both
+>     directions. Harness 67 → **68** checks.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.
