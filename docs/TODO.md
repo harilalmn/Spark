@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T71` Done: `OffsetMany`, and five stale clauses in one row)
+**Last updated:** 2026-09-15 (`E2-T68`: `Reduce` built; `Remesh` alone is left)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -678,6 +678,19 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     fell out — a `Line` along the normal threw the wrong exception type, and the
 >     per-segment catch swallowed a bad normal — and a third assumption died on measurement.
 >     8 tests, three mutations caught. **`E10-T14` remains the only `Open` row.**
+> 20. **`E2-T68`** — mesh repair and remeshing. **`Reduce` built 2026-09-15, and two of the
+>     four the row still listed were already delivered**: `Mesh.Repaired` and
+>     `Mesh.MadeWatertight`. [N183](NOTES.md) landing on the very next row it was written
+>     about. `MeshDecimation.Reduced` is quadric error metrics with the survivor placed at
+>     an endpoint or the midpoint rather than at the quadric minimum — no 4x4 inverse to be
+>     singular, and no vertex can move anywhere its neighbours were not. **A test found a
+>     real wreck**: asking a cube for one triangle removed every face, because a tetrahedron
+>     collapses into two identical triangles and then into nothing; refusing a collapse that
+>     produces duplicate faces stops it at the tetrahedron. **The flip guard is kept and
+>     uncovered, and says so on itself** — disabling it leaves all eight tests green, because
+>     midpoint placement already prevents what it guards. 512 triangles to exactly 128 at 88%
+>     of the volume; a subdivided cube keeps all eight corners exactly. **`Remesh` alone is
+>     left**, and `E10-T14` is still the only `Open` row.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

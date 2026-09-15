@@ -99,6 +99,7 @@ Spark.Geometry.Mesh.Project(in Spark.Geometry.Point3d point, in Spark.Geometry.V
 Spark.Geometry.Mesh.Repaired() -> Spark.Geometry.Mesh!
 Spark.Geometry.Mesh.Smoothed(double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!
 Spark.Geometry.Mesh.TriangleCentroids() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.MeshDecimation
 Spark.Geometry.MeshFace.Reversed() -> Spark.Geometry.MeshFace
 Spark.Geometry.MeshPrimitives
 Spark.Geometry.MeshTopology.Edges() -> (int From, int To)[]!
@@ -258,6 +259,7 @@ static Spark.Geometry.CurveSurfaceIntersections.None.get -> Spark.Geometry.Curve
 static Spark.Geometry.Helix.FromAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Point3d startPoint, double pitch, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Helix!
 static Spark.Geometry.KnotVector.CreateUniform(int degree, int controlPoints) -> Spark.Geometry.KnotVector!
 static Spark.Geometry.Line.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Line!
+static Spark.Geometry.MeshDecimation.Reduced(Spark.Geometry.Mesh! mesh, int targetFaceCount) -> Spark.Geometry.Mesh!
 static Spark.Geometry.MeshPrimitives.Cone(in Spark.Geometry.Plane plane, double baseRadius = 1, double topRadius = 0, double height = 1, int divisions = 16, bool capped = true) -> Spark.Geometry.Mesh!
 static Spark.Geometry.MeshPrimitives.Cuboid(in Spark.Geometry.Plane plane, double width = 1, double length = 1, double height = 1, int xDivisions = 1, int yDivisions = 1, int zDivisions = 1) -> Spark.Geometry.Mesh!
 static Spark.Geometry.MeshPrimitives.Plane(in Spark.Geometry.Plane plane, double width = 1, double length = 1, int xDivisions = 1, int yDivisions = 1) -> Spark.Geometry.Mesh!

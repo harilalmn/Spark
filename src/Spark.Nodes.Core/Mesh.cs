@@ -87,6 +87,26 @@ public static class Mesh
     public static Spark.Geometry.Mesh Smooth(Spark.Geometry.Mesh mesh, double strength = 0.5, int passes = 1) =>
         mesh.Smoothed(strength, passes);
 
+    /// <summary>Reduces a mesh's triangle count while keeping its shape.</summary>
+    /// <param name="mesh">The mesh to reduce.</param>
+    /// <param name="targetFaceCount">How many triangles to aim for.</param>
+    /// <returns>The reduced mesh.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The count a scanner or a tessellator gives you is a fact about it, not about the
+    /// shape.</b> A cylinder meshed finely is a million triangles that a thousand would draw
+    /// indistinguishably, and this is the node to reach for after importing one.
+    /// </para>
+    /// <para>
+    /// <b>The target is an aim.</b> A mesh that cannot reach it — because the collapses that would
+    /// get there would fold a face over or pinch the surface — comes back larger than asked for
+    /// rather than wrecked, and a mesh already small enough comes back untouched.
+    /// </para>
+    /// </remarks>
+    [return: NodePort("mesh")]
+    public static Spark.Geometry.Mesh Reduce(Spark.Geometry.Mesh mesh, int targetFaceCount = 1000) =>
+        MeshDecimation.Reduced(mesh, targetFaceCount);
+
     /// <summary>Splits a mesh into its connected pieces.</summary>
     /// <param name="mesh">The mesh to split.</param>
     /// <returns>One mesh per piece. A mesh already in one piece comes back on its own.</returns>
